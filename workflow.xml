@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<extension group="fabrik_form" method="upgrade" type="plugin" version="3">
+	<name>plg_fabrik_form_workflow</name>
+	<author>Media A-Team, Inc.</author>
+	<creationDate>August 2021</creationDate>
+	<copyright>Copyright (C) 2005-2021 Media A-Team, Inc. - All rights reserved.</copyright>
+	<license>GNU/GPL http://www.gnu.org/copyleft/gpl.html</license>
+	<authorEmail>rob@pollen-8.co.uk</authorEmail>
+	<authorUrl>www.fabrikar.com</authorUrl>
+	<version>3.10</version>
+	<help url="PLG_FORM_WORKFLOW_HELP_SERVER"/>
+	<description>PLG_FORM_WORKFLOW_DESCRIPTION</description>
+	<install>
+		<sql>
+			<file charset="utf8" driver="mysql">sql/install.mysql.uft8.sql</file>
+			<file charset="utf8" driver="mysqli">sql/install.mysql.uft8.sql</file>
+		</sql>
+	</install>
+	<files>
+		<filename plugin="workflow">workflow.php</filename>
+		<filename>canApproveRequests.php</filename>
+		<filename>getRecord.php</filename>
+		<filename>getRequests.php</filename>
+		<filename>getRequestType.php</filename>
+		<filename>updateRequest.php</filename>
+		<filename>uploadFile.php</filename>
+		<filename>workflow-min.js</filename>
+		<filename>workflow.js</filename>
+		<filename>index.html</filename>
+		<folder>forms</folder>
+		<folder>language</folder>
+		<folder>sql</folder>
+	</files>
+</extension>

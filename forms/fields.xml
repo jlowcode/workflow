@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<form>
+    <fields addfieldpath="/administrator/components/com_fabrik/models/fields" name="params">
+        <fieldset name="plg-form-workflow">
+
+            <field type="helplink"
+                   url="PLG_FORM_WORKFLOW_HELP_SERVER" />
+                   
+            <!-- <field name="allow_edit_own_record"
+                   type="checkbox"
+                   value="1"
+                   default="1"
+                   label="PLG_FORM_WORKFLOW_FIELD_EDIT_OWN_RECORD_LABEL"
+                   description="PLG_FORM_WORKFLOW_FIELD_EDIT_OWN_RECORD_DESC"
+            /> -->
+            
+            <field name="allow_request_record"
+                   type="accesslevel"
+                   default="2"
+                   label="PLG_FORM_WORKFLOW_FIELD_REQUEST_RECORD_LABEL"
+                   description="PLG_FORM_WORKFLOW_FIELD_REQUEST_RECORD_DESC"
+            />
+            
+            <field name="allow_review_request"
+                   type="accesslevel"
+                   default="3"
+                   label="PLG_FORM_WORKFLOW_FIELD_REVIEW_REQUEST_LABEL"
+                   description="PLG_FORM_WORKFLOW_FIELD_REVIEW_REQUEST_DESC"
+            />
+
+
+            <field name="approve_for_own_records"
+                   type="radio"
+                   class="btn-group"
+                   default="0"
+                   label="PLG_FORM_WORKFLOW_APPROVE_OWN_RECORDS_LABEL"
+                   description="PLG_FORM_WORKFLOW_APPROVE_OWN_RECORDS_DESCRIPTION"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field name="workflow_send_mail"
+                   type="radio"
+                   class="btn-group"
+                   default="0"
+                   label="Send Mail"
+                   description="Send Mail"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+            
+            <field name="workflow_owner_element"
+                   type="listfields"
+                   highlightpk="true"
+                   description="PLG_FORM_WORKFLOW_OWNER_ELEMENT_DESC"
+                   label="PLG_FORM_WORKFLOW_OWNER_ELEMENT_LABEL"/>
+		
+        </fieldset>	
+    </fields>
+</form>
