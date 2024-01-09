@@ -9,6 +9,8 @@
 // No direct access
 defined('_JEXEC') or die('Restricted access');
 
+use Joomla\CMS\Language\Text;
+
 // Require the abstract plugin class
 require_once COM_FABRIK_FRONTEND . '/models/plugin-form.php';
 require_once JPATH_COMPONENT . '/controller.php';
@@ -626,47 +628,47 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
     // Ajax functions end
 
     function loadTranslationsOnJS() {
-        JText::script('PLG_FORM_WORKFLOW_REQ_ID_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_LIST_ID_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_COMMENT_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_FILE_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_LIST_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_COMMENT_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_FILE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL');
 
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_START_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_PREV_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_NEXT_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_END_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_START_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_PREV_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_NEXT_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_END_LABEL');
 
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_TEXT');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_DELETE_TEXT');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_TEXT');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_DELETE_TEXT');
 
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL');
-        JText::script('PLG_FORM_WORKFLOW_REQ_OWNER_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_OWNER_LABEL');
 
-        JText::script('PLG_FORM_WORKFLOW_VERIFY');
-        JText::script('PLG_FORM_WORKFLOW_APPROVED');
-        JText::script('PLG_FORM_WORKFLOW_PRE_APPROVED');
-        JText::script('PLG_FORM_WORKFLOW_NOTE_APPROVED');
+        Text::script('PLG_FORM_WORKFLOW_VERIFY');
+        Text::script('PLG_FORM_WORKFLOW_APPROVED');
+        Text::script('PLG_FORM_WORKFLOW_PRE_APPROVED');
+        Text::script('PLG_FORM_WORKFLOW_NOTE_APPROVED');
 
-        JText::script('PLG_FORM_WORKFLOW_ADD_RECORD');
-        JText::script('PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD');
-        JText::script('PLG_FORM_WORKFLOW_DELETE_RECORD');
+        Text::script('PLG_FORM_WORKFLOW_ADD_RECORD');
+        Text::script('PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD');
+        Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD');
 
-        JText::script('PLG_FORM_WORKFLOW_LOG');
+        Text::script('PLG_FORM_WORKFLOW_LOG');
 
     }
 
@@ -894,16 +896,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
         
         //headings
         $headings = array(
-            'req_request_type_name' => FText::_('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
-            'req_user_name' => FText::_('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
-            'req_created_date' => FText::_('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL'),
-            'req_owner_name' => FText::_('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
-            'req_reviewer_name' => FText::_('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL'),
-            'req_revision_date' => FText::_('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL'),
-            'req_status' => FText::_('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL'),
-            'req_record_id' => FText::_('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL'),
-            'req_approval' => FText::_('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
-            'view' => FText::_('PLG_FORM_WORKFLOW_REQUEST_VIEW_LABEL')
+            'req_request_type_name' => Text::_('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
+            'req_user_name' => Text::_('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
+            'req_created_date' => Text::_('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL'),
+            'req_owner_name' => Text::_('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
+            'req_reviewer_name' => Text::_('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL'),
+            'req_revision_date' => Text::_('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL'),
+            'req_status' => Text::_('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL'),
+            'req_record_id' => Text::_('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL'),
+            'req_approval' => Text::_('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
+            'view' => Text::_('PLG_FORM_WORKFLOW_REQUEST_VIEW_LABEL')
         );
         
         //grupos
@@ -1134,7 +1136,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
         $logData = $this->getFormDataToLog($formData, $hasPermission);
         
         if(!$this->saveLog($logData)) {
-            die(FText::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
+            die(Text::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
         }
 
 
@@ -1142,11 +1144,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
         if (!$hasPermission) {
             //define a mensagem de retorno
             if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
             } else if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
             } else {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
             }
 
             return false;
@@ -1214,7 +1216,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
         }
 
         if (!$this->persistRequest($formData, $hasPermission)) {
-            die(FText::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
+            die(Text::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
         }
 
 
@@ -1222,11 +1224,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
         if (!$hasPermission) {
             //define a mensagem de retorno
             if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
             } else if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
             } else {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
             }
 
             return false;
@@ -1395,8 +1397,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
             $db->setQuery($sql);
             $r = $db->loadResult();
             $_REQUEST['workflow']['requests_count'] = $r;
-            $_REQUEST['workflow']['label_request_aproval'] = FText::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
-            $_REQUEST['workflow']['label_request_view'] = FText::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_VIEW');
+            $_REQUEST['workflow']['label_request_aproval'] = Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
+            $_REQUEST['workflow']['label_request_view'] = Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_VIEW');
 
             //parametro para url de lista e form (depende se frontend ou backend)
             $opt = array('list' => '&view=list', 'form' => '&view=form', 'details' => '&view=details');
@@ -1921,7 +1923,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
             $hasPermission = $this->hasPermission($formData);
 
             if (!$this->saveFormDataToLog($formData, $hasPermission)) {
-                die(FText::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
+                die(Text::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
             }
             if (!$hasPermission) {
                 if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD && empty($formData["owner_id"])) {
@@ -1936,11 +1938,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
         if (!$hasPermission) {
             //define a mensagem de retorno
             if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
             } else if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
             } else {
-                JFactory::getApplication()->enqueueMessage(FText::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
+                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
             }
 
             return false;
@@ -2127,8 +2129,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
         $listModel = $this->getModel()->getListModel();
         $_REQUEST['workflow']['showAddRequest'] = !$listModel->canAdd() && $this->canRequest();
         $_REQUEST['workflow']['addRequestLink'] = $listModel->getAddRecordLink() . '?wfl_action=request';
-        $_REQUEST['workflow']['requestLabel'] = FText::_('PLG_FORM_WORKFLOW_BUTTON_NEW_REQUEST');
-        $_REQUEST['workflow']['eventsButton'] = FText::_('PLG_FORM_WORKFLOW_BUTTON_EVENTS');
+        $_REQUEST['workflow']['requestLabel'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_NEW_REQUEST');
+        $_REQUEST['workflow']['eventsButton'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_EVENTS');
     }
 
     protected function checkEventsButton() {
@@ -2346,8 +2348,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
             $db->setQuery($sql);
             $r = $db->loadResult();
             $_REQUEST['workflow']['requests_count'] = $r;
-            $_REQUEST['workflow']['label_request_aproval'] = FText::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
-            $_REQUEST['workflow']['label_request_view'] = FText::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_VIEW');
+            $_REQUEST['workflow']['label_request_aproval'] = Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
+            $_REQUEST['workflow']['label_request_view'] = Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_VIEW');
 
             //parametro para url de lista e form (depende se frontend ou backend)
             $opt = array('list' => '&view=list', 'form' => '&view=form', 'details' => '&view=details');
@@ -2396,8 +2398,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
 
         $link = JURI::root() . "index.php/". "$this->listName?show_request_id=$req_id";
 
-        $subject = JText::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_SUBJECT', $this->listName) . " :: " . $this->config->get('sitename');
-        $message = JText::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_BODY', $request_type, $this->listName, $link);
+        $subject = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_SUBJECT', $this->listName) . " :: " . $this->config->get('sitename');
+        $message = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_BODY', $request_type, $this->listName, $link);
 
         $this->enviarEmail($emailTo, $subject, $message);
     }
@@ -2434,8 +2436,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
 
         $link = JURI::root() . "index.php/". "$list_label/details/$list_id/$record_id";
 
-        $subject = JText::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_APPROVAL_SUBJECT', $list_label) . " :: " . $this->config->get('sitename');
-        $message = JText::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_APPROVAL_BODY', $user_name, $request_type, $list_label, $request_status, $link);
+        $subject = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_APPROVAL_SUBJECT', $list_label) . " :: " . $this->config->get('sitename');
+        $message = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_APPROVAL_BODY', $user_name, $request_type, $list_label, $request_status, $link);
 
         $this->enviarEmail($emailTo, $subject, $message);
     }
@@ -2455,10 +2457,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form {
                 $mail = JFactory::getMailer();
                 $res = Fabrik\Helpers\Worker::sendMail($emailFrom, $emailFromName, $email, $subject, $message, true);
                 if ($res !== true) {
-                    $this->app->enqueueMessage(JText::sprintf('PLG_FORM_WORKFLOW_DID_NOT_SEND_EMAIL', $email), 'notice');
+                    $this->app->enqueueMessage(Text::sprintf('PLG_FORM_WORKFLOW_DID_NOT_SEND_EMAIL', $email), 'notice');
                 }
             } else {
-                $this->app->enqueueMessage(JText::sprintf('PLG_FORM_WORKFLOW_DID_NOT_SEND_EMAIL_INVALID_ADDRESS', $email));
+                $this->app->enqueueMessage(Text::sprintf('PLG_FORM_WORKFLOW_DID_NOT_SEND_EMAIL_INVALID_ADDRESS', $email));
             }
         }
     }
