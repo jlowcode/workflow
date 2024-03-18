@@ -1,7 +1,7 @@
 /**
  * Workflow Javascript
  *
- * @copyright: Copyright (C) 2019
+ * @copyright: Copyright (C) 2024
  * 
  */
 
@@ -138,7 +138,37 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                     // self.setForm(self.buildForm(request), modal, [request], request['req_id']);
                     // modal.show();
                 }
-			});
+
+			var dataRow = document.getElementsByClassName('fabrik_row');
+			Array.from(dataRow).each(function (row) {
+
+				// BUTTON REPORT 
+				var btnGroup = row.getElementsByClassName('btn-group');
+				let report = document.createElement("a");
+				report.classList.add('btn', 'btn-default');
+				report.setAttribute('data-loadmethod', 'xhr')
+				report.setAttribute('data-list', row.offsetParent.id)
+				report.setAttribute('data-rowid', 'xhr')
+				report.setAttribute('target', '_self')
+				report.setAttribute('title', 'Reportar')
+				report.setAttribute('onclick', 'reportAbuse(' + row.id.split('_')[4] + ',' + row.id.split('_')[6] + ')')
+				report.innerHTML = '<i data-isicon="true" class="icon-warning "></i><span class="hidden">Reportar</span>';
+				btnGroup[0].appendChild(report);
+
+				// REMOVE DELETAR PADRAO
+				jQuery('.btn.btn-default.delete').remove();
+
+				// ADICIONA TOOTIPS PARA CAMPOS VAZIOS
+				var fields = jQuery('.fabrik___rowlink.fabrik_edit');
+				Object.keys(fields).forEach(function(key) {
+					if (fields[key].textContent == '\n') {
+						fields[key].parentElement.setAttribute('data-bs-toggle',"tooltip")
+						fields[key].parentElement.setAttribute('data-bs-placement',"top")
+						fields[key].parentElement.setAttribute('title',"Completar ou corrigir esses dados")
+					};
+				});
+				});
+			})
 
 			//Request type select
 			var requestTypeSelect = jQuery('#requestTypeSelect');
@@ -185,7 +215,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		onGetSessionToken: function () {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'option': 'com_fabrik',
@@ -209,15 +239,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			const cursorPointer = "cursor: pointer;";
 			      pageCount     = Math.ceil(pageCount);
 
-			const startButtonPagination = jQuery('<a id="start-button" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_START_LABEL')+'</a>');
-			const prevButtonPagination  = jQuery('<a id="pagination-prev" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_PREV_LABEL')+'</a>');
+			const startButtonPagination = jQuery('<a class="page-link" id="start-button" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_START_LABEL')+'</a>');
+			const prevButtonPagination  = jQuery('<a class="page-link" id="pagination-prev" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_PREV_LABEL')+'</a>');
 
-			const nextButtonPagination = jQuery('<a id="pagination-next" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_NEXT_LABEL')+'</a>');
-			const endButtonPagination  = jQuery('<a id="pagination-end" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_END_LABEL')+'</a>');
+			const nextButtonPagination = jQuery('<a class="page-link" id="pagination-next" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_NEXT_LABEL')+'</a>');
+			const endButtonPagination  = jQuery('<a class="page-link" id="pagination-end" rel="noreferrer" target="_blank" type="button">'+Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_END_LABEL')+'</a>');
 
 			if(actualPage == 1) {
-				paginationUl.append(jQuery('<li class="active"></li>').append(startButtonPagination));
-				paginationUl.append(jQuery('<li class="active"></li>').append(prevButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(startButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(prevButtonPagination));
 			} else {
 				// @TODO - PAGINATION Start prev
 				startButtonPagination.on('click', function () {
@@ -237,7 +267,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			for(var i = 1; i <= pageCount; i++) {
 
-				const pageButton = jQuery('<a rel="noreferrer" target="_blank" type="button">'+ i +'</a>');
+				const pageButton = jQuery('<a class="page-link" rel="noreferrer" target="_blank" type="button">'+ i +'</a>');
 
 
 
@@ -260,8 +290,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 			}
 			if(actualPage == pageCount || isNaN(pageCount)) {
-				paginationUl.append(jQuery('<li class="active"></li>').append(nextButtonPagination));
-				paginationUl.append(jQuery('<li class="active"></li>').append(endButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(nextButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(endButtonPagination));
 			} else {
 				// @TODO - PAGINATION NEXT END
 				nextButtonPagination.on('click', function () {
@@ -358,7 +388,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				sequence = "desc";
 			}
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'req_status'             : req_status,
@@ -396,20 +426,20 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
 			jModalBody.empty();
 
-			var commentContainer       = jQuery("<div></div>");
-			var fileContainer          = jQuery("<div></div>");
+			var commentContainer       = jQuery("<div class='mt-1'></div>");
+			var fileContainer          = jQuery("<div class='mt-1'></div>");
 			var commentLabel           = jQuery("<p>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') +"</p>");
 			var commentTextArea        = jQuery("<textarea id='commentTextArea'></textarea>");
-			var approveSection         = jQuery("<div></div>");
+			var approveSection         = jQuery("<div class='mt-1'></div>");
 			var approveSectionTitle    = jQuery("<h2>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') +"</h2>");
 			var uploadFileApproveLabel = jQuery("<p>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL') +"</p>");
 			var uploadFileApprove      = jQuery("<input type='file' name='uploadFileApprove' id='uploadFileApprove'>");
 
 			var yesno = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
-				"  <label class=\"btn btn-secondary\">\n" +
+				"  <label class=\"btn btn-success\">\n" +
 				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonYes\" value=\"yes\" autocomplete=\"off\" checked> Yes\n" +
 				"  </label>\n" +
-				"  <label class=\"btn btn-secondary\">\n" +
+				"  <label class=\"btn btn-danger\">\n" +
 				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonNo\" value=\"no\" autocomplete=\"off\"> No \n" +
 				"  </label>\n" +
 				"</div>");
@@ -432,7 +462,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// @TODO - Verificar se pode aprovar
 			if(formData[0]['req_status'] == 'verify') {
 				if(self.canApproveRequests(formData[0])) {
-					var approveButton = jQuery('<button class="btn" id="approveButton">'+
+					var approveButton = jQuery('<button class="btn btn-primary" id="approveButton">'+
 						Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') +'</button>');
 
 					// @TODO RESOLVER DE OUTRA FORMA
@@ -471,8 +501,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
                         if(approved) {
 							if(requestType == 3) {
-								const rowId = JSON.decode(formData[0]['form_data'])[0]['rowid'];
-								self.deleteRecord(rowId);
+								// const rowId = JSON.decode(formData[0]['form_data'])[0]['rowid'];
+								const rowId = formData[0].req_record_id;
+								const listId = formData[0].req_list_id;
+								self.deleteRecord(rowId,listId);
 							} else {
 								
 								self.createUpdateRecord(formData);
@@ -483,7 +515,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                             self.uploadFile(uploadFileInput).done(function (response) {
                                 formData[0]['req_file'] = response;
                                 jQuery.ajax({
-                                    'url'   : 'index.php',
+                                    'url'   : '',
                                     'method': 'get',
                                     'data'  : {
                                         'formData': formData,
@@ -497,17 +529,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                                     },
                                     success: function (data) {
                                         modal.style.display = "none";
-                                        
                                         alert('Concluído');
                                         document.location.reload(true);
-
                                     }
                                 });
                             });
                         } else {
 
 							jQuery.ajax({
-								'url'   : 'index.php',
+								'url'   : '',
 								'method': 'get',
 								'data'  : {
 									'formData': formData,
@@ -536,23 +566,42 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
         // delete a record
-        deleteRecord: function(rowId, listName) {
-            var self = this;
-            return jQuery.ajax({
-                'url'   : 'index.php',
-                'method': 'get',
-                'data'  : {
-                    'list_name': self.options.listName,
-                    'record_id': rowId,
-                    'option'   : 'com_fabrik',
-                    'format'   : 'raw',
-                    'task'     : 'plugin.pluginAjax',
-                    'plugin'   : 'workflow',
-                    'method'   : 'DeleteRecord',
-                    'g'        : 'form',
-                }
-            });
-        },
+        // deleteRecord: function(rowId, listName) {
+        //     var self = this;
+        //     return jQuery.ajax({
+        //         'url'   : 'index.php',
+        //         'method': 'get',
+        //         'data'  : {
+        //             'list_name': self.options.listName,
+        //             'record_id': rowId,
+        //             'option'   : 'com_fabrik',
+        //             'format'   : 'raw',
+        //             'task'     : 'plugin.pluginAjax',
+        //             'plugin'   : 'workflow',
+        //             'method'   : 'DeleteRecord',
+        //             'g'        : 'form',
+        //         }
+        //     });
+        // },
+
+		
+        deleteRecord: function(rowId, listId) {
+				jQuery.ajax({
+					'url': '',
+					'method': 'get',
+					'data': {
+						'option': 'com_fabrik',
+						'task': 'plugin.pluginAjax',
+						'plugin': 'workflow',
+						'method': 'onDeleteRow',
+						'g': 'form',
+						'rowId': '{'+rowId+':'+rowId+'}',
+						'listId': listId,
+					},
+				success: function (data) {
+				}
+			});
+		},
 
 		// Uses the process() function of fabrik's controller to
 		// create or update a record
@@ -564,7 +613,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				recordData['req_id'] = formData[0]['req_id'];
 				jQuery.ajax({
 					type: "POST",
-					url : "index.php",
+					url : "",
 					data: recordData
 				}).done(function (retorno) {
 					// console.log(retorno);
@@ -574,7 +623,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		getLastRecordFormData: function (req_record_id) {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'req_record_id': req_record_id,
@@ -819,7 +868,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			if(data['req_request_type_id'] == "delete_record" || data['req_request_type_id'] == 3 ) {
 				// delete record
-				const recordId = formData[0].rowid;
+				const recordId = formData.rowid;
 
 				this.getElementsType(data['req_list_id']).done(function (elementsTypes){
 				    const link = self.options.root_url + "index.php/" + listName + "/details/" + self.options.listId + "/" + recordId;
@@ -900,7 +949,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						if(elementsTypes[onlyElementKey]['plugin'] == "user") {
 							//onGetUserValue
 							jQuery.ajax({
-								'url'   : 'index.php',
+								'url'   : '',
 								'method': 'get',
 								'data'  : {
 									'user_id': obj[0],
@@ -993,7 +1042,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					if(elementsTypes[onlyElementKey]['plugin'] == "user") {
 						//onGetUserValue
 						jQuery.ajax({
-							'url'   : 'index.php',
+							'url'   : '',
 							'method': 'get',
 							'data'  : {
 								'last_user_id': obj['last'][0],
@@ -1381,7 +1430,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		getDatabaseJoinSingleElements: function(join_db_name, original_element_id,
 												element_id, join_val_column, join_key_column) {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'join_db_name'       : join_db_name,
@@ -1403,7 +1452,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 												  element_name, parent_id, join_val_column,
 												  join_key_column, request_elements_array) {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'request_elements_array': request_elements_array,
@@ -1426,7 +1475,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		getFileUploadOriginals: function(parent_table_name, element_name, parent_id) {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'parent_table_name': parent_table_name,
@@ -1444,7 +1493,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		getElementsType: function(req_list_id) {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'req_list_id': req_list_id,
@@ -1461,7 +1510,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		getRequest: function (req_id) {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'req_id': req_id,
@@ -1487,7 +1536,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		getElementsPlugin: function (req_list_id) {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'req_list_id': req_list_id,
@@ -1510,7 +1559,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		getSessionToken: function () {
 			return jQuery.ajax({
-				'url'   : 'index.php',
+				'url'   : '',
 				'method': 'get',
 				'data'  : {
 					'option': 'com_fabrik',
@@ -1527,8 +1576,3 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 	return FabrikWorkflow;
 });
-
-
-
-	
-
