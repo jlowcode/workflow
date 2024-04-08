@@ -1814,6 +1814,25 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     {
         // Get the form model
         $formModel = $this->getModel();
+
+        // Update user own 
+        $listModel = $formModel->getListModel();
+        $owner_element_id = $this->params->get('workflow_owner_element');
+        $owner_element = $listModel->getElements('id');
+        $owner_element_name = $owner_element[$owner_element_id]->element->name;
+        $table_name = $formModel->getTableName();
+
+        $pk = $listModel->getPrimaryKeyAndExtra();
+        $id_raw = $formModel->fullFormData[$table_name.'___'.$pk[0]['colname'].'_raw'];
+        $owner_id = $formModel->fullFormData[$table_name.'___'.$owner_element_name][0];
+
+        $db = JFactory::getDbo();
+        $query = $db->getQuery(true);
+        $query->set("{$owner_element_name} = " . $db->quote($owner_id));
+        $query->update($table_name)->where("{$pk[0]['colname']} = " . $db->quote($id_raw));
+        $db->setQuery($query);
+        $db->execute();
+        
         if (isset($this->isReview) && $this->isReview) {
             $row_id = $formModel->fullFormData['rowid'];
             $req_id = $formModel->fullFormData['req_id'];
