@@ -251,11 +251,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			} else {
 				// @TODO - PAGINATION Start prev
 				startButtonPagination.on('click', function () {
-					self.loadRequestList(self.modal, 'verify', 1);
+					var selected = jQuery('#requestTypeSelect')[0].value
+					self.loadRequestList(self.modal, selected, 1);
+					// self.loadRequestList(self.modal, 'verify', 1);
 				});
 				prevButtonPagination.on('click', function () {
 					if (actualPage != 1) {
-						self.loadRequestList(self.modal, 'verify', actualPage-1);
+						var selected = jQuery('#requestTypeSelect')[0].value
+						self.loadRequestList(self.modal, selected, actualPage-1);
+						// self.loadRequestList(self.modal, 'verify', actualPage-1);
 					}
 
 				});
@@ -280,7 +284,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						pageButton.attr("style", cursorPointer);
 						pageButton.on('click', function () {
 							// self.setPagination(index);
-							self.loadRequestList(self.modal, 'verify', index);
+							var selected = jQuery('#requestTypeSelect')[0].value
+							self.loadRequestList(self.modal, selected, index);
+							// self.loadRequestList(self.modal, 'verify', index);
 							
 						});
 					})(i);
@@ -296,11 +302,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				// @TODO - PAGINATION NEXT END
 				nextButtonPagination.on('click', function () {
 					if (actualPage != pageCount) {
-						self.loadRequestList(self.modal, 'verify', actualPage+1);
+						var selected = jQuery('#requestTypeSelect')[0].value
+						self.loadRequestList(self.modal, selected, actualPage+1);
+						// self.loadRequestList(self.modal, 'verify', actualPage+1);
 					}
 				});
 				endButtonPagination.on('click', function () {
-					self.loadRequestList(self.modal, 'verify', pageCount);
+					var selected = jQuery('#requestTypeSelect')[0].value
+					self.loadRequestList(self.modal, selected, pageCount);
+					// self.loadRequestList(self.modal, 'verify', pageCount);
 				});
 				nextButtonPagination.attr("style", cursorPointer);
 				endButtonPagination.attr("style", cursorPointer);
@@ -396,6 +406,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					'approve_for_own_records': this.options.user.approve_for_own_records,
 					'list_id'                : this.options.listId,
 					'user_id'                : this.options.user.id,
+					'allow_review_request'   : this.options.allow_review_request,
 					'option'                 : 'com_fabrik',
 					'format'                 : 'raw',
 					'task'                   : 'plugin.pluginAjax',
@@ -426,11 +437,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
 			jModalBody.empty();
 
-			var commentContainer       = jQuery("<div class='mt-1'></div>");
-			var fileContainer          = jQuery("<div class='mt-1'></div>");
+			var commentContainer       = jQuery("<div class='mt-2'></div>");
+			var fileContainer          = jQuery("<div class='mt-2'></div>");
 			var commentLabel           = jQuery("<p>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') +"</p>");
-			var commentTextArea        = jQuery("<textarea id='commentTextArea'></textarea>");
-			var approveSection         = jQuery("<div class='mt-1'></div>");
+			var commentTextArea        = jQuery("<textarea style='width: 100%;height: 5rem;' id='commentTextArea'></textarea>");
+			var approveSection         = jQuery("<div class='mt-2 mb-4'></div>");
 			var approveSectionTitle    = jQuery("<h2>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') +"</h2>");
 			var uploadFileApproveLabel = jQuery("<p>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL') +"</p>");
 			var uploadFileApprove      = jQuery("<input type='file' name='uploadFileApprove' id='uploadFileApprove'>");
@@ -444,7 +455,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				"  </label>\n" +
 				"</div>");
 
-			var approvedCheckboxContainer = jQuery("<p>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') +" </p>");
+			var approvedCheckboxContainer = jQuery("<p class='mt-2'>"+ Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') +" </p>");
 			approvedCheckboxContainer.append(yesno);
 
 			commentContainer.append(commentLabel);
@@ -854,7 +865,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			// Container to the new/edited data of the request
 			var formDataInputsContainer = jQuery('<div></div>');
-			formDataInputsContainer.attr('class', 'formDataInputsContainer');
+			formDataInputsContainer.attr('class', 'formDataInputsContainer mt-2');
 			formDataInputsContainer.attr('style', 'dispay: flex;');
 			formDataInputsContainer.attr('style', 'flex-direction: column;');
 			formDataInputsContainer.append('<h2>'+ Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') +'<h2>');
@@ -868,10 +879,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			if(data['req_request_type_id'] == "delete_record" || data['req_request_type_id'] == 3 ) {
 				// delete record
-				const recordId = formData.rowid;
+				// const recordId = formData.rowid;
+				const recordId = data['req_record_id'];
 
 				this.getElementsType(data['req_list_id']).done(function (elementsTypes){
-				    const link = self.options.root_url + "index.php/" + listName + "/details/" + self.options.listId + "/" + recordId;
+				    // const link = self.options.root_url + "index.php/" + listName + "/details/" + self.options.listId + "/" + recordId;
+				    const link = self.options.root_url + "component/fabrik/details/"+ self.options.listId + "/" + recordId;
 					formDataInputsContainer.append("<a href='" + link + "'  target='_blank'>Clique aqui</a> para ver o registro a ser deletado.");
 					form.append(formDataInputsContainer);
 				});
@@ -1573,6 +1586,5 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 		
 	});
-
 	return FabrikWorkflow;
 });

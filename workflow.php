@@ -15,7 +15,6 @@ defined('_JEXEC') or die('Restricted access');
 require_once COM_FABRIK_FRONTEND . '/models/plugin-form.php';
 require_once COM_FABRIK_FRONTEND . '/models/list.php';
 require_once JPATH_COMPONENT . '/controller.php';
-
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 
@@ -89,6 +88,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     function onGetRequestList()
     {
+        jimport('joomla.access.access');
         // Get params to find requests
         $approveOwn = $_REQUEST['approve_for_own_records'];
         $wfl_action = $_REQUEST['wfl_action'];
@@ -96,6 +96,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $user_id = $_REQUEST['user_id'];
         $req_status = $_REQUEST['req_status'];
         $sequence =  $_REQUEST['sequence'];
+        $allow_review_request =  $_REQUEST['allow_review_request'];
 
         // Get DB object to make the query
         $db = JFactory::getDbo();
@@ -151,7 +152,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         // Verify if can view only own records
-        if ($this->canViewRequests() == 'only_own') {
+        if ($this->canViewRequests($allow_review_request) == 'only_own') {
             // Verify if can approve requests for onw requests
             if ($approveOwn) {
                 $query->where("(req_user_id = '{$user_id}' OR req_owner_id = '{$user_id}')");
@@ -169,7 +170,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             foreach ($r as $row) {
                 $dados[$row->req_status][] = (object)array('data' => $row);
             }
-            $howMany = count($dados['verify']);
+
+            if ($dados['verify']) {
+                $howMany = count($dados['verify']);
+            } else if ($dados['approved']) {
+                $howMany = count($dados['approved']);
+            } else if ($dados['pre-approved']) {
+                $howMany = count($dados['pre-approved']);
+            } else if ($dados['not-approved']) {
+                $howMany = count($dados['not-approved']);
+            }
 
             echo $howMany;
             return;
@@ -890,6 +900,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->user->approve_for_own_records = $this->params->get('approve_for_own_records');
         $options->wfl_action = $wfl_action;
         $options->user->canApproveRequests = $this->canApproveRequests();
+        $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->root_url = JURI::root();
         $options->sendMail = $sendMail;
         $options = json_encode($options);
@@ -2132,7 +2143,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     protected function canRequest()
     {
         $listModel = $this->getModel()->getListModel();
-        $groups = JFactory::getUser()->getAuthorisedGroups();
+        $groups = JFactory::getUser()->getAuthorisedViewLevels();
         return in_array($listModel->getParams()->get('allow_request_record'), $groups);
     }
 
@@ -2140,13 +2151,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      * Verifica quais requisições o usuário pode ver.
      * @return string (all || only_own)
      */
-    protected function canViewRequests()
+    protected function canViewRequests($allow_review_request = '') 
     {
-        $groups = JFactory::getUser()->getAuthorisedGroups();
+        $groups = JFactory::getUser()->getAuthorisedViewLevels();
         $canView = 'only_own';
         if ($this->user->authorise('core.admin')) {
             $canView = 'all';
         } else if (in_array($this->getParams()->get('allow_review_request'), $groups)) {
+            $canView = 'all';
+        } else if (in_array($allow_review_request, $groups)) {
             $canView = 'all';
         }
         return $canView;
@@ -2158,7 +2171,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     protected function canApproveRequests()
     {
-        $groups = JFactory::getUser()->getAuthorisedGroups();
+        $groups = JFactory::getUser()->getAuthorisedViewLevels();
         if ($this->user->authorise('core.admin')) {
             return true;
         } else if (in_array($this->getParams()->get('allow_review_request'), $groups)) {
