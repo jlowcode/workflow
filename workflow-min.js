@@ -426,8 +426,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		canApproveRequests: function (form_data) {
 			var canApproveRequests = this.options.user.canApproveRequests;
 			
-			if(form_data['req_owner_id'] === this.options.user.id && form_data['req_user_id'] !== this.options.user.id) {
-				canApproveRequests = true;
+			if(form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1 ){
+				// ALTERAÇÃO
+				if (form_data['req_request_type_name'] == "edit_field_value" || form_data['req_request_type_name'] == "delete_record"){
+					canApproveRequests = true;
+				} else {
+					canApproveRequests = false;
+				}
+				} else if (form_data['req_user_id'] === this.options.user.id) {
+				canApproveRequests = false;			
 			}
 			return canApproveRequests;
 		}, 

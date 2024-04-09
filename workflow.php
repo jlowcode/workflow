@@ -1812,7 +1812,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function onAfterProcess()
     {
-        // Get the form model
+        // Get the form and list model
         $formModel = $this->getModel();
 
         // Update user own 
@@ -1836,13 +1836,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         if (isset($this->isReview) && $this->isReview) {
             $row_id = $formModel->fullFormData['rowid'];
             $req_id = $formModel->fullFormData['req_id'];
+
             // Update record id
             $db = JFactory::getDbo();
             $query = $db->getQuery(true);
+            $query->clear();
             $query->set("req_record_id = " . $db->quote($row_id))->set("req_reviewer_id = " . $db->quote($this->user->id));
             $query->update('#__fabrik_requests')->where("req_id = " . $db->quote($req_id));
             $db->setQuery($query);
             $db->execute();
+
 
             // It's a review 
             // echo "ARE ON AFTER PROCESS";
@@ -1860,8 +1863,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $hasPermission = $this->hasPermission($processedFormData);
             return $this->creatLog($processedFormData, $hasPermission);
         }
-
-
 
 
 
@@ -2123,7 +2124,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $canDelete = in_array($params->get('allow_delete'), $groups);
         $canRequest = in_array($params->get('allow_request_record'), $groups);
 
-
         $allowEditOwn = $params->get('allow_edit_details2');
 
         if (isset($allowEditOwn)) {
@@ -2138,6 +2138,21 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
 
+        $approve_for_own_records = $this->params->get('approve_for_own_records');
+        $owner_element_id = $this->params->get('workflow_owner_element');
+        $owner_element = $listModel->getElements('id');
+        $owner_element_name = $owner_element[$owner_element_id]->element->name;
+
+        $formModel = $listModel->getFormModel();
+        $table_name = $formModel->getTableName();
+
+        if ($approve_for_own_records == 1) {
+            if ($this->user->id == $formData[$table_name . '___' . $owner_element_name][0]) {
+                $canEdit = true;
+                $canDelete = true;
+            }
+            $canAdd = true;
+        }
 
         switch ($this->requestType) {
             case self::REQUEST_TYPE_ADD_RECORD:
