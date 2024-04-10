@@ -15,6 +15,7 @@ defined('_JEXEC') or die('Restricted access');
 require_once COM_FABRIK_FRONTEND . '/models/plugin-form.php';
 require_once COM_FABRIK_FRONTEND . '/models/list.php';
 require_once JPATH_COMPONENT . '/controller.php';
+
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 
@@ -901,6 +902,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->wfl_action = $wfl_action;
         $options->user->canApproveRequests = $this->canApproveRequests();
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
+        $options->workflow_owner_element = $this->params->get('workflow_owner_element');
         $options->root_url = JURI::root();
         $options->sendMail = $sendMail;
         $options = json_encode($options);
@@ -1823,8 +1825,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $table_name = $formModel->getTableName();
 
         $pk = $listModel->getPrimaryKeyAndExtra();
-        $id_raw = $formModel->fullFormData[$table_name.'___'.$pk[0]['colname'].'_raw'];
-        $owner_id = $formModel->fullFormData[$table_name.'___'.$owner_element_name][0];
+        $id_raw = $formModel->fullFormData[$table_name . '___' . $pk[0]['colname'] . '_raw'];
+        $owner_id = $formModel->fullFormData[$table_name . '___' . $owner_element_name][0];
 
         $db = JFactory::getDbo();
         $query = $db->getQuery(true);
@@ -1832,7 +1834,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $query->update($table_name)->where("{$pk[0]['colname']} = " . $db->quote($id_raw));
         $db->setQuery($query);
         $db->execute();
-        
+
         if (isset($this->isReview) && $this->isReview) {
             $row_id = $formModel->fullFormData['rowid'];
             $req_id = $formModel->fullFormData['req_id'];
@@ -2114,7 +2116,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $this->setRequestType($formData, $delete);
         }
 
-        $listModel = $this->getModel()->getListModel();
+        if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
+            $listModel = $listModel;
+        } else {
+            $listModel = $this->getModel()->getListModel();
+        }
         $params = $listModel->getParams();
         $editOwnElement = NULL;
 
@@ -2138,16 +2144,21 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
 
-        $approve_for_own_records = $this->params->get('approve_for_own_records');
-        $owner_element_id = $this->params->get('workflow_owner_element');
+        if ($optionsJs != false) {
+            $approve_for_own_records =  $optionsJs['user']['approve_for_own_records'];
+            $owner_element_id = $optionsJs['workflow_owner_element'];
+        } else {
+            $approve_for_own_records = $this->params->get('approve_for_own_records');
+            $owner_element_id = $this->params->get('workflow_owner_element');
+        }
         $owner_element = $listModel->getElements('id');
+        $formModel = $listModel->getFormModel();
         $owner_element_name = $owner_element[$owner_element_id]->element->name;
 
-        $formModel = $listModel->getFormModel();
         $table_name = $formModel->getTableName();
 
         if ($approve_for_own_records == 1) {
-            if ($this->user->id == $formData[$table_name . '___' . $owner_element_name][0]) {
+            if ($this->user->id == $formData[$table_name . '___' . $owner_element_name][0] || $this->user->id == $formData[$table_name . '___' . $owner_element_name]) {
                 $canEdit = true;
                 $canDelete = true;
             }
@@ -2185,7 +2196,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      * Verifica quais requisições o usuário pode ver.
      * @return string (all || only_own)
      */
-    protected function canViewRequests($allow_review_request = '') 
+    protected function canViewRequests($allow_review_request = '')
     {
         $groups = JFactory::getUser()->getAuthorisedViewLevels();
         $canView = 'only_own';
@@ -2750,40 +2761,59 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     public function onReportAbuse()
     {
         $app = JFactory::getApplication();
-        $rowId = $app->input->getInt('rowId');
-        $listId = $app->input->getInt('listId');
-        $usuario = &JFactory::getUser();
-        $date = Factory::getDate();
-
+        $listRowIds = $_REQUEST['listRowIds'];
+        $optionsJs = $_REQUEST['options'];
+        $listId = explode(":", $listRowIds)[0];
+        $rowId = explode(":", $listRowIds)[1];
         $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
-
         $listModel->setId($listId);
         $row = $listModel->getRow($rowId);
+        $formData = json_decode(json_encode($row), true);
+        $hasPermission = $this->hasPermission($formData, true, $listModel, $optionsJs);
 
-        $ar = (array)$listModel->getParams();
-        $table = $ar["\0*\0data"]->join_from_table[0];
-        $el = '' . $table . '___usuario_criado';
-
-        $data['req_id'] = '';
-        $data['req_request_type_id'] = '3';
-        $data['req_user_id'] = $usuario->get('id');;
-        $data['req_field_id'] = '';
-        $data['req_created_date'] = $date->toSQL();;
-        $data['req_owner_id'] = $row->$el;
-        $data['req_reviewer_id'] = '';
-        $data['req_revision_date'] = '';
-        $data['req_description'] = '';
-        $data['req_status'] = 'verify';
-        $data['req_comment'] = '';
-        $data['req_record_id'] = $rowId;
-        $data['req_approval'] = '';
-        $data['req_file'] = '';
-        $data['req_list_id'] = $listId;
-        $data['form_data'] = '';
-
-        $this->fieldPrefix = 'req_';
+        ///////////// FALTANDO
+        $this->setRequestType($row, false);
+        $this->creatLog($row, $hasPermission);
         $this->saveLog($data);
     }
+
+    // public function onReportAbuse()
+    // {
+    //     $app = JFactory::getApplication();
+    //     $rowId = $app->input->getInt('rowId');
+    //     $listId = $app->input->getInt('listId');
+    //     $usuario = &JFactory::getUser();
+    //     $date = Factory::getDate();
+
+    //     $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
+
+    //     $listModel->setId($listId);
+    //     $row = $listModel->getRow($rowId);
+
+    //     $ar = (array)$listModel->getParams();
+    //     $table = $ar["\0*\0data"]->join_from_table[0];
+    //     $el = '' . $table . '___usuario_criado';
+
+    //     $data['req_id'] = '';
+    //     $data['req_request_type_id'] = '3';
+    //     $data['req_user_id'] = $usuario->get('id');;
+    //     $data['req_field_id'] = '';
+    //     $data['req_created_date'] = $date->toSQL();;
+    //     $data['req_owner_id'] = $row->$el;
+    //     $data['req_reviewer_id'] = '';
+    //     $data['req_revision_date'] = '';
+    //     $data['req_description'] = '';
+    //     $data['req_status'] = 'verify';
+    //     $data['req_comment'] = '';
+    //     $data['req_record_id'] = $rowId;
+    //     $data['req_approval'] = '';
+    //     $data['req_file'] = '';
+    //     $data['req_list_id'] = $listId;
+    //     $data['form_data'] = '';
+
+    //     $this->fieldPrefix = 'req_';
+    //     $this->saveLog($data);
+    // }
 
     public function onRenderAdminSettings($data = array(), $repeatCounter = null, $mode = null)
     {
