@@ -107,7 +107,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				};
 
 
-
 				// var elements = document.getElementsByClassName('buttonClass');
 				// for(var i = 0; i < elements.length; i++) {
 				// 	var button = elements[i];
@@ -145,13 +144,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				// BUTTON REPORT 
 				var btnGroup = row.getElementsByClassName('btn-group');
 				let report = document.createElement("a");
-				report.classList.add('btn', 'btn-default');
+				report.classList.add('btn', 'btn-default-delete');
 				report.setAttribute('data-loadmethod', 'xhr')
 				report.setAttribute('data-list', row.offsetParent.id)
+				report.setAttribute('list-row-ids', row.id.split('_')[4]+':'+row.id.split('_')[6])
 				report.setAttribute('data-rowid', 'xhr')
 				report.setAttribute('target', '_self')
 				report.setAttribute('title', 'Reportar')
-				report.setAttribute('onclick', 'reportAbuse(' + row.id.split('_')[4] + ',' + row.id.split('_')[6] + ')')
+				//report.setAttribute('onclick', 'reportAbuse(' + row.id.split('_')[4] + ',' + row.id.split('_')[6] + ')')
 				report.innerHTML = '<i data-isicon="true" class="icon-warning "></i><span class="hidden">Reportar</span>';
 				btnGroup[0].appendChild(report);
 
@@ -167,6 +167,30 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						fields[key].parentElement.setAttribute('title',"Completar ou corrigir esses dados")
 					};
 				});
+				});
+
+				jQuery("a.btn.btn-default-delete").on("click", function(e) {
+					const loadImg   = jQuery('<div style=" display: flex; position: fixed; background: rgba(0,0,0,0.5);width: 100%;top: 0;height: 100vh;margin: auto;"><img style="margin: auto;" src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/35771931234507.564a1d2403b3a.gif"></div>');
+					jQuery('body').append(loadImg);
+					var listRowIds = jQuery('a.btn.btn-default-delete').attr('list-row-ids');
+
+					//e.preventDefault();
+					jQuery.ajax({
+						'url': '',
+						'method': 'get',
+						'data': {
+							'options': self.options,
+							'listRowIds': listRowIds,
+							'option': 'com_fabrik',
+							'task': 'plugin.pluginAjax',
+							'plugin': 'workflow',
+							'method': 'onReportAbuse',
+							'g': 'form',
+						},
+						success: function (data) {
+							location.reload();
+						}
+					});
 				});
 			})
 
