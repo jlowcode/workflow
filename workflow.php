@@ -1155,7 +1155,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             // var_dump($db->getQuery()->__toString());
             // $owner_id = $r[0]->req_owner_id;
         } else if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-            $owner_id = $formData["owner_id"];
+            $owner_id = $formData["owner_id_raw"];
         }
 
         if (isset($owner_id) && !empty($owner_id)) {
@@ -2781,8 +2781,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $pk = $listModel->getPrimaryKeyAndExtra();
         $id_raw = $formData[$table_name . '___' . $pk[0]['colname'] . '_raw'];
-        $owner_id = $formData[$table_name . '___' . $owner_element_name];
-
+        $owner_id = $formData[$table_name . '___' . $owner_element_name.'_raw'];
 
         $date = Factory::getDate();
         $usuario = &JFactory::getUser();
@@ -2808,7 +2807,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $this->saveLog($data);
         } else {
             $formData['rowid'] = $rowId;
-            $formData["owner_id"] = $owner_id;
+            $formData["owner_id_raw"] = $owner_id;
             $this->listId = $optionsJs['listId'];
             $this->creatLog($formData, $hasPermission);
             $listModel->deleteRows($rowId);

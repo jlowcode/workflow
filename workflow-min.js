@@ -174,7 +174,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					jQuery('body').append(loadImg);
 					var listRowIds = this.attributes['list-row-ids'].value
 
-					//e.preventDefault();
 					jQuery.ajax({
 						'url': '',
 						'method': 'get',
