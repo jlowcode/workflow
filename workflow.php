@@ -1139,7 +1139,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
 
 
-
             // // If the request type is edit
             // // Preserve the original owner_id
             // // Get a new query object
@@ -1155,6 +1154,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             // $r = $db->loadObjectList();
             // var_dump($db->getQuery()->__toString());
             // $owner_id = $r[0]->req_owner_id;
+        } else if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
+            $owner_id = $formData["owner_id"];
         }
 
         if (isset($owner_id) && !empty($owner_id)) {
@@ -2110,7 +2111,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      * Atualizado em Março de 2020
      * @return boolean
      */
-    protected function hasPermission($formData, $delete = false)
+    protected function hasPermission($formData, $delete = false, $listModel = false, $optionsJs = false)
     {
         if (!isset($this->requestType)) {
             $this->setRequestType($formData, $delete);
@@ -2771,49 +2772,48 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $formData = json_decode(json_encode($row), true);
         $hasPermission = $this->hasPermission($formData, true, $listModel, $optionsJs);
 
-        ///////////// FALTANDO
-        $this->setRequestType($row, false);
-        $this->creatLog($row, $hasPermission);
-        $this->saveLog($data);
+        $owner_element_id = $optionsJs['workflow_owner_element'];
+        $owner_element = $listModel->getElements('id');
+        $owner_element_name = $owner_element[$owner_element_id]->element->name;
+
+        $formModel = $listModel->getFormModel();
+        $table_name = $formModel->getTableName();
+
+        $pk = $listModel->getPrimaryKeyAndExtra();
+        $id_raw = $formData[$table_name . '___' . $pk[0]['colname'] . '_raw'];
+        $owner_id = $formData[$table_name . '___' . $owner_element_name];
+
+
+        $date = Factory::getDate();
+        $usuario = &JFactory::getUser();
+        $data['req_id'] = '';
+        $data['req_request_type_id'] = '3';
+        $data['req_user_id'] = $usuario->get('id');;
+        $data['req_field_id'] = '';
+        $data['req_created_date'] = $date->toSQL();;
+        $data['req_status'] = 'verify';
+        $data['req_owner_id'] = $owner_id;
+        $data['req_reviewer_id'] = '';
+        $data['req_revision_date'] = '';
+        $data['req_description'] = '';
+        $data['req_comment'] = '';
+        $data['req_record_id'] = $rowId;
+        $data['req_approval'] = '';
+        $data['req_file'] = '';
+        $data['req_list_id'] = $listId;
+        $data['form_data'] = '';
+        $this->fieldPrefix = 'req_';
+
+        if (!$hasPermission) {
+            $this->saveLog($data);
+        } else {
+            $formData['rowid'] = $rowId;
+            $formData["owner_id"] = $owner_id;
+            $this->listId = $optionsJs['listId'];
+            $this->creatLog($formData, $hasPermission);
+            $listModel->deleteRows($rowId);
+        }
     }
-
-    // public function onReportAbuse()
-    // {
-    //     $app = JFactory::getApplication();
-    //     $rowId = $app->input->getInt('rowId');
-    //     $listId = $app->input->getInt('listId');
-    //     $usuario = &JFactory::getUser();
-    //     $date = Factory::getDate();
-
-    //     $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
-
-    //     $listModel->setId($listId);
-    //     $row = $listModel->getRow($rowId);
-
-    //     $ar = (array)$listModel->getParams();
-    //     $table = $ar["\0*\0data"]->join_from_table[0];
-    //     $el = '' . $table . '___usuario_criado';
-
-    //     $data['req_id'] = '';
-    //     $data['req_request_type_id'] = '3';
-    //     $data['req_user_id'] = $usuario->get('id');;
-    //     $data['req_field_id'] = '';
-    //     $data['req_created_date'] = $date->toSQL();;
-    //     $data['req_owner_id'] = $row->$el;
-    //     $data['req_reviewer_id'] = '';
-    //     $data['req_revision_date'] = '';
-    //     $data['req_description'] = '';
-    //     $data['req_status'] = 'verify';
-    //     $data['req_comment'] = '';
-    //     $data['req_record_id'] = $rowId;
-    //     $data['req_approval'] = '';
-    //     $data['req_file'] = '';
-    //     $data['req_list_id'] = $listId;
-    //     $data['form_data'] = '';
-
-    //     $this->fieldPrefix = 'req_';
-    //     $this->saveLog($data);
-    // }
 
     public function onRenderAdminSettings($data = array(), $repeatCounter = null, $mode = null)
     {
