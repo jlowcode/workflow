@@ -159,9 +159,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					jQuery('.btn.btn-default.delete').remove();
 
 					// ADICIONA TOOTIPS PARA CAMPOS VAZIOS
-					var fields = jQuery('.fabrik___rowlink.fabrik_edit');
+					var fields = jQuery('.fabrik_element');
 					Object.keys(fields).forEach(function (key) {
-						if (fields[key].textContent == '\n') {
+						if (fields[key].outerText == '') {
 							fields[key].parentElement.setAttribute('data-bs-toggle', "tooltip")
 							fields[key].parentElement.setAttribute('data-bs-placement', "top")
 							fields[key].parentElement.setAttribute('title', "Completar ou corrigir esses dados")
