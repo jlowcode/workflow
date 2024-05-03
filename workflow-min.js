@@ -232,8 +232,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				self.loadRequestList(self.modal, typeSelected, self.options.actualPage, null, selected);
 			});
 
-
-
 		},
 
 		onGetSessionToken: function () {
@@ -340,7 +338,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				paginationUl.append(jQuery('<li></li>').append(nextButtonPagination));
 				paginationUl.append(jQuery('<li></li>').append(endButtonPagination));
 			}
-
 
 			paginationElement.append(paginationUl);
 		},
@@ -517,13 +514,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					jQuery(approveButton).on('click', function () {
 						const requestType = formData[0]['req_request_type_id'];
 
-
 						var uploadFileInput = jQuery(form).find("#uploadFileApprove");
 						var approved = jQuery("input[name='yesnooptions']:checked").val() == "yes" ? true : false;
 
 						jModalBody.empty();
 						jModalBody.append(jQuery('<h3>Carregando... </h3>'));
-
 
 						if (approved) {
 							formData[0]['req_approval'] = '1';
@@ -629,7 +624,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		//         }
 		//     });
 		// },
-
 
 		deleteRecord: function (rowId, listId) {
 			jQuery.ajax({
@@ -763,7 +757,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				const link = jQuery('<p style="overflow-wrap: break-word;"><a target="_blank" href="' + self.options.root_url + element + '">' + element + ' </a></p>');
 				requestImages.append(link);
 			});
-
 
 			containerDiv.append(originalImages);
 			containerDiv.append(requestImages);
@@ -911,7 +904,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			form.append(requestInputsContainer);
 			form.append(formDataInputsContainer);
 
-
 			if (data['req_request_type_id'] == "delete_record" || data['req_request_type_id'] == 3) {
 				// delete record
 				// const recordId = formData.rowid;
@@ -961,8 +953,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				});
 			}
-
-
 			// Returns the form
 			return form;
 		},
@@ -994,35 +984,36 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						view.append(this.renderFiles(key, filesProcessed));
 					} else {
 						// Get value if owner id
-						if (elementsTypes[onlyElementKey]['plugin'] == "user") {
-							//onGetUserValue
-							jQuery.ajax({
-								'url': '',
-								'method': 'get',
-								'data': {
-									'user_id': obj[0],
-									'option': 'com_fabrik',
-									'format': 'raw',
-									'task': 'plugin.pluginAjax',
-									'plugin': 'workflow',
-									'method': 'GetUserValue',
-									'g': 'form',
-								},
-								success: function (data) {
-									view.append(self.createInput(onlyElementKey, data, onlyElementKey));
-								}
-							});
-						} else {
-							// Verify if is array
-							if (Array.isArray(obj)) {
-								view.append(this.buildMultipleElementView(obj, onlyElementKey));
+						if (elementsTypes[onlyElementKey] != undefined) {
+							if (elementsTypes[onlyElementKey]['plugin'] == "user") {
+								//onGetUserValue
+								jQuery.ajax({
+									'url': '',
+									'method': 'get',
+									'data': {
+										'user_id': obj[0],
+										'option': 'com_fabrik',
+										'format': 'raw',
+										'task': 'plugin.pluginAjax',
+										'plugin': 'workflow',
+										'method': 'GetUserValue',
+										'g': 'form',
+									},
+									success: function (data) {
+										view.append(self.createInput(onlyElementKey, data, onlyElementKey));
+									}
+								});
 							} else {
-								view.append(this.createInput(onlyElementKey, formData[key], onlyElementKey));
+								// Verify if is array
+								if (Array.isArray(obj)) {
+									view.append(this.buildMultipleElementView(obj, onlyElementKey));
+								} else {
+									view.append(this.createInput(onlyElementKey, formData[key], onlyElementKey));
+								}
 							}
 						}
 					}
 				}
-
 			}
 			var groups = this.processRepeatGroups(repeatGroups);
 			for (const groupKey in groups) {
@@ -1076,7 +1067,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					originalElement[0].style.maxWidth = "50%";
 					originalElement[0].style.overflowWrap = "break-word";
 
-
 					newElement[0].style.flex = "1";
 					originalElement[0].style.flex = "1";
 					containerFlex.append(originalElement);
@@ -1087,59 +1077,60 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				} else {
 					// Verify if is array
 					// Get value if owner id
-					if (elementsTypes[onlyElementKey]['plugin'] == "user") {
-						//onGetUserValue
-						jQuery.ajax({
-							'url': '',
-							'method': 'get',
-							'data': {
-								'last_user_id': obj['last'][0],
-								'new_user_id': obj['new'][0],
-								'option': 'com_fabrik',
-								'format': 'raw',
-								'task': 'plugin.pluginAjax',
-								'plugin': 'workflow',
-								'method': 'GetUserValueBeforeAfter',
-								'g': 'form',
-							},
-							success: function (data) {
-								const res = JSON.decode(data);
-								// self.createInputsBeforeAfter(elementKey, originalString, requestString)
-								view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
-								// view.append(self.createInput(onlyElementKey, data, onlyElementKey));
-							}
-						});
-					} else {
-						if (Array.isArray(obj['new']) || Array.isArray('last')) {
-							const container = jQuery("<div></div>");
-							const containerFlex = jQuery("<div></div>");
-							containerFlex.append("");
-							containerFlex.attr('style', 'display: flex;');
-							var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-							var originalElement = jQuery("<div><p>" + onlyElementKey + "_original</p></div>");
-
-							if (!obj['last'] || obj['last'] == undefined) {
-								// originalElement.append("VAZIO");
-							} else {
-								originalElement.append(self.buildMultipleElementView(obj['last']));
-							}
-							newElement.append(self.buildMultipleElementView(obj['new']));
-
-							newElement[0].style.paddingLeft = "5px";
-							originalElement[0].style.paddingLeft = "5px";
-							newElement[0].style.flex = "1";
-							originalElement[0].style.flex = "1";
-							containerFlex.append(originalElement);
-							containerFlex.append(newElement);
-							// view.append(this.buildMultipleElementView(obj, onlyElementKey));
-							container.append(containerFlex);
-							view.append(container);
+					if (elementsTypes[onlyElementKey] != undefined) {
+						if (elementsTypes[onlyElementKey]['plugin'] == "user") {
+							//onGetUserValue
+							jQuery.ajax({
+								'url': '',
+								'method': 'get',
+								'data': {
+									'last_user_id': obj['last'][0],
+									'new_user_id': obj['new'][0],
+									'option': 'com_fabrik',
+									'format': 'raw',
+									'task': 'plugin.pluginAjax',
+									'plugin': 'workflow',
+									'method': 'GetUserValueBeforeAfter',
+									'g': 'form',
+								},
+								success: function (data) {
+									const res = JSON.decode(data);
+									// self.createInputsBeforeAfter(elementKey, originalString, requestString)
+									view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
+									// view.append(self.createInput(onlyElementKey, data, onlyElementKey));
+								}
+							});
 						} else {
-							// self.createInputsBeforeAfter(elementKey, originalString, requestString)
-							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
+							if (Array.isArray(obj['new']) || Array.isArray('last')) {
+								const container = jQuery("<div></div>");
+								const containerFlex = jQuery("<div></div>");
+								containerFlex.append("");
+								containerFlex.attr('style', 'display: flex;');
+								var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+								var originalElement = jQuery("<div><p>" + onlyElementKey + "_original</p></div>");
+
+								if (!obj['last'] || obj['last'] == undefined) {
+									// originalElement.append("VAZIO");
+								} else {
+									originalElement.append(self.buildMultipleElementView(obj['last']));
+								}
+								newElement.append(self.buildMultipleElementView(obj['new']));
+
+								newElement[0].style.paddingLeft = "5px";
+								originalElement[0].style.paddingLeft = "5px";
+								newElement[0].style.flex = "1";
+								originalElement[0].style.flex = "1";
+								containerFlex.append(originalElement);
+								containerFlex.append(newElement);
+								// view.append(this.buildMultipleElementView(obj, onlyElementKey));
+								container.append(containerFlex);
+								view.append(container);
+							} else {
+								// self.createInputsBeforeAfter(elementKey, originalString, requestString)
+								view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
+							}
 						}
 					}
-
 				}
 			}
 
@@ -1260,7 +1251,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// Creates the form
 			var form = jQuery('<form></form>');
 
-
 			// Container to the Request Data, such as
 			// [req_user_id. req_created_data, ...]
 			var requestInputsContainer = jQuery('<div></div>');
@@ -1338,7 +1328,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			// Append the request data to the form
 			form.append(requestInputsContainer);
-
 
 			// add_record || edit_field_value
 			if (data['req_request_type_id'] == "add_record") {
@@ -1554,7 +1543,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				},
 			});
 		},
-
 
 		getRequest: function (req_id) {
 			return jQuery.ajax({

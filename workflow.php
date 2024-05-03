@@ -1101,7 +1101,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $db->execute();
 
             $results = $db->loadObjectList();
-            if (empty($results)) {
+            if (!$results[0]->req_owner_id > 0) {               
                 // Get owner id element identifier
                 $owner_element_id = $this->params->get('workflow_owner_element');
                 // If $owner_element_id has been setted
@@ -1295,6 +1295,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 }
             } else {
                 if (!empty($v)) {
+                    if (end(explode('_', $k)) == 'orig') {
+                        $k = array_shift(explode('_orig', $k));
+                    }
                     $mainListFormData->$k = $v;
                 }
             }
@@ -1535,12 +1538,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
         return true;
     }
-
-
-
-
     // End
-
     /**
      * Add the heading information to the Fabrik list, so as to include a column for the add to cart link
      *
@@ -1571,6 +1569,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $db = JFactory::getDBO();
         // catch databasejoin joins
         $elementsPlugins = $this->onGetElementsPlugin($formData['listid']);
+        $elementModels = $this->getListElementModels();
+
         foreach ($elementsPlugins as $key => $value) {
             $completeElName = $this->listName . "___" . $key;
             // if plugin is databasejoin
@@ -1612,6 +1612,58 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     }
                 }
             } else if ($value['plugin'] == 'fileupload') {
+                foreach ($elementModels as $elementModel) {
+                    if ($elementModel->getFullName() == $completeElName) {
+                        $element = $elementModel->getElement();
+                        $params = $elementModel->getParams();
+                        $storage = $elementModel->getStorage();
+                        $folder = $params->get('ul_directory');
+
+                        if (!in_array($this->user->id, $this->getReviewers())) {
+
+                            if (array_key_exists($completeElName, $_FILES)) {
+                                $file  = array(
+                                    'name' => $_FILES[$completeElName]['name'],
+                                    'type' => $_FILES[$completeElName]['type'],
+                                    'tmp_name' => $_FILES[$completeElName]['tmp_name'],
+                                    'error' => $_FILES[$completeElName]['error'],
+                                    'size' => $_FILES[$completeElName]['size']
+                                );
+
+                                $formData[$this->listName . '_FILE_' . $completeElName] = $file;
+                            }
+                            $tmpFile  = $file['tmp_name'];
+                            $formData[$completeElName] = $folder . $file['name'];
+                            if ($storage->appendServerPath()) {
+                                $folder = JPATH_SITE . '/' . $folder;
+                            }
+
+                            $folder = $folder . '/' . $file['name'];
+                            $filePath = JPath::clean($folder);
+
+                            $storage->upload($tmpFile, $filePath);
+                        } else {
+                            if (empty($_FILES)) {
+                                if (isset($formData[$this->listName . '_FILE_' . $completeElName])) {
+                                    $_FILES[$completeElName]['name'] = $formData[$this->listName . '_FILE_' . $completeElName]['name'];
+                                    $_FILES[$completeElName]['type'] = $formData[$this->listName . '_FILE_' . $completeElName]['type'];
+                                    $_FILES[$completeElName]['tmp_name'] = $formData[$this->listName . '_FILE_' . $completeElName]['tmp_name'];
+                                    $_FILES[$completeElName]['error'] = $formData[$this->listName . '_FILE_' . $completeElName]['error'];
+                                    $_FILES[$completeElName]['size'] = $formData[$this->listName . '_FILE_' . $completeElName]['size'];
+                                    $_FILES[$completeElName]['workflow'] = '1';
+                                }
+
+                                $imagePath = JPATH_SITE . '/' . $folder . '/' . $_FILES[$completeElName]['name'];
+                                $imagePath = JPath::clean($imagePath);
+
+                                $newPath =  $_FILES[$completeElName]['tmp_name'];
+                                copy($imagePath, $newPath);
+
+                                unset($formData[$this->listName . '_FILE_' . $completeElName]);
+                            }
+                        }
+                    }
+                }
                 if (isset($formData[$completeElName]['cropdata'])) {
                     $imageLink = array_keys($formData[$completeElName]['id'])[0];
 
@@ -1765,8 +1817,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     //     //die('onDeleteRowForm');
     //     $this->init();
     //     $rows = array();
-
-
     //     // $formModel = $this->getModel();
     //     // $fullFormData = $formModel->fullFormData;
     //     // if(isset($fullFormData['review']) && $fullFormData['review']) {
@@ -1851,7 +1901,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $db->setQuery($query);
             $db->execute();
 
-
             // It's a review 
             // echo "ARE ON AFTER PROCESS";
             // echo "<pre>";
@@ -1868,8 +1917,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $hasPermission = $this->hasPermission($processedFormData);
             return $this->creatLog($processedFormData, $hasPermission);
         }
-
-
 
         // if(isset($this->isReview) && $this->isReview) {
         // $formModel = $this->getModel();
@@ -2853,7 +2900,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 			`form_data` TEXT
             )";
 
-
         $db->setQuery($sql)->execute();
 
         $sqlType = "CREATE TABLE IF NOT EXISTS `workflow_request_type` (
@@ -2861,9 +2907,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 			`name` VARCHAR(20) DEFAULT NULL
         )";
 
-
         $db->setQuery($sqlType)->execute();
-
 
         $select = "SELECT * FROM `workflow_request_type`";
         $db->setQuery($select)->execute();
