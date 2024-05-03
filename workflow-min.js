@@ -346,6 +346,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		loadRequestList: function (modal, type, page = 1, search = null, orderBy = 'req_user_name') {
+
+			orderBy = jQuery('#orderBySelect').val();
+
 			var self = this;
 
 			if (this.options.wfl_action == 'list_requests') {
@@ -415,6 +418,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		getRequestsList: function (req_status, length = 5, start = 0, search = "", count = "0", orderBy = 'req_user_name') {
 			var sequence = "asc";
+			orderBy = jQuery('#orderBySelect').val();
+
 			// if is DESC ordered
 			if (orderBy.indexOf("_desc") !== -1) {
 				orderBy = orderBy.replace("_desc", "");

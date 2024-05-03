@@ -135,12 +135,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $query->where("req_status = '{$req_status}'");
         }
 
-        // Set order_by if it exists on request
-        if (isset($_REQUEST['order_by'])) {
-            $query->order("{$_REQUEST['order_by']} $sequence");
-        } else {
-            $query->order("req_user_name asc");
-        }
+
 
         // Set search if exists
         if (isset($_REQUEST['search'])) {
@@ -196,6 +191,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $query->setLimit($_REQUEST['length'], $_REQUEST['start']);
         } else {
             $query->setLimit(5, 0);
+        }
+
+        // Set order_by if it exists on request
+        if (isset($_REQUEST['order_by'])) {
+            $query->order("{$_REQUEST['order_by']} $sequence");
+        } else {
+            $query->order("req_user_name asc");
         }
 
         // Executes query on database
