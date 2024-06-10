@@ -596,10 +596,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								},
 								success: function (data) {
 									modal.style.display = "none";
-
 									alert('Concluído');
 									document.location.reload(true);
-
 								}
 							});
 
@@ -1515,17 +1513,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
 				var link = jQuery('<p style="overflow-wrap: break-word;"><img src="'+this.options.root_url+files['last']['path']+files['last']['name']+'" width="500" height="600"></p>');
 				originalImages.append(link);
-	
 				requestImages.append(label);
 				requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
 				var link = jQuery('<p style="overflow-wrap: break-word;"><img src="'+this.options.root_url+files['new']['path']+files['new']['name']+'" width="500" height="600"></p>');
 				requestImages.append(link);
-	
 				containerDiv.append(originalImages);
 				containerDiv.append(requestImages);
-	
 				return containerDiv;
-			
 		},
 
 		getDatabaseJoinSingleElements: function (join_db_name, original_element_id,

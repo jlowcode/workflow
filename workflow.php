@@ -617,7 +617,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             "req_reviewer_id"
         );
 
-
         $return = new StdClass;
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
@@ -633,11 +632,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
 
-
         // Get Joomla DB obj
         $db = JFactory::getDBO();
-
-
 
         $requestData['req_revision_date'] = date("Y-m-d H:i:s");
         $requestData['req_status'] = $requestData['req_approval'] === '1' ? 'approved' : 'not-approved';
@@ -646,12 +642,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $requestData['req_reviewer_id'] = $requestData['req_reviewer_id'] === '' ? "{$usuario->id}" : $requestData['req_reviewer_id'];
 
         $obj = (object) $requestData;
-
         $results = $db->updateObject('#__fabrik_requests', $obj, 'req_id', false);
         $return->response = true;
 
         // @TODO - SEND MAIL
-        if($sendMail) {
+        if($sendMail == true) {
             $this->enviarEmailRequestApproval($data, $data['req_record_id']);
         }
 
@@ -1605,6 +1600,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         // catch databasejoin joins
         $elementsPlugins = $this->onGetElementsPlugin($formData['listid']);
         $elementModels = $this->getListElementModels();
+        $listModel = $this->getModel()->getListModel();
+
         $formModel = $this->getModel();
 
         foreach ($elementsPlugins as $key => $value) {
@@ -1654,39 +1651,84 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         $params = $elementModel->getParams();
                         $storage = $elementModel->getStorage();
                         $folder = $params->get('ul_directory');
-
+                      
                         if (!in_array($this->user->id, $this->getReviewers())) {
                             // SE NAO FOR AUTORIZADO REGISTERED
                             if ($elementModel->getParams()->get('ajax_upload', '0') === '1'){
                                 // SE FOR AJAX REGISTERED
                                 $key       = 'fabrik.form.fileupload.files.' . $elementModel->getId();
                                 $ajaxFiles = $this->session->get($key, []);
-                                $file  = array(
+                                $ajaxFiles['path'] = $folder;
+                                if ($ajaxFiles){
+                                    if (is_array($ajaxFiles['name'])) {
+                                        $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
+                                        $formModel->formData[$workflowElementUploadName] = $ajaxFiles;
+                                        $formData[$workflowElementUploadName] = $ajaxFiles;
+                                       
+                                        $_FILES[$element->name] = $ajaxFiles;
+                                        $fileData      = $_FILES[$element->name]['name'];
+                                        
+                                        $completeElNameData = [];
+
+                                        foreach ($fileData as $i => $f) {
+                                            $file      = array(
+                                                'name'     => $_FILES[$element->name]['name'][$i],
+                                                'type'     => $_FILES[$element->name]['type'][$i],
+                                                'tmp_name' => $_FILES[$element->name]['tmp_name'][$i],
+                                                'error'    => $_FILES[$element->name]['error'][$i],
+                                                'size'     => $_FILES[$element->name]['size'][$i],
+                                                'path'     => $folder
+                                            );
+                                            array_push($completeElNameData, JPath::clean($folder.$file['name']));
+            
+                                            $tmpFile  = $file['tmp_name'];
+                                            // if(strlen($file['name']) > 0){
+                                            //     $formData[$completeElName] = $folder . $file['name'];
+                                            // }                            
+                                            if ($storage->appendServerPath()) {
+                                                $folderPath = JPATH_SITE . '/' . $folder. '/' . $file['name'];
+                                            }
+                                            $filePath = JPath::clean($folderPath);
+                                            copy($tmpFile, $filePath);      
+                                        }
+                                        $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
+                                        $formModel->updateFormData($completeElName, $completeElNameData);
+                                        $formModel->updateFormData($completeElName.'_raw', $completeElNameData);
+                                        $formData[$completeElName] = $completeElNameData;
+                                        $formData[$completeElName.'_raw'] = $completeElNameData;
+                                        $formModel->updateFormData($workflowElementUploadName, $file);
+                                        $formModel->formData[$workflowElementUploadName] = $file;
+                                        //$formData[$workflowElementUploadName] = $file;
+                                    }
+                                } else {
+                                    $file  = array(
                                         'name'     => $ajaxFiles['name'][0],
                                         'type'     => $ajaxFiles['type'][0],
                                         'tmp_name' => $ajaxFiles['tmp_name'][0],
                                         'error'    => $ajaxFiles['error'][0],
                                         'size'     => $ajaxFiles['size'][0],
                                         'path'     => $folder
-                                );
+                                    );
 
-                                $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
-                                $formModel->formData[$workflowElementUploadName] = $file;
-                                $completeElNameData = JPath::clean($folder.$file['name']);
-                                $formModel->updateFormData($completeElName, $completeElNameData);
-                                $formModel->updateFormData($completeElName.'_raw', $completeElNameData);
-                                
-                                $tmpFile  = $file['tmp_name'];
-                                if(strlen($file['name']) > 0){
-                                    $formData[$completeElName] = $folder . $file['name'];
-                                }                            
-                                if ($storage->appendServerPath()) {
-                                    $folder = JPATH_SITE . '/' . $folder;
-                                }
-                                $folder = $folder . '/' . $file['name'];
-                                $filePath = JPath::clean($folder);
-                                
-                                copy($tmpFile, $filePath);
+                                    $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
+                                    $formModel->formData[$workflowElementUploadName] = $file;
+                                    $formData[$workflowElementUploadName] = $file;
+                                    $completeElNameData = JPath::clean($folder.$file['name']);
+                                    $formModel->updateFormData($completeElName, $completeElNameData);
+                                    $formModel->updateFormData($completeElName.'_raw', $completeElNameData);
+                                    $formModel->updateFormData($workflowElementUploadName, $file);
+    
+                                    $tmpFile  = $file['tmp_name'];
+                                    if(strlen($file['name']) > 0){
+                                        $formData[$completeElName] = $folder . $file['name'];
+                                    }                            
+                                    if ($storage->appendServerPath()) {
+                                        $folder = JPATH_SITE . '/' . $folder;
+                                    }
+                                    $folder = $folder . '/' . $file['name'];
+                                    $filePath = JPath::clean($folder);
+                                    copy($tmpFile, $filePath);
+                                    }
                            
                             }  else {
                                 // SE NAO FOR AJAX
@@ -1725,6 +1767,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                     // SE TIVER APROVANDO REQUISIÇÃO
                                     if (isset($formData[$this->listName . '_FILE_' . $completeElName])) {
                                         // SE JA TEM OS DADOS SALVOS DA REQUISIÇÃO DO REGISTERED
+                                        if ($elementModel->getParams()->get('ajax_upload', '0') === '1'){
+                                        //  É AJAX
+                                        $db_table_name = $this->listName.'_repeat_'.$element->name;
+                                        foreach ($formData[$completeElName] as $i => $f) {
+                                            $oRecord = (object) [
+                                                'parent_id'   => $formData['rowid'],
+                                                $element->name  => $formData[$completeElName][$i]
+                                            ];
+                                            $listModel->insertObject($db_table_name, $oRecord, false);
+                                        }
+                                        //$formData[$completeElName] = '';
+                                        } else { 
                                         $_FILES[$completeElName]['name'] = $formData[$this->listName . '_FILE_' . $completeElName]['name'];
                                         $_FILES[$completeElName]['type'] = $formData[$this->listName . '_FILE_' . $completeElName]['type'];
                                         $_FILES[$completeElName]['tmp_name'] = $formData[$this->listName . '_FILE_' . $completeElName]['tmp_name'];
@@ -1740,6 +1794,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                         $completeElNameData = JPath::clean($folder.$_FILES[$completeElName]['name']);
                                         $formData[$completeElName] = $completeElNameData;
                                         $formModel->updateFormData($completeElName, $completeElNameData);
+                                        }                                        
                                     } else {
                                         // SIGINIFA QUE ESTA VAZIO OU É AJAX
                                         if ($elementModel->getParams()->get('ajax_upload', '0') === '1'){
@@ -1757,12 +1812,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                             
                                                 );
                                                 $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
-                                                $formModel->formData[$workflowElementUploadName] = $file;
+                                                $formData[$workflowElementUploadName] = $file;
                                                 $completeElNameData = JPath::clean($folder.$file['name']);
                                                 $formData[$completeElName] = $completeElNameData;
                                                 $formData[$completeElName.'_raw'] = $completeElNameData;
                                                 $formModel->updateFormData($completeElName, $completeElNameData);
                                                 $formModel->updateFormData($completeElName.'_raw', $completeElNameData);
+                                                $formModel->updateFormData($workflowElementUploadName, $file);
                                                     
                                                 $imagePath = JPATH_SITE . '/' . $completeElNameData;
                                                 $imagePath = JPath::clean($imagePath);
@@ -1881,6 +1937,24 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $newFormData[$value] = $formData[$value];
         }
         return $newFormData;
+    }
+    public function uploadFiles(){
+
+        // $tmpFile  = $file['tmp_name'];
+        // $completeElNameData = JPath::clean($folder.$file['name']);
+        // if(strlen($file['name']) > 0){
+        //     $formModel->formData[$completeElName] = $folder . $file['name'];
+        // }     
+
+        // if ($storage->appendServerPath()) {
+        //     $folder = JPATH_SITE . '/' . $folder;
+        // }
+
+        // $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
+        // $formModel->formData[$workflowElementUploadName] = $file;
+        // $folder = $folder . '/' . $file['name'];
+        // $filePath = JPath::clean($folder);
+        // copy($tmpFile, $filePath);
     }
 
     /**
@@ -2710,7 +2784,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     private function enviarEmailRequestApproval($request, $record_id)
-    { 
+    {
         $owner_user_email = !empty($request["req_user_email"]) ? $request["req_user_email"] : null;
         //email para o solicitante da mudanca
         $emailTo = array();
@@ -2753,9 +2827,27 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
         $request_status = $request['req_approval'] === '1' ? 'Aprovada' : 'Não Aprovada';
 
+        //email para o dono da lista
+        //...
+
         // $link = JURI::root() . "index.php/" . "$list_label/details/$list_id/$record_id";
         $link = JURI::root() . "index.php" .  $listModel->viewDetailsLink($record_id).$record_id;
         
+        $request_type = $request["req_request_type_id"];
+        switch ($request_type) {
+            case '1':
+                $request_type = "Inclusão";
+                break;
+            case '2':
+                $request_type = "Edição";
+                break;
+            case '3':
+                $request_type = "Reportar Abuso";
+                break;
+        
+            default:
+                break;
+        }
 
         $subject = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_APPROVAL_SUBJECT', $list_label) . " :: " . $this->config->get('sitename');
         $message = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_APPROVAL_BODY', $user_name, $request_type, $list_label, $request_status, $link);
@@ -3021,7 +3113,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $listModel->deleteRows($rowId);
         }
     }
-    
+
     public function onBeforeGetData(){
         $this->init();
         $listModel = $this->getModel()->getListModel();        
