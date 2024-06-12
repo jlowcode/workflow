@@ -156,7 +156,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					report.setAttribute('title', 'Reportar')
 					//report.setAttribute('onclick', 'reportAbuse(' + row.id.split('_')[4] + ',' + row.id.split('_')[6] + ')')
 					report.innerHTML = '<span><i class="fas fa-exclamation-triangle fa-sm" style="color: #8c8c8c;"></i></span> Reportar';
-					
+
 					li.appendChild(report)
 					btnGroup[0].appendChild(li);
 
@@ -175,7 +175,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				});
 
 				jQuery("a.btn-default-delete").on("click", function (e) {
-					const loadImg = jQuery('<div style=" display: flex; position: fixed; background: rgba(0,0,0,0.5);width: 100%;top: 0;height: 100vh;margin: auto;"><img style="margin: auto;" src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/35771931234507.564a1d2403b3a.gif"></div>');
+					const loadImg = jQuery('<div style=" display: flex; position: fixed; background: rgba(0,0,0,0.5);width: 100%;top: 0;height: 100vh;margin: auto;"><img style="margin: auto;" src="https://i.gifer.com/ZKZg.gif"></div>');
 					jQuery('body').append(loadImg);
 					var listRowIds = this.attributes['list-row-ids'].value
 
@@ -848,8 +848,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						case 'req_request_type_id':
 						case 'req_id':
 						case 'req_revision_date':
-						case 'req_user_email':
 						case 'req_list_id':
+						case 'req_user_email':
 							continue;
 							break;
 						case 'req_file':
@@ -884,7 +884,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var div = jQuery('<div></div>');
 							var label = jQuery('<label for="' + self.elementsName[key] + '">' + self.elementsName[key] + ' </label>')
 							div.append(label);
-							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="'+data[key]+'"><a target="_blank" href="'+form[0].baseURI.split('?')[0].replace('list','details')+'/'+data[key]+'"><button class="btn btn-primary h-100" type="button" id="'+self.elementsName[key]+'">Vizualizar</button></a></div>')
+							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"><a target="_blank" href="' + form[0].baseURI.split('?')[0].replace('list', 'details') + '/' + data[key] + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a></div>')
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
@@ -1014,7 +1014,20 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 										view.append(self.createInput(onlyElementKey, data, onlyElementKey));
 									}
 								});
-							} else {
+							} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
+								if ([listName + '_FILE_' + listName + '___' + onlyElementKey]) {
+									var elementName = formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['name'];
+									if (Array.isArray(elementName)) {
+										view.append(this.buildMultipleElementView(elementName, onlyElementKey));
+									} else {
+										view.append(this.createInput(onlyElementKey, createInput, onlyElementKey));
+									}
+									if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image') {
+										view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path'] ));
+									}
+								}
+							}
+							else {
 								// Verify if is array
 								if (Array.isArray(obj)) {
 									view.append(this.buildMultipleElementView(obj, onlyElementKey));
@@ -1052,7 +1065,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
 				// if is id continue to next iteration
 				if (key.indexOf("_id") !== -1) continue;
-				if ((key.indexOf("_raw") !== -1 || key.indexOf("-auto-complete") !== -1) && (changedProperties.hasOwnProperty(listName+"___"+onlyElementKey + "_value") )) continue;
+				if ((key.indexOf("_raw") !== -1 || key.indexOf("-auto-complete") !== -1) && (changedProperties.hasOwnProperty(listName+"___"+onlyElementKey + "_value"))) continue;
 				// Verify if is repeat group
 				const isRepeatGroup = key.indexOf('repeat');
 				if (isRepeatGroup !== -1) {
@@ -1112,12 +1125,25 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									// view.append(self.createInput(onlyElementKey, data, onlyElementKey));
 								}
 							});
-						} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload'){
-							if (changedProperties[listName+'_FILE_'+key] && changedProperties[listName+'_FILE_'+key]['last'] != undefined){
-									view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[listName+'_FILE_'+key]['last']['name'], changedProperties[listName+'_FILE_'+key]['new']['name']));
-									if (changedProperties[listName+'_FILE_'+key]['new']['type'].split("/")[0] == 'image'){
-										view.append(self.renderImgs(changedProperties[listName+'_FILE_'+key]));
+						} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
+							if (changedProperties[listName + '_FILE_' + key]) {
+								var elementName = listName + '_FILE_' + key;
+							} else if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]) {
+								var elementName = listName + '_FILE_' + listName + '___' + onlyElementKey;
+							}
+							if (changedProperties[elementName]['last'] != undefined) {
+								if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
+									view.append(this.buildMultipleElementView(changedProperties[elementName]['last']['name']));
+									view.append(this.buildMultipleElementView(changedProperties[elementName]['new']['name']));
+									if (changedProperties[elementName]['new']['type'][0].split("/")[0]) {
+										view.append(self.renderImgs('change', changedProperties[elementName]));
 									}
+								} else {
+									view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
+									if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
+										view.append(self.renderImgs('change', changedProperties[elementName]));
+									}
+								}
 							}
 						} else {
 							if (Array.isArray(obj['new']) || Array.isArray('last')) {
@@ -1337,7 +1363,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var div = jQuery('<div></div>');
 							var label = jQuery('<label for="' + self.elementsName[key] + '">' + self.elementsName[key] + ' </label>')
 							div.append(label);
-							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="'+data[key]+'"><a target="_blank" href="'+form[0].baseURI.split('?')[0].replace('list','details')+'/'+data[key]+'"><button class="btn btn-primary h-100" type="button" id="'+self.elementsName[key]+'">Vizualizar</button></a></div>')
+							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"><a target="_blank" href="' + form[0].baseURI.split('?')[0].replace('list', 'details') + '/' + data[key] + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a></div>')
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
@@ -1497,29 +1523,60 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			return form;
 		},
 
-		renderImgs: function (files){
-				var self = this;
-				// Creates the div
-				var containerDiv = jQuery('<div></div>');
-				containerDiv.attr('style', 'display: flex;');
-				const label = jQuery('<p>nova imagem</p>');
-				const originalLabel = jQuery('<p>imagem_original</p>');
-	
-				var originalImages = jQuery('<div></div>');
-				var requestImages = jQuery('<div></div>');
-	
-	
+		renderImgs: function (option, files, path = null) {
+			var self = this;
+			// Creates the div
+			var containerDiv = jQuery('<div></div>');
+			containerDiv.attr('style', 'display: flex;');
+			const label = jQuery('<p>nova imagem</p>');
+			const originalLabel = jQuery('<p>imagem_original</p>');
+
+			var originalImages = jQuery('<div></div>');
+			var requestImages = jQuery('<div></div>');
+			requestImages.append(label);
+			requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
+			
+			var url_root = this.options.root_url;
+			
+			if (option == 'change') {
 				originalImages.append(originalLabel);
 				originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
-				var link = jQuery('<p style="overflow-wrap: break-word;"><img src="'+this.options.root_url+files['last']['path']+files['last']['name']+'" width="500" height="600"></p>');
-				originalImages.append(link);
-				requestImages.append(label);
-				requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
-				var link = jQuery('<p style="overflow-wrap: break-word;"><img src="'+this.options.root_url+files['new']['path']+files['new']['name']+'" width="500" height="600"></p>');
-				requestImages.append(link);
+				if (Array.isArray(files['last']['name'])) {
+					files['last']['name'].forEach(function (element, index) {
+						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + element + '" width="500" height="600"></p>');
+						originalImages.append(link);
+					});
+				} else {
+					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + files['last']['name'] + '" width="500" height="600"></p>');
+					originalImages.append(link);
+				}
 				containerDiv.append(originalImages);
+				if (Array.isArray(files['new']['name'])) {
+					files['new']['name'].forEach(function (element, index) {
+						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + element + '" width="500" height="600"></p>');
+						requestImages.append(link);
+					});
+				} else {
+					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + files['new']['name'] + '" width="500" height="600"></p>');
+					requestImages.append(link);
+				}
 				containerDiv.append(requestImages);
-				return containerDiv;
+			} else if ('new') {
+				if (Array.isArray(files)) {
+					files.forEach(function (element, index) {
+					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
+						requestImages.append(link);
+					});
+				} else {
+					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + files + '" width="500" height="600"></p>');
+					requestImages.append(link);
+				}
+
+				containerDiv.append(requestImages);
+			}
+			//requestImages.append(link);
+			//containerDiv.append(requestImages);
+			return containerDiv;
 		},
 
 		getDatabaseJoinSingleElements: function (join_db_name, original_element_id,
