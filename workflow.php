@@ -405,7 +405,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $whereClauses = array();
 
             foreach ($ids as $id) {
-                $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $id->value;
+                $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $db->q($id->value);
             }
 
             $query
@@ -427,7 +427,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $whereClauses = array();
 
         foreach ($request_elements_array as $id) {
-            $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $id;
+            $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $db->q($id);
         }
         $query
             ->select(array($db->quoteName($join_val_column) . ' as value', 'id'))
@@ -1626,7 +1626,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         $whereClauses = array();
 
                         foreach ($ids as $id) {
-                            $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $id;
+                            $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $db->q($id);
                         }
 
                         $query
