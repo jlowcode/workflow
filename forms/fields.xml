@@ -56,6 +56,14 @@
                    highlightpk="true"
                    description="PLG_FORM_WORKFLOW_OWNER_ELEMENT_DESC"
                    label="PLG_FORM_WORKFLOW_OWNER_ELEMENT_LABEL"/>
+            
+            	<field name="workflow_ignore_elements"
+				type="textarea"
+				cols="30"
+				description="PLG_FORM_WORKFLOW_IGNORE_ELEMENTS_DESC"
+				label="PLG_FORM_WORKFLOW_IGNORE_ELEMENTS_LABEL"
+				repeat="true"
+				rows="6" />
 		
         </fieldset>	
     </fields>

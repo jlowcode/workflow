@@ -4,27 +4,21 @@
  * @copyright: Copyright (C) 2024
  * 
  */
-
 define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	'use strict';
 	var FabrikWorkflow = new Class({
-
 		Implements: [Events],
-
 		statusName: {
 			'verify': Joomla.JText._('PLG_FORM_WORKFLOW_VERIFY'),
 			'approved': Joomla.JText._('PLG_FORM_WORKFLOW_APPROVED'),
 			'pre-approved': Joomla.JText._('PLG_FORM_WORKFLOW_PRE_APPROVED'),
 			'not-approved': Joomla.JText._('PLG_FORM_WORKFLOW_NOTE_APPROVED')
-
 		},
-
 		requestTypeText: {
 			'add_record': Joomla.JText._('PLG_FORM_WORKFLOW_ADD_RECORD'),
 			'edit_field_value': Joomla.JText._('PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD'),
 			'delete_record': Joomla.JText._('PLG_FORM_WORKFLOW_DELETE_RECORD')
 		},
-
 		elementsName: {
 			'req_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_ID_LABEL'),
 			'req_owner_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
@@ -44,7 +38,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
 			'req_user_email': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_LABEL'),
 		},
-
 		tableHeadins: {
 			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
 			'req_user_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
@@ -56,14 +49,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'req_record_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL'),
 			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
 		},
-
 		requestsStatus: {
 			'verify': 'Verify',
 			'approved': 'Approved',
 			'pre-approved': 'Pre-Approved',
 			'not-approved': 'Not Approved'
 		},
-
 		initialize: function (options) {
 			var self = this;
 			var block = Fabrik.getBlock('form_8');
@@ -75,7 +66,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				var modal = jQuery('#modal')[0];
 				self.modal = modal;
 				self.loadRequestList(modal, 'verify');
-
 				// Search event
 				var inputSearch = jQuery("#searchTable");
 				inputSearch.on('keyup', function (event) {
@@ -87,26 +77,20 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						}
 					}
 				});
-
 				// Get the button that opens the modal
 				// var btn = jQuery('#myBtn')[0];
-
 				// Get the <span> element that closes the modal
 				var span = jQuery('.modalCloseBtn')[0];
-
 				// When the user clicks on <span> (x), close the modal
 				span.onclick = function () {
 					modal.style.display = "none";
 				};
-
 				// When the user clicks anywhere outside of the modal, close it
 				window.onclick = function (event) {
 					if (event.target == modal) {
 						modal.style.display = "none";
 					}
 				};
-
-
 				// var elements = document.getElementsByClassName('buttonClass');
 				// for(var i = 0; i < elements.length; i++) {
 				// 	var button = elements[i];
@@ -121,13 +105,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				// 		});
 				// 	})
 				// }
-
 				if ('show_request_id' in self.options) {
-
 					const requestId = parseInt(self.options.show_request_id, 10);
 					self.getRequest(requestId).done(function (data) {
 						var objData = JSON.decode(data);
-
 						self.setForm(self.buildFormTest(objData[0]), modal, [objData[0]], requestId);
 						modal.show();
 					});
@@ -137,15 +118,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					// self.setForm(self.buildForm(request), modal, [request], request['req_id']);
 					// modal.show();
 				}
-
 				var dataRow = document.getElementsByClassName('fabrik_row');
 				Array.from(dataRow).each(function (row) {
-
 					// BUTTON REPORT 
 					var btnGroup = row.getElementsByClassName('dropdown-menu');
+					btnGroup[0].style.minWidth = '12em';
 					let li = document.createElement("li");
 					li.setAttribute('class', 'nav-link')
-
 					let report = document.createElement("a");
 					report.classList.add('btn-default-delete');
 					report.setAttribute('data-loadmethod', 'xhr')
@@ -153,16 +132,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6])
 					report.setAttribute('data-rowid', 'xhr')
 					report.setAttribute('target', '_self')
-					report.setAttribute('title', 'Reportar')
+					report.setAttribute('title', 'Reportar/Excluir')
 					//report.setAttribute('onclick', 'reportAbuse(' + row.id.split('_')[4] + ',' + row.id.split('_')[6] + ')')
-					report.innerHTML = '<span><i class="fas fa-exclamation-triangle fa-sm" style="color: #8c8c8c;"></i></span> Reportar';
-
+					report.innerHTML = '<span><i class="fas fa-exclamation-triangle fa-sm" style="color: #8c8c8c;"></i></span> Reportar/Excluir';
 					li.appendChild(report)
 					btnGroup[0].appendChild(li);
-
 					// REMOVE DELETAR PADRAO
 					jQuery('.dropdown-menu a.delete').parent().remove()
-
 					// ADICIONA TOOTIPS PARA CAMPOS VAZIOS
 					var fields = jQuery('.fabrik_element');
 					Object.keys(fields).forEach(function (key) {
@@ -173,12 +149,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						};
 					});
 				});
-
 				jQuery("a.btn-default-delete").on("click", function (e) {
 					const loadImg = jQuery('<div style=" display: flex; position: fixed; background: rgba(0,0,0,0.5);width: 100%;top: 0;height: 100vh;margin: auto;"><img style="margin: auto;" src="https://i.gifer.com/ZKZg.gif"></div>');
 					jQuery('body').append(loadImg);
 					var listRowIds = this.attributes['list-row-ids'].value
-
 					jQuery.ajax({
 						'url': '',
 						'method': 'get',
@@ -192,15 +166,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							'g': 'form',
 						},
 						success: function (data) {
+							alert("Sucesso!");
 							location.reload();
 						}
 					});
 				});
 			})
-
 			//Request type select
 			var requestTypeSelect = jQuery('#requestTypeSelect');
-
 			for (var chave in self.requestsStatus) {
 				if (chave == 'verify') {
 					requestTypeSelect.append('<option selected="selected" value="' + chave + '">' + self.requestsStatus[chave] + '</option>');
@@ -208,13 +181,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					requestTypeSelect.append('<option value="' + chave + '">' + self.requestsStatus[chave] + '</option>');
 				}
 			}
-
 			requestTypeSelect.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
 
 				self.loadRequestList(self.modal, selected, 1);
 			});
-
 
 			// Order by
 			var orderByDropdownItens = jQuery('#orderBySelect');
@@ -299,8 +270,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				const pageButton = jQuery('<a class="page-link" rel="noreferrer" target="_blank" type="button">' + i + '</a>');
 
-
-
 				if (actualPage == i) {
 					paginationUl.append(jQuery('<li class="active"></li>').append(pageButton));
 				} else {
@@ -316,7 +285,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 						});
 					})(i);
-
 
 					paginationUl.append(jQuery('<li></li>').append(pageButton));
 				}
@@ -343,30 +311,22 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				paginationUl.append(jQuery('<li></li>').append(nextButtonPagination));
 				paginationUl.append(jQuery('<li></li>').append(endButtonPagination));
 			}
-
 			paginationElement.append(paginationUl);
 		},
-
 		loadRequestList: function (modal, type, page = 1, search = null, orderBy = 'req_created_date') {
-
 			orderBy = jQuery('#orderBySelect').val();
-
 			var self = this;
-
 			if (this.options.wfl_action == 'list_requests') {
 				this.getRequestsList(type, 5, start, search, 1).done(function (response) {
 					self.options.requestsCount = response;
 					self.setPagination(page);
-
 				});
-
 			}
 			var self = this;
 			var start;
 			var table = jQuery("#tblEntAttributes");
 			var tableBody = jQuery("#tblEntAttributes tbody");
 			const loadImg = jQuery('<img style="display:block; margin: auto;" src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/35771931234507.564a1d2403b3a.gif">');
-
 			tableBody.empty();
 			tableBody.empty();
 			var empty = jQuery("<tr><td  colspan='10'>Nenhum registro encontrado</td></tr>");
@@ -454,7 +414,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		canApproveRequests: function (form_data) {
 			var canApproveRequests = this.options.user.canApproveRequests;
-
 			if (form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1) {
 				// ALTERAÇÃO
 				if (form_data['req_request_type_name'] == "edit_field_value" || form_data['req_request_type_name'] == "delete_record") {
@@ -472,7 +431,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var self = this;
 			var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
 			jModalBody.empty();
-
 			var commentContainer = jQuery("<div class='mt-2'></div>");
 			var fileContainer = jQuery("<div class='mt-2'></div>");
 			var commentLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') + "</p>");
@@ -481,7 +439,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
 			var uploadFileApproveLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL') + "</p>");
 			var uploadFileApprove = jQuery("<input type='file' name='uploadFileApprove' id='uploadFileApprove'>");
-
 			var yesno = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
 				"  <label class=\"btn btn-success\">\n" +
 				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonYes\" value=\"yes\" autocomplete=\"off\" checked> Sim\n" +
@@ -688,7 +645,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			for (var key in newRecord) {
 				// skip loop if the property is from prototype
 				if (!newRecord.hasOwnProperty(key) || !(key.indexOf(listName + '_') !== -1)) continue;
-
 				// verify if the property exists on the last record
 				// if exists verify if has changed
 				if (lastRecord.hasOwnProperty(key)) {
@@ -717,7 +673,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				return true;
 			return false;
 		},
-
 		renderFiles: function (id, fileList) {
 			// Creates the div
 			var div = jQuery('<div></div>');
@@ -730,10 +685,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				var link = jQuery('<p><a target="_blank" href="' + this.options.root_url + fileList[key] + '">' + fileList[key] + ' </a></p>');
 				div.append(link);
 			}
-
 			return div;
 		},
-
 		renderFilesOriginalRequest: function (id, originalFileList, requestFileList) {
 			var self = this;
 			// Creates the div
@@ -741,37 +694,29 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			containerDiv.attr('style', 'display: flex;');
 			const label = jQuery('<p>' + id + '</p>');
 			const originalLabel = jQuery('<p>' + id + '_original</p>');
-
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
-
-
 			originalImages.append(originalLabel);
 			originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
 			originalFileList.forEach(function (element, index) {
 				const link = jQuery('<p style="overflow-wrap: break-word;"><a target="_blank" href="' + self.options.root_url + element.value + '">' + element.value + ' </a></p>');
 				originalImages.append(link);
 			});
-
 			requestImages.append(label);
 			requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
 			Object.values(requestFileList).forEach(function (element, index) {
 				const link = jQuery('<p style="overflow-wrap: break-word;"><a target="_blank" href="' + self.options.root_url + element + '">' + element + ' </a></p>');
 				requestImages.append(link);
 			});
-
 			containerDiv.append(originalImages);
 			containerDiv.append(requestImages);
-
 			return containerDiv;
 		},
-
 		uploadFile: function (uploadFileInput) {
 			if (uploadFileInput.val()) {
 				var file_data = jQuery(uploadFileInput[0]).prop('files')[0];
 				var form_data = new FormData();
 				form_data.append('file', file_data);
-
 				return jQuery.ajax({
 					url: 'http://localhost/PITT/fabrik/plugins/fabrik_form/workflow/uploadFile.php',   // point to server-side PHP script
 					dataType: 'text',                                                                       // what to expect back from the PHP script, if anything
@@ -786,7 +731,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				});
 			}
 		},
-
 		createInput: function (labelText, value, id) {
 			// Creates the div
 			var div = jQuery('<div></div>');
@@ -803,8 +747,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			div.append(input);
 			return div;
 		},
-
-		createInputsBeforeAfter: function (key, originalValue, newValue) {
+		createInputsBeforeAfter: function (key, originalValue = null, newValue) {
 			var self = this;
 			const originalNewInputContainer = jQuery("<div></div>");
 			originalNewInputContainer.attr('style', 'display: flex;');
@@ -818,16 +761,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			originalNewInputContainer.append(inputContainer);
 			return originalNewInputContainer;
 		},
-
 		buildFormTest: function (data) {
 			var self = this;
 			// Creates the form
 			var form = jQuery('<form></form>');
-
 			// Container to the Request Data, such as
 			// [req_user_id. req_created_data, ...]
 			var requestInputsContainer = jQuery('<div></div>');
-
 			// Set a title to the container
 			if (data['req_request_type_id'] == 1) {
 				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT') + '<h2><hr />');
@@ -837,7 +777,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_DELETE_TEXT') + '<h2><hr />');
 			}
 			requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL') + '<h2>');
-
 			// Iterates over data creating a input form for each entry
 			// and appending it to the container
 			for (var key in data) {
@@ -860,21 +799,17 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
-
 						case 'req_owner_id':
 							continue;
 							break;
-
 						case 'req_user_id':
 							continue;
 							break;
-
 						case 'req_status':
 							var d = this.statusName[data[key]];
 							const inputContainerA = self.createInput(self.elementsName[key], d, key);
 							requestInputsContainer.append(inputContainerA);
 							break;
-
 						case 'req_request_type_name':
 							var d = this.requestTypeText[data[key]];
 							const inputContainerB = self.createInput(self.elementsName[key], d, key);
@@ -884,7 +819,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var div = jQuery('<div></div>');
 							var label = jQuery('<label for="' + self.elementsName[key] + '">' + self.elementsName[key] + ' </label>')
 							div.append(label);
-							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"><a target="_blank" href="' + form[0].baseURI.split('?')[0].replace('list', 'details') + '/' + data[key] + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a></div>')
+
+							var baseUrl = form[0].baseURI.split('?')[0]
+							baseUrl = baseUrl.indexOf("list") != -1 ?baseUrl.replace('list', 'details') + '/' + data[key] : baseUrl + '/details/' + data['req_list_id'] + '/' + data[key];
+
+							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"><a target="_blank" href="' + baseUrl + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a></div>')
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
@@ -895,13 +834,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				}
 			}
-
 			// Parsing the json from form_data to an object
 			var formData = JSON.parse(data['form_data']);
-
-
 			const listName = self.options.listName;
-
 			// Container to the new/edited data of the request
 			var formDataInputsContainer = jQuery('<div></div>');
 			formDataInputsContainer.attr('class', 'formDataInputsContainer mt-2');
@@ -914,12 +849,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// Append the request data to the form
 			form.append(requestInputsContainer);
 			form.append(formDataInputsContainer);
-
 			if (data['req_request_type_id'] == "delete_record" || data['req_request_type_id'] == 3) {
 				// delete record
 				// const recordId = formData.rowid;
 				const recordId = data['req_record_id'];
-
 				this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
 					// const link = self.options.root_url + "index.php/" + listName + "/details/" + self.options.listId + "/" + recordId;
 					const link = self.options.root_url + "component/fabrik/details/" + self.options.listId + "/" + recordId;
@@ -967,13 +900,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// Returns the form
 			return form;
 		},
-
 		buildAddDeleteRecordView: function (formData, elementsTypes) {
 			var self = this;
 			var view = jQuery("<div></div>");
 			const listName = this.options.listName;
 			var repeatGroups = {};
-
 			// Iterates form data
 			for (var key in formData) {
 				// If has raw continue iteration
@@ -990,13 +921,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					const isRepeatGroup = key.indexOf('repeat');
 					if (isRepeatGroup !== -1) {
 						repeatGroups[key] = obj;
-					} else if (obj.hasOwnProperty("crop")) {
-						var filesProcessed = this.processFiles({ key: obj });
-						view.append(this.renderFiles(key, filesProcessed));
+					//} else if (obj.hasOwnProperty("crop")) {
+						// var filesProcessed = this.processFiles({ key: obj });
+						// view.append(this.renderFiles(key, filesProcessed));
 					} else {
 						// Get value if owner id
 						if (elementsTypes[onlyElementKey] != undefined) {
-							if (elementsTypes[onlyElementKey]['plugin'] == "user") {
+							if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
 								//onGetUserValue
 								jQuery.ajax({
 									'url': '',
@@ -1020,14 +951,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									if (Array.isArray(elementName)) {
 										view.append(this.buildMultipleElementView(elementName, onlyElementKey));
 									} else {
-										view.append(this.createInput(onlyElementKey, createInput, onlyElementKey));
+										// view.append(this.createInput(onlyElementKey, createInput, onlyElementKey));
+										view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
 									}
-									if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image') {
-										view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path'] ));
+									if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
+										view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path']));
 									}
 								}
-							}
-							else {
+							}else if (elementsTypes[onlyElementKey]['plugin'] == 'date'){
+								view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
+							} else {
 								// Verify if is array
 								if (Array.isArray(obj)) {
 									view.append(this.buildMultipleElementView(obj, onlyElementKey));
@@ -1046,15 +979,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			}
 			return view;
 		},
-
 		buildEditRecordView: function (lastFormData, newFormData, elementsTypes) {
 			var self = this;
 			var repeatGroups = {};
 			var view = jQuery("<div></div>");
 			const listName = this.options.listName;
-
 			const changedProperties = self.compareRecords(lastFormData, newFormData);
-
 			for (var key in changedProperties) {
 				// If is not own property continue to next iteration
 				if (!changedProperties.hasOwnProperty(key)) continue;
@@ -1063,47 +993,45 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				var obj = changedProperties[key];
 				// const onlyElementKey = key.replace(listName+"___", "").replace("_raw", "");
 				const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
+				if (this.options.workflow_ignore_elements != null){
+					if (this.options.workflow_ignore_elements.indexOf(onlyElementKey) !== -1) continue;
+				}
 				// if is id continue to next iteration
 				if (key.indexOf("_id") !== -1) continue;
-				if ((key.indexOf("_raw") !== -1 || key.indexOf("-auto-complete") !== -1) && (changedProperties.hasOwnProperty(listName+"___"+onlyElementKey + "_value"))) continue;
+				if ((key.indexOf("_raw") !== -1 || key.indexOf("-auto-complete") !== -1) && (changedProperties.hasOwnProperty(listName + "___" + onlyElementKey + "_value"))) continue;
 				// Verify if is repeat group
 				const isRepeatGroup = key.indexOf('repeat');
 				if (isRepeatGroup !== -1) {
 					repeatGroups[key] = obj;
-				} else if (obj['new'].hasOwnProperty("crop")) {
-					var lastFilesProcessed = this.processFiles({ key: obj['last'] }, true);
-					var newFilesProcessed = this.processFiles({ key: obj['new'] });
-
-					const container = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-					const containerFlex = jQuery("<div></div>");
-					containerFlex.append("");
-					containerFlex.attr('style', 'display: flex;');
-					var newElement = jQuery("<div></div>");
-					var originalElement = jQuery("<div></div>");
-
-					originalElement.append(self.renderFiles(null, lastFilesProcessed));
-					newElement.append(self.renderFiles(null, newFilesProcessed));
-
-					newElement[0].style.paddingLeft = "5px";
-					originalElement[0].style.paddingLeft = "5px";
-
-					newElement[0].style.maxWidth = "50%";
-					newElement[0].style.overflowWrap = "break-word";
-					originalElement[0].style.maxWidth = "50%";
-					originalElement[0].style.overflowWrap = "break-word";
-
-					newElement[0].style.flex = "1";
-					originalElement[0].style.flex = "1";
-					containerFlex.append(originalElement);
-					containerFlex.append(newElement);
-					// view.append(this.buildMultipleElementView(obj, onlyElementKey));
-					container.append(containerFlex);
-					view.append(container);
+				// } else if (obj['new'].hasOwnProperty("crop")) {
+				// 	var lastFilesProcessed = this.processFiles({ key: obj['last'] }, true);
+				// 	var newFilesProcessed = this.processFiles({ key: obj['new'] });
+				// 	const container = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+				// 	const containerFlex = jQuery("<div></div>");
+				// 	containerFlex.append("");
+				// 	containerFlex.attr('style', 'display: flex;');
+				// 	var newElement = jQuery("<div></div>");
+				// 	var originalElement = jQuery("<div></div>");
+				// 	originalElement.append(self.renderFiles(null, lastFilesProcessed));
+				// 	newElement.append(self.renderFiles(null, newFilesProcessed));
+				// 	newElement[0].style.paddingLeft = "5px";
+				// 	originalElement[0].style.paddingLeft = "5px";
+				// 	newElement[0].style.maxWidth = "50%";
+				// 	newElement[0].style.overflowWrap = "break-word";
+				// 	originalElement[0].style.maxWidth = "50%";
+				// 	originalElement[0].style.overflowWrap = "break-word";
+				// 	newElement[0].style.flex = "1";
+				// 	originalElement[0].style.flex = "1";
+				// 	containerFlex.append(originalElement);
+				// 	containerFlex.append(newElement);
+				// 	// view.append(this.buildMultipleElementView(obj, onlyElementKey));
+				// 	container.append(containerFlex);
+				// 	view.append(container);
 				} else {
 					// Verify if is array
 					// Get value if owner id
 					if (elementsTypes[onlyElementKey] != undefined) {
-						if (elementsTypes[onlyElementKey]['plugin'] == "user") {
+						if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
 							//onGetUserValue
 							jQuery.ajax({
 								'url': '',
@@ -1142,43 +1070,45 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
 									if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
 										view.append(self.renderImgs('change', changedProperties[elementName]));
-									}
 								}
 							}
 						} else {
-							if (Array.isArray(obj['new']) || Array.isArray('last')) {
-								const container = jQuery("<div></div>");
-								const containerFlex = jQuery("<div></div>");
-								containerFlex.append("");
-								containerFlex.attr('style', 'display: flex;');
-								var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-								var originalElement = jQuery("<div><p>" + onlyElementKey + "_original</p></div>");
-
-								if (!obj['last'] || obj['last'] == undefined) {
-									// originalElement.append("VAZIO");
-								} else {
-									originalElement.append(self.buildMultipleElementView(obj['last']));
-								}
-								newElement.append(self.buildMultipleElementView(obj['new']));
-
-								newElement[0].style.paddingLeft = "5px";
-								originalElement[0].style.paddingLeft = "5px";
-								newElement[0].style.flex = "1";
-								originalElement[0].style.flex = "1";
-								containerFlex.append(originalElement);
-								containerFlex.append(newElement);
-								// view.append(this.buildMultipleElementView(obj, onlyElementKey));
-								container.append(containerFlex);
-								view.append(container);
-							} else {
-								// self.createInputsBeforeAfter(elementKey, originalString, requestString)
-								view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
+							view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
+							if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
+								view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
 							}
+						}
+					} else if (elementsTypes[onlyElementKey]['plugin'] == 'date'){
+						view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
+					} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
+							const container = jQuery("<div></div>");
+							const containerFlex = jQuery("<div></div>");
+							containerFlex.append("");
+							containerFlex.attr('style', 'display: flex;');
+							var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+							var originalElement = jQuery("<div><p>" + onlyElementKey + "_original</p></div>");
+							if (!obj['last'] || obj['last'] == undefined) {
+								// originalElement.append("VAZIO");
+							} else {
+								originalElement.append(self.buildMultipleElementView(obj['last']));
+							}
+							newElement.append(self.buildMultipleElementView(obj['new']));
+							newElement[0].style.paddingLeft = "5px";
+							originalElement[0].style.paddingLeft = "5px";
+							newElement[0].style.flex = "1";
+							originalElement[0].style.flex = "1";
+							containerFlex.append(originalElement);
+							containerFlex.append(newElement);
+							// view.append(this.buildMultipleElementView(obj, onlyElementKey));
+							container.append(containerFlex);
+							view.append(container);
+						} else {
+							// self.createInputsBeforeAfter(elementKey, originalString, requestString)
+							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
 						}
 					}
 				}
 			}
-
 			for (var key in repeatGroups) {
 				const group = repeatGroups[key];
 				const container = jQuery("<div><p>" + key + "</p></div>");
@@ -1187,10 +1117,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				containerFlex.attr('style', 'display: flex;');
 				var newElement = jQuery("<div></div>");
 				var originalElement = jQuery("<div></div>");
-
 				originalElement.append(self.buildRepeatGroupView(group['last']));
 				newElement.append(self.buildRepeatGroupView(group['new']));
-
 				newElement[0].style.paddingLeft = "5px";
 				originalElement[0].style.paddingLeft = "5px";
 				newElement[0].style.flex = "1";
@@ -1212,12 +1140,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var ul = jQuery("<ul class='workflow-ul-request'></ul>");
 			element.forEach(function (one) {
 				ul.append("<li>" + one + "</li>")
-
 			});
 			div.append(ul);
 			return div;
 		},
-
 		buildRepeatGroupView: function (element, key) {
 			var key = key ? key : "";
 			var div = jQuery("<div><p>" + key + "</p></div>");
@@ -1295,11 +1221,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var self = this;
 			// Creates the form
 			var form = jQuery('<form></form>');
-
 			// Container to the Request Data, such as
 			// [req_user_id. req_created_data, ...]
 			var requestInputsContainer = jQuery('<div></div>');
-
 			// Set a title to the container
 			if (data['req_request_type_id'] == 1) {
 				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT') + '<h2><hr />');
@@ -1309,7 +1233,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_DELETE_TEXT') + '<h2><hr />');
 			}
 			requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL') + '<h2>');
-
 			// Iterates over data creating a input form for each entry
 			// and appending it to the container
 			for (var key in data) {
@@ -1336,7 +1259,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							// 	requestInputsContainer.append(inputContainer);
 							// });
 							break;
-
 						case 'req_file':
 							var div = jQuery('<div></div>');
 							var label = jQuery('<p>' + self.elementsName[key] + '</p>');
@@ -1345,14 +1267,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
-
 						case 'req_owner_id':
 							data['req_owner_id'] = data['req_owner_name'];
 							delete data['req_owner_name'];
 							const inputContainer1 = self.createInput('Dono do registro', data[key], key);
 							requestInputsContainer.append(inputContainer1);
 							break;
-
 						case 'req_user_id':
 							data['req_user_id'] = data['req_user_name'];
 							delete data['req_user_name'];
@@ -1363,6 +1283,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var div = jQuery('<div></div>');
 							var label = jQuery('<label for="' + self.elementsName[key] + '">' + self.elementsName[key] + ' </label>')
 							div.append(label);
+
+							var baseUrl = form[0].baseURI.split('?')[0]
+
+							var baseUrl = baseUrl.indexOf("list") != -1 ? baseUrl + '/' + data[key] : baseUrl.replace('list', 'details') + '/' + data[key];
+
 							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"><a target="_blank" href="' + form[0].baseURI.split('?')[0].replace('list', 'details') + '/' + data[key] + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a></div>')
 							div.append(link);
 							requestInputsContainer.append(div);
@@ -1374,20 +1299,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				}
 			}
-
 			// Parsing the json from form_data to an object
 			var formData = JSON.parse(data['form_data']);
-
 			// Container to the new/edited data of the request
 			var formDataInputsContainer = jQuery('<div></div>');
 			formDataInputsContainer.attr('class', 'formDataInputsContainer');
 			formDataInputsContainer.attr('style', 'dispay: flex;');
 			formDataInputsContainer.attr('style', 'flex-direction: column;');
 			formDataInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + '<h2>');
-
 			// Append the request data to the form
 			form.append(requestInputsContainer);
-
 			// add_record || edit_field_value
 			if (data['req_request_type_id'] == "add_record") {
 				// Iterates over formData creating inputs for each entry
@@ -1400,13 +1321,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						const inputContainer = self.createInput(key, formData[key], key);
 						formDataInputsContainer.append(inputContainer);
 					}
-
 				}
 				form.append(formDataInputsContainer);
 			} else if (data['req_request_type_id'] == "edit_field_value") {
 				self.getRecord(data['req_list_id'], data['req_record_id']).done(function (reqData) {
 					var req_record_id = data['req_record_id'];
-
 					for (var key in formData) {
 						// @TODO - Mostrar imagem antes e depois
 						if (formData[key]['is_files']) {
@@ -1432,7 +1351,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							const elementKey = key;
 							self.getElementsType(data['req_list_id']).done(function (data) {
 								const allElementsType = JSON.decode(data);
-
 								const currentElementData = allElementsType[elementKey];
 								if (currentElementData['plugin'] == 'databasejoin') {
 									var elementValue = JSON.decode(formData[elementKey]);
@@ -1440,7 +1358,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									if (currentElementData['database_join_display_type'] == 'multilist' ||
 										currentElementData['database_join_display_type'] == 'checkbox') {
 										const listName = self.options.listName;
-
 										self.getDatabaseJoinMultipleElements(currentElementData['join_db_name'], listName,
 											elementKey, req_record_id, currentElementData['join_val_column'],
 											currentElementData['join_key_column'], formData[elementKey]).done(function (ajaxReturn) {
@@ -1451,7 +1368,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 												const elementsRequestLength = elementsRequest.length;
 												var originalString = "";
 												var requestString = "";
-
 												// Create strings with ,
 												elementsOriginal.forEach(function (element, index) {
 													originalString += element.value;
@@ -1469,7 +1385,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 														requestString += '.';
 													}
 												});
-
 												formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, originalString, requestString));
 											});
 									} else {
@@ -1482,21 +1397,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 												currentElementData['join_key_column']).done(function (data) {
 													const result = JSON.decode(data);
 													const newValue = result['new'][0]['value'];
-
 													if ('original' in result) {
-
 														const originalValue = result['original'][0]['value'];
 														formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, originalValue, newValue));
 													} else {
 														formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, " ", newValue));
 													}
-
 												});
 										}
 									}
-
 								} else {
-
 									formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, formData[elementKey], reqData[0][elementKey]));
 								}
 							});
@@ -1530,14 +1440,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			containerDiv.attr('style', 'display: flex;');
 			const label = jQuery('<p>nova imagem</p>');
 			const originalLabel = jQuery('<p>imagem_original</p>');
-
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			requestImages.append(label);
 			requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
-			
 			var url_root = this.options.root_url;
-			
 			if (option == 'change') {
 				originalImages.append(originalLabel);
 				originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
@@ -1571,14 +1478,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + files + '" width="500" height="600"></p>');
 					requestImages.append(link);
 				}
-
 				containerDiv.append(requestImages);
 			}
 			//requestImages.append(link);
 			//containerDiv.append(requestImages);
 			return containerDiv;
 		},
-
 		getDatabaseJoinSingleElements: function (join_db_name, original_element_id,
 			element_id, join_val_column, join_key_column) {
 			return jQuery.ajax({
@@ -1623,7 +1528,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				},
 			});
 		},
-
 
 		getFileUploadOriginals: function (parent_table_name, element_name, parent_id) {
 			return jQuery.ajax({
