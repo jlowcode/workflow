@@ -37,6 +37,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'req_file': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_FILE_LABEL'),
 			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
 			'req_user_email': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_LABEL'),
+			'req_vote_approve': Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_LABEL'),
+			'req_vote_disapprove': Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL'),
 		},
 		tableHeadins: {
 			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
@@ -85,15 +87,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				span.onclick = function () {
 					modal.style.display = "none";
 				};
-
 				// When the user clicks anywhere outside of the modal, close it
 				window.onclick = function (event) {
 					if (event.target == modal) {
 						modal.style.display = "none";
 					}
 				};
-
-
 				// var elements = document.getElementsByClassName('buttonClass');
 				// for(var i = 0; i < elements.length; i++) {
 				// 	var button = elements[i];
@@ -108,13 +107,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				// 		});
 				// 	})
 				// }
-
 				if ('show_request_id' in self.options) {
-
 					const requestId = parseInt(self.options.show_request_id, 10);
 					self.getRequest(requestId).done(function (data) {
 						var objData = JSON.decode(data);
-
 						self.setForm(self.buildFormTest(objData[0]), modal, [objData[0]], requestId);
 						modal.show();
 					});
@@ -189,31 +185,26 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			}
 			requestTypeSelect.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
-
+				jQuery("#orderBySelect ").val('req_created_date').change();
 				self.loadRequestList(self.modal, selected, 1);
 			});
-
 			// Order by
 			var orderByDropdownItens = jQuery('#orderBySelect');
-
 			for (var chave in self.tableHeadins) {
 				if (chave == 'req_created_date') {
-					orderByDropdownItens.append('<option selected="selected" value="' + chave + '">' + self.tableHeadins[chave] + ' - ASC' + '</option>');
-					orderByDropdownItens.append('<option value="' + chave + '_desc' + '">' + self.tableHeadins[chave] + ' - DESC' + '</option>');
+					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadins[chave] + ' - ASC' + '</option>');
+					orderByDropdownItens.append('<option selected="selected" value="' + chave + '_desc' + '">' + self.tableHeadins[chave] + ' - DESC' + '</option>');
 				} else {
 					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadins[chave] + ' - ASC' + '</option>');
 					orderByDropdownItens.append('<option value="' + chave + '_desc' + '">' + self.tableHeadins[chave] + ' - DESC' + '</option>');
 				}
-
 			}
-
 			orderByDropdownItens.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
 				// get the requests type selected - approved/pre-approved ect
 				var typeSelected = jQuery(requestTypeSelect).children("option:selected").val();
 				self.loadRequestList(self.modal, typeSelected, self.options.actualPage, null, selected);
 			});
-
 		},
 
 		onGetSessionToken: function () {
@@ -419,6 +410,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		canApproveRequests: function (form_data) {
+
+		form_data.req_reviewers_votes = form_data.req_reviewers_votes == null ? '' : form_data.req_reviewers_votes;
+		if (form_data.req_reviewers_votes.indexOf(this.options.user.id) == -1) {
 			var canApproveRequests = this.options.user.canApproveRequests;
 			if (form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1) {
 				// ALTERAÇÃO
@@ -430,9 +424,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			} else if (form_data['req_user_id'] === this.options.user.id) {
 				canApproveRequests = false;
 			}
+		} else {
+				canApproveRequests = false;
+		}
 			return canApproveRequests;
 		},
-
 		setForm: function (form, modal, formData, request_id) {
 			var self = this;
 			var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
@@ -442,7 +438,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var commentLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') + "</p>");
 			var commentTextArea = jQuery("<textarea style='width: 100%;height: 5rem;' id='commentTextArea'></textarea>");
 			var approveSection = jQuery("<div class='mt-2 mb-4'></div>");
-			var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
 			var uploadFileApproveLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL') + "</p>");
 			var uploadFileApprove = jQuery("<input type='file' name='uploadFileApprove' id='uploadFileApprove'>");
 			var yesno = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
@@ -454,8 +449,29 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				"  </label>\n" +
 				"</div>");
 
-			var approvedCheckboxContainer = jQuery("<p class='mt-2'>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + " </p>");
-			approvedCheckboxContainer.append(yesno);
+			var vote = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
+				"  <label class=\"btn btn-success\">\n" +
+				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> A favor\n" +
+				"  </label>\n" +
+				"  <label class=\"btn btn-danger\">\n" +
+				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> Contra \n" +
+				"  </label>\n" +
+				"</div>");
+
+			switch (this.options.workflow_approval_by_votes) {
+				case '1':
+					var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
+					var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
+					var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>Votos Parciais: <br> Aprovar: " + parcialAprovar + " (Necessário " + this.options.workflow_votes_to_approve + ")<br> Reprovar: " + parcialDesaprovar + " (Necessário " + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
+					approvedCheckboxContainer.append(vote);
+					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
+					break;
+				default:
+					var approvedCheckboxContainer = jQuery("<p class='mt-2'>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + " </p>");
+					approvedCheckboxContainer.append(yesno);
+					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
+					break;
+			}
 
 			commentContainer.append(commentLabel);
 			commentContainer.append(commentTextArea);
@@ -482,11 +498,67 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						const requestType = formData[0]['req_request_type_id'];
 
 						var uploadFileInput = jQuery(form).find("#uploadFileApprove");
-						var approved = jQuery("input[name='yesnooptions']:checked").val() == "yes" ? true : false;
+					if (self.options.workflow_approval_by_votes == '1') {
+						var vote = jQuery("input[name='voteoptions']:checked").val();
+						if (vote == 'approve') {
+							formData[0]['req_vote_approve'] += 1;
+						} else {
+							formData[0]['req_vote_disapprove'] += 1;
+						}
 
 						jModalBody.empty();
 						jModalBody.append(jQuery('<h3>Carregando... </h3>'));
 
+						var recordData = JSON.decode(formData[0]['form_data']);
+						for (var chave in recordData) {
+							if (!recordData.hasOwnProperty(chave)) continue;
+							if (chave.indexOf("_raw") !== -1) {
+								delete recordData[chave];
+							}
+						}
+
+						var approvedOrdisapproved = 'verify';
+						approvedOrdisapproved = self.options.workflow_votes_to_approve == formData[0]['req_vote_approve'] ? 'approved' : approvedOrdisapproved;
+						approvedOrdisapproved = self.options.workflow_votes_to_disapprove == formData[0]['req_vote_disapprove'] ? 'not-approved' : approvedOrdisapproved;
+						formData[0]['req_status'] = approvedOrdisapproved;
+
+						var approved = approvedOrdisapproved == "approved" ? true : false;
+						if (approved) {
+							if (requestType == 3) {
+								// const rowId = JSON.decode(formData[0]['form_data'])[0]['rowid'];
+								const rowId = formData[0].req_record_id;
+								const listId = formData[0].req_list_id;
+								self.deleteRecord(rowId, listId);
+							} else {
+								self.createUpdateRecord(formData);
+							}
+						}
+
+						jQuery.ajax({
+							'url': '',
+							'method': 'post',
+							'data': {
+								'formData': formData,
+								'options': self.options,
+								'option': 'com_fabrik',
+								'format': 'raw',
+								'task': 'plugin.pluginAjax',
+								'plugin': 'workflow',
+								'method': 'ProcessRequest',
+								'g': 'form',
+							},
+							success: function (data) {
+								console.log(data)
+								modal.style.display = "none";
+								alert('Concluído');
+								document.location.reload(true);
+							}
+						});
+					} else {
+						var approved = jQuery("input[name='yesnooptions']:checked").val() == "yes" ? true : false;
+
+						jModalBody.empty();
+						jModalBody.append(jQuery('<h3>Carregando... </h3>'));
 						if (approved) {
 							formData[0]['req_approval'] = '1';
 						} else {
@@ -524,10 +596,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								formData[0]['req_file'] = response;
 								jQuery.ajax({
 									'url': '',
-									'method': 'get',
+									'method': 'post',
 									'data': {
 										'formData': formData,
-										'sendMail': self.options.sendMail,
+										'options': self.options,
 										'option': 'com_fabrik',
 										'format': 'raw',
 										'task': 'plugin.pluginAjax',
@@ -546,10 +618,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 							jQuery.ajax({
 								'url': '',
-								'method': 'get',
+								'method': 'post',
 								'data': {
 									'formData': formData,
-									'sendMail': self.options.sendMail,
+									'options': self.options,
 									'option': 'com_fabrik',
 									'format': 'raw',
 									'task': 'plugin.pluginAjax',
@@ -563,7 +635,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									document.location.reload(true);
 								}
 							});
-
+						}
 						}
 					});
 					jModalBody.append(approveButton);
@@ -795,6 +867,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						case 'req_revision_date':
 						case 'req_list_id':
 						case 'req_user_email':
+						case 'req_reviewers_votes':
 							continue;
 							break;
 						case 'req_file':
@@ -833,6 +906,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
+						case 'req_vote_approve':
+						case 'req_vote_disapprove':
+							var d = data[key];
+							const inputContainerC = self.createInput('Pontuação Parcial: ' + self.elementsName[key], d, key);
+							requestInputsContainer.append(inputContainerC);
+							break
 						default:
 							const inputContainer = self.createInput(self.elementsName[key], data[key], key);
 							requestInputsContainer.append(inputContainer);
@@ -920,6 +999,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					// pela implementação da Karine no databasejoin
 					const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
 					if (key.indexOf("_raw") !== - 1) continue;
+					if (this.options.workflow_ignore_elements != null) {
+						if (this.options.workflow_ignore_elements.indexOf(onlyElementKey) !== -1) continue;
+					}
 					// If has value ignore ids
 					if (formData.hasOwnProperty(listName + "___" + onlyElementKey + "_value") && !(key.indexOf("_value") !== - 1)) continue;
 					var obj = formData[key];
@@ -927,7 +1009,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					const isRepeatGroup = key.indexOf('repeat');
 					if (isRepeatGroup !== -1) {
 						repeatGroups[key] = obj;
-						//} else if (obj.hasOwnProperty("crop")) {
+					//} else if (obj.hasOwnProperty("crop")) {
 						// var filesProcessed = this.processFiles({ key: obj });
 						// view.append(this.renderFiles(key, filesProcessed));
 					} else {
@@ -953,6 +1035,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								});
 							} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
 								if ([listName + '_FILE_' + listName + '___' + onlyElementKey]) {
+								try {
 									var elementName = formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['name'];
 									if (Array.isArray(elementName)) {
 										view.append(this.buildMultipleElementView(elementName, onlyElementKey));
@@ -963,8 +1046,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
 										view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path']));
 									}
+								} catch {
+
 								}
-							} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
+							}
+						}else if (elementsTypes[onlyElementKey]['plugin'] == 'date'){
 								view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
 							} else {
 								// Verify if is array
@@ -999,7 +1085,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				var obj = changedProperties[key];
 				// const onlyElementKey = key.replace(listName+"___", "").replace("_raw", "");
 				const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
-				if (this.options.workflow_ignore_elements != null) {
+				if (this.options.workflow_ignore_elements != null){
 					if (this.options.workflow_ignore_elements.indexOf(onlyElementKey) !== -1) continue;
 				}
 				// if is id continue to next iteration
@@ -1009,31 +1095,30 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				const isRepeatGroup = key.indexOf('repeat');
 				if (isRepeatGroup !== -1) {
 					repeatGroups[key] = obj;
-					// } else if (obj['new'].hasOwnProperty("crop")) {
-					// 	var lastFilesProcessed = this.processFiles({ key: obj['last'] }, true);
-					// 	var newFilesProcessed = this.processFiles({ key: obj['new'] });
-
-					// 	const container = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-					// 	const containerFlex = jQuery("<div></div>");
-					// 	containerFlex.append("");
-					// 	containerFlex.attr('style', 'display: flex;');
-					// 	var newElement = jQuery("<div></div>");
-					// 	var originalElement = jQuery("<div></div>");
-					// 	originalElement.append(self.renderFiles(null, lastFilesProcessed));
-					// 	newElement.append(self.renderFiles(null, newFilesProcessed));
-					// 	newElement[0].style.paddingLeft = "5px";
-					// 	originalElement[0].style.paddingLeft = "5px";
-					// 	newElement[0].style.maxWidth = "50%";
-					// 	newElement[0].style.overflowWrap = "break-word";
-					// 	originalElement[0].style.maxWidth = "50%";
-					// 	originalElement[0].style.overflowWrap = "break-word";
-					// 	newElement[0].style.flex = "1";
-					// 	originalElement[0].style.flex = "1";
-					// 	containerFlex.append(originalElement);
-					// 	containerFlex.append(newElement);
-					// 	// view.append(this.buildMultipleElementView(obj, onlyElementKey));
-					// 	container.append(containerFlex);
-					// 	view.append(container);
+				// } else if (obj['new'].hasOwnProperty("crop")) {
+				// 	var lastFilesProcessed = this.processFiles({ key: obj['last'] }, true);
+				// 	var newFilesProcessed = this.processFiles({ key: obj['new'] });
+				// 	const container = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+				// 	const containerFlex = jQuery("<div></div>");
+				// 	containerFlex.append("");
+				// 	containerFlex.attr('style', 'display: flex;');
+				// 	var newElement = jQuery("<div></div>");
+				// 	var originalElement = jQuery("<div></div>");
+				// 	originalElement.append(self.renderFiles(null, lastFilesProcessed));
+				// 	newElement.append(self.renderFiles(null, newFilesProcessed));
+				// 	newElement[0].style.paddingLeft = "5px";
+				// 	originalElement[0].style.paddingLeft = "5px";
+				// 	newElement[0].style.maxWidth = "50%";
+				// 	newElement[0].style.overflowWrap = "break-word";
+				// 	originalElement[0].style.maxWidth = "50%";
+				// 	originalElement[0].style.overflowWrap = "break-word";
+				// 	newElement[0].style.flex = "1";
+				// 	originalElement[0].style.flex = "1";
+				// 	containerFlex.append(originalElement);
+				// 	containerFlex.append(newElement);
+				// 	// view.append(this.buildMultipleElementView(obj, onlyElementKey));
+				// 	container.append(containerFlex);
+				// 	view.append(container);
 				} else {
 					// Verify if is array
 					// Get value if owner id
@@ -1065,7 +1150,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								var elementName = listName + '_FILE_' + key;
 							} else if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]) {
 								var elementName = listName + '_FILE_' + listName + '___' + onlyElementKey;
-							}
+						} else {
+							var elementName = 'undefined';
+						}
+						if (changedProperties.hasOwnProperty(elementName)) {
 							if (changedProperties[elementName]['last'] != undefined) {
 								if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
 									view.append(this.buildMultipleElementView(changedProperties[elementName]['last']['name']));
@@ -1077,17 +1165,20 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
 									if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
 										view.append(self.renderImgs('change', changedProperties[elementName]));
+									}
 								}
 							}
 						} else {
+							if (changedProperties.hasOwnProperty(elementName)) {
 							view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
 							if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
 								view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
+								}
 							}
 						}
-					} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
+					} else if (elementsTypes[onlyElementKey]['plugin'] == 'date'){
 						view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
-						} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
+					} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
 							const container = jQuery("<div></div>");
 							const containerFlex = jQuery("<div></div>");
 							containerFlex.append("");
@@ -1478,7 +1569,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			} else if ('new') {
 				if (Array.isArray(files)) {
 					files.forEach(function (element, index) {
-						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
+					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
 						requestImages.append(link);
 					});
 				} else {
@@ -1491,7 +1582,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			//containerDiv.append(requestImages);
 			return containerDiv;
 		},
-
 		getDatabaseJoinSingleElements: function (join_db_name, original_element_id,
 			element_id, join_val_column, join_key_column) {
 			return jQuery.ajax({
@@ -1634,7 +1724,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 			});
 		},
-
 	});
 	return FabrikWorkflow;
 });
