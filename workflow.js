@@ -1,8 +1,8 @@
 /**
- * Workflow Javascript
+ * Workflow
  *
- * @copyright: Copyright (C) 2024
- * 
+ * @copyright: Copyright (C) 2018-2024 Jlowcode Org - All rights reserved.
+ * @license  : GNU/GPL http://www.gnu.org/copyleft/gpl.html
  */
 define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	'use strict';
@@ -14,11 +14,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'pre-approved': Joomla.JText._('PLG_FORM_WORKFLOW_PRE_APPROVED'),
 			'not-approved': Joomla.JText._('PLG_FORM_WORKFLOW_NOTE_APPROVED')
 		},
+
 		requestTypeText: {
 			'add_record': Joomla.JText._('PLG_FORM_WORKFLOW_ADD_RECORD'),
 			'edit_field_value': Joomla.JText._('PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD'),
 			'delete_record': Joomla.JText._('PLG_FORM_WORKFLOW_DELETE_RECORD')
 		},
+
 		elementsName: {
 			'req_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_ID_LABEL'),
 			'req_owner_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
@@ -40,6 +42,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'req_vote_approve': Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_LABEL'),
 			'req_vote_disapprove': Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL'),
 		},
+
 		tableHeadins: {
 			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
 			'req_user_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
@@ -51,17 +54,20 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'req_record_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL'),
 			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
 		},
+
 		requestsStatus: {
 			'verify': 'Verify',
 			'approved': 'Approved',
 			'pre-approved': 'Pre-Approved',
 			'not-approved': 'Not Approved'
 		},
+
 		initialize: function (options) {
 			var self = this;
 			var block = Fabrik.getBlock('form_8');
 			this.options = options;
 			this.options.actualPage = 1;
+
 			// When the page is ready
 			jQuery(document).ready(function () {
 				// Get the modal
@@ -79,47 +85,32 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						}
 					}
 				});
-				// Get the button that opens the modal
-				// var btn = jQuery('#myBtn')[0];
+
 				// Get the <span> element that closes the modal
 				var span = jQuery('.modalCloseBtn')[0];
 				// When the user clicks on <span> (x), close the modal
 				span.onclick = function () {
 					modal.style.display = "none";
 				};
+
 				// When the user clicks anywhere outside of the modal, close it
 				window.onclick = function (event) {
 					if (event.target == modal) {
 						modal.style.display = "none";
 					}
 				};
-				// var elements = document.getElementsByClassName('buttonClass');
-				// for(var i = 0; i < elements.length; i++) {
-				// 	var button = elements[i];
-				//
-				// 	jQuery(button).on('click', function() {
-				// 		var req_id = jQuery(this).attr('req-id');
-				// 		modal.style.display = "block";
-				// 		// modal.css('overflow', 'auto');
-				// 		self.getRequest(req_id).done(function (data) {
-				// 			var formData = JSON.stringify(data);
-				// 			self.setForm(self.buildForm(JSON.parse(formData)[0]), modal, data, req_id);
-				// 		});
-				// 	})
-				// }
+
 				if ('show_request_id' in self.options) {
+
 					const requestId = parseInt(self.options.show_request_id, 10);
 					self.getRequest(requestId).done(function (data) {
 						var objData = JSON.decode(data);
+
 						self.setForm(self.buildFormTest(objData[0]), modal, [objData[0]], requestId);
 						modal.show();
 					});
-					// // Get the request
-					// getRequest: function (req_id)
-					// // getRecord: function (req_list_id, req_record_id)
-					// self.setForm(self.buildForm(request), modal, [request], request['req_id']);
-					// modal.show();
 				}
+
 				var dataRow = document.getElementsByClassName('fabrik_row');
 				Array.from(dataRow).each(function (row) {
 					// BUTTON REPORT 
@@ -135,7 +126,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					report.setAttribute('data-rowid', 'xhr')
 					report.setAttribute('target', '_self')
 					report.setAttribute('title', 'Reportar/Excluir')
-					//report.setAttribute('onclick', 'reportAbuse(' + row.id.split('_')[4] + ',' + row.id.split('_')[6] + ')')
 					report.innerHTML = '<span><i class="fas fa-exclamation-triangle fa-sm" style="color: #8c8c8c;"></i></span> Reportar/Excluir';
 					li.appendChild(report)
 					btnGroup[0].appendChild(li);
@@ -151,6 +141,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						};
 					});
 				});
+
 				jQuery("a.btn-default-delete").on("click", function (e) {
 					const loadImg = jQuery('<div style=" display: flex; position: fixed; background: rgba(0,0,0,0.5);width: 100%;top: 0;height: 100vh;margin: auto;"><img style="margin: auto;" src="https://i.gifer.com/ZKZg.gif"></div>');
 					jQuery('body').append(loadImg);
@@ -174,6 +165,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					});
 				});
 			})
+
 			//Request type select
 			var requestTypeSelect = jQuery('#requestTypeSelect');
 			for (var chave in self.requestsStatus) {
@@ -183,13 +175,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					requestTypeSelect.append('<option value="' + chave + '">' + self.requestsStatus[chave] + '</option>');
 				}
 			}
+
 			requestTypeSelect.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
 				jQuery("#orderBySelect ").val('req_created_date').change();
 				self.loadRequestList(self.modal, selected, 1);
 			});
+
 			// Order by
 			var orderByDropdownItens = jQuery('#orderBySelect');
+
 			for (var chave in self.tableHeadins) {
 				if (chave == 'req_created_date') {
 					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadins[chave] + ' - ASC' + '</option>');
@@ -199,6 +194,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					orderByDropdownItens.append('<option value="' + chave + '_desc' + '">' + self.tableHeadins[chave] + ' - DESC' + '</option>');
 				}
 			}
+
 			orderByDropdownItens.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
 				// get the requests type selected - approved/pre-approved ect
@@ -286,6 +282,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					paginationUl.append(jQuery('<li></li>').append(pageButton));
 				}
 			}
+
 			if (actualPage == pageCount || isNaN(pageCount)) {
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(nextButtonPagination));
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(endButtonPagination));
@@ -308,8 +305,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				paginationUl.append(jQuery('<li></li>').append(nextButtonPagination));
 				paginationUl.append(jQuery('<li></li>').append(endButtonPagination));
 			}
+
 			paginationElement.append(paginationUl);
 		},
+
 		loadRequestList: function (modal, type, page = 1, search = null, orderBy = 'req_created_date') {
 			orderBy = jQuery('#orderBySelect').val();
 			var self = this;
@@ -410,7 +409,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		canApproveRequests: function (form_data) {
-
 		form_data.req_reviewers_votes = form_data.req_reviewers_votes == null ? '' : form_data.req_reviewers_votes;
 		if (form_data.req_reviewers_votes.indexOf(this.options.user.id) == -1) {
 			var canApproveRequests = this.options.user.canApproveRequests;
@@ -424,11 +422,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			} else if (form_data['req_user_id'] === this.options.user.id) {
 				canApproveRequests = false;
 			}
-		} else {
+			} else {
 				canApproveRequests = false;
-		}
+			}
 			return canApproveRequests;
 		},
+
 		setForm: function (form, modal, formData, request_id) {
 			var self = this;
 			var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
@@ -449,29 +448,29 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				"  </label>\n" +
 				"</div>");
 
-			var vote = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
-				"  <label class=\"btn btn-success\">\n" +
-				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> A favor\n" +
-				"  </label>\n" +
-				"  <label class=\"btn btn-danger\">\n" +
-				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> Contra \n" +
-				"  </label>\n" +
-				"</div>");
-
-			switch (this.options.workflow_approval_by_votes) {
-				case '1':
-					var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
-					var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
-					var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>Votos Parciais: <br> Aprovar: " + parcialAprovar + " (Necessário " + this.options.workflow_votes_to_approve + ")<br> Reprovar: " + parcialDesaprovar + " (Necessário " + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
-					approvedCheckboxContainer.append(vote);
-					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
-					break;
-				default:
-					var approvedCheckboxContainer = jQuery("<p class='mt-2'>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + " </p>");
-					approvedCheckboxContainer.append(yesno);
-					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
-					break;
-			}
+				var vote = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
+					"  <label class=\"btn btn-success\">\n" +
+					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> A favor\n" +
+					"  </label>\n" +
+					"  <label class=\"btn btn-danger\">\n" +
+					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> Contra \n" +
+					"  </label>\n" +
+					"</div>");
+	
+				switch (this.options.workflow_approval_by_votes) {
+					case '1':
+						var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
+						var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
+						var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>Votos Parciais: <br> Aprovar: " + parcialAprovar + " (Necessário " + this.options.workflow_votes_to_approve + ")<br> Reprovar: " + parcialDesaprovar + " (Necessário " + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
+						approvedCheckboxContainer.append(vote);
+						var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
+						break;
+					default:
+						var approvedCheckboxContainer = jQuery("<p class='mt-2'>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + " </p>");
+						approvedCheckboxContainer.append(yesno);
+						var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
+						break;
+				}
 
 			commentContainer.append(commentLabel);
 			commentContainer.append(commentTextArea);
@@ -498,13 +497,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						const requestType = formData[0]['req_request_type_id'];
 
 						var uploadFileInput = jQuery(form).find("#uploadFileApprove");
-					if (self.options.workflow_approval_by_votes == '1') {
-						var vote = jQuery("input[name='voteoptions']:checked").val();
-						if (vote == 'approve') {
-							formData[0]['req_vote_approve'] += 1;
-						} else {
-							formData[0]['req_vote_disapprove'] += 1;
-						}
+						if (self.options.workflow_approval_by_votes == '1') {
+							var vote = jQuery("input[name='voteoptions']:checked").val();
+							if (vote == 'approve') {
+								formData[0]['req_vote_approve'] += 1;
+							} else {
+								formData[0]['req_vote_disapprove'] += 1;
+							}
 
 						jModalBody.empty();
 						jModalBody.append(jQuery('<h3>Carregando... </h3>'));
@@ -638,29 +637,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						}
 						}
 					});
+
 					jModalBody.append(approveButton);
 				}
 			}
 		},
-
-		// delete a record
-		// deleteRecord: function(rowId, listName) {
-		//     var self = this;
-		//     return jQuery.ajax({
-		//         'url'   : 'index.php',
-		//         'method': 'get',
-		//         'data'  : {
-		//             'list_name': self.options.listName,
-		//             'record_id': rowId,
-		//             'option'   : 'com_fabrik',
-		//             'format'   : 'raw',
-		//             'task'     : 'plugin.pluginAjax',
-		//             'plugin'   : 'workflow',
-		//             'method'   : 'DeleteRecord',
-		//             'g'        : 'form',
-		//         }
-		//     });
-		// },
 
 		deleteRecord: function (rowId, listId) {
 			jQuery.ajax({
@@ -740,6 +721,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					changedProperties[key] = obj;
 				}
 			}
+
 			return changedProperties;
 		},
 
@@ -751,6 +733,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				return true;
 			return false;
 		},
+
 		renderFiles: function (id, fileList) {
 			// Creates the div
 			var div = jQuery('<div></div>');
@@ -765,6 +748,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			}
 			return div;
 		},
+
 		renderFilesOriginalRequest: function (id, originalFileList, requestFileList) {
 			var self = this;
 			// Creates the div
@@ -790,6 +774,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			containerDiv.append(requestImages);
 			return containerDiv;
 		},
+
 		uploadFile: function (uploadFileInput) {
 			if (uploadFileInput.val()) {
 				var file_data = jQuery(uploadFileInput[0]).prop('files')[0];
@@ -809,6 +794,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				});
 			}
 		},
+
 		createInput: function (labelText, value, id) {
 			// Creates the div
 			var div = jQuery('<div></div>');
@@ -825,6 +811,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			div.append(input);
 			return div;
 		},
+
 		createInputsBeforeAfter: function (key, originalValue = null, newValue) {
 			var self = this;
 			const originalNewInputContainer = jQuery("<div></div>");
@@ -837,8 +824,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			inputOriginalContainer[0].style.flex = "1";
 			originalNewInputContainer.append(inputOriginalContainer);
 			originalNewInputContainer.append(inputContainer);
+
 			return originalNewInputContainer;
 		},
+
 		buildFormTest: function (data) {
 			var self = this;
 			// Creates the form
@@ -906,12 +895,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
-						case 'req_vote_approve':
-						case 'req_vote_disapprove':
-							var d = data[key];
-							const inputContainerC = self.createInput('Pontuação Parcial: ' + self.elementsName[key], d, key);
-							requestInputsContainer.append(inputContainerC);
-							break
+							case 'req_vote_approve':
+							case 'req_vote_disapprove':
+								var d = data[key];
+								const inputContainerC = self.createInput('Pontuação Parcial: ' + self.elementsName[key], d, key);
+								requestInputsContainer.append(inputContainerC);
+								break;
 						default:
 							const inputContainer = self.createInput(self.elementsName[key], data[key], key);
 							requestInputsContainer.append(inputContainer);
@@ -919,6 +908,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				}
 			}
+
 			// Parsing the json from form_data to an object
 			var formData = JSON.parse(data['form_data']);
 			const listName = self.options.listName;
@@ -982,9 +972,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				});
 			}
+
 			// Returns the form
 			return form;
 		},
+
 		buildAddDeleteRecordView: function (formData, elementsTypes) {
 			var self = this;
 			var view = jQuery("<div></div>");
@@ -1009,9 +1001,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					const isRepeatGroup = key.indexOf('repeat');
 					if (isRepeatGroup !== -1) {
 						repeatGroups[key] = obj;
-					//} else if (obj.hasOwnProperty("crop")) {
-						// var filesProcessed = this.processFiles({ key: obj });
-						// view.append(this.renderFiles(key, filesProcessed));
 					} else {
 						// Get value if owner id
 						if (elementsTypes[onlyElementKey] != undefined) {
@@ -1035,22 +1024,22 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								});
 							} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
 								if ([listName + '_FILE_' + listName + '___' + onlyElementKey]) {
-								try {
-									var elementName = formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['name'];
-									if (Array.isArray(elementName)) {
-										view.append(this.buildMultipleElementView(elementName, onlyElementKey));
-									} else {
-										// view.append(this.createInput(onlyElementKey, createInput, onlyElementKey));
-										view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
-									}
-									if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
-										view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path']));
-									}
-								} catch {
+									try{
+										var elementName = formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['name'];
+										if (Array.isArray(elementName)) {
+											view.append(this.buildMultipleElementView(elementName, onlyElementKey));
+										} else {
+											// view.append(this.createInput(onlyElementKey, createInput, onlyElementKey));
+											view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
+										}
+										if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
+											view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path']));
+										} 
+									} catch {
 
+									}
 								}
-							}
-						}else if (elementsTypes[onlyElementKey]['plugin'] == 'date'){
+							} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
 								view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
 							} else {
 								// Verify if is array
@@ -1069,56 +1058,39 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				const groupArray = groups[groupKey];
 				view.append(this.buildRepeatGroupView(groupArray, groupKey));
 			}
+
 			return view;
 		},
+
 		buildEditRecordView: function (lastFormData, newFormData, elementsTypes) {
 			var self = this;
 			var repeatGroups = {};
 			var view = jQuery("<div></div>");
 			const listName = this.options.listName;
 			const changedProperties = self.compareRecords(lastFormData, newFormData);
+
 			for (var key in changedProperties) {
 				// If is not own property continue to next iteration
 				if (!changedProperties.hasOwnProperty(key)) continue;
+
 				// if is not raw continue to next iteration
 				if (key.indexOf("_raw") === -1 && changedProperties.hasOwnProperty(key + "_raw")) continue;
 				var obj = changedProperties[key];
-				// const onlyElementKey = key.replace(listName+"___", "").replace("_raw", "");
+
 				const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
-				if (this.options.workflow_ignore_elements != null){
+				if (this.options.workflow_ignore_elements != null) {
 					if (this.options.workflow_ignore_elements.indexOf(onlyElementKey) !== -1) continue;
 				}
+
 				// if is id continue to next iteration
 				if (key.indexOf("_id") !== -1) continue;
+
 				if ((key.indexOf("_raw") !== -1 || key.indexOf("-auto-complete") !== -1) && (changedProperties.hasOwnProperty(listName + "___" + onlyElementKey + "_value"))) continue;
 				// Verify if is repeat group
 				const isRepeatGroup = key.indexOf('repeat');
+
 				if (isRepeatGroup !== -1) {
 					repeatGroups[key] = obj;
-				// } else if (obj['new'].hasOwnProperty("crop")) {
-				// 	var lastFilesProcessed = this.processFiles({ key: obj['last'] }, true);
-				// 	var newFilesProcessed = this.processFiles({ key: obj['new'] });
-				// 	const container = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-				// 	const containerFlex = jQuery("<div></div>");
-				// 	containerFlex.append("");
-				// 	containerFlex.attr('style', 'display: flex;');
-				// 	var newElement = jQuery("<div></div>");
-				// 	var originalElement = jQuery("<div></div>");
-				// 	originalElement.append(self.renderFiles(null, lastFilesProcessed));
-				// 	newElement.append(self.renderFiles(null, newFilesProcessed));
-				// 	newElement[0].style.paddingLeft = "5px";
-				// 	originalElement[0].style.paddingLeft = "5px";
-				// 	newElement[0].style.maxWidth = "50%";
-				// 	newElement[0].style.overflowWrap = "break-word";
-				// 	originalElement[0].style.maxWidth = "50%";
-				// 	originalElement[0].style.overflowWrap = "break-word";
-				// 	newElement[0].style.flex = "1";
-				// 	originalElement[0].style.flex = "1";
-				// 	containerFlex.append(originalElement);
-				// 	containerFlex.append(newElement);
-				// 	// view.append(this.buildMultipleElementView(obj, onlyElementKey));
-				// 	container.append(containerFlex);
-				// 	view.append(container);
 				} else {
 					// Verify if is array
 					// Get value if owner id
@@ -1150,35 +1122,35 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								var elementName = listName + '_FILE_' + key;
 							} else if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]) {
 								var elementName = listName + '_FILE_' + listName + '___' + onlyElementKey;
-						} else {
-							var elementName = 'undefined';
-						}
-						if (changedProperties.hasOwnProperty(elementName)) {
-							if (changedProperties[elementName]['last'] != undefined) {
-								if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
-									view.append(this.buildMultipleElementView(changedProperties[elementName]['last']['name']));
-									view.append(this.buildMultipleElementView(changedProperties[elementName]['new']['name']));
-									if (changedProperties[elementName]['new']['type'][0].split("/")[0]) {
-										view.append(self.renderImgs('change', changedProperties[elementName]));
-									}
-								} else {
-									view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
-									if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
-										view.append(self.renderImgs('change', changedProperties[elementName]));
+							} else {
+								var elementName = 'undefined';
+							}
+								if (changedProperties.hasOwnProperty(elementName)) {
+								if (changedProperties[elementName]['last'] != undefined) {
+									if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
+										view.append(this.buildMultipleElementView(changedProperties[elementName]['last']['name']));
+										view.append(this.buildMultipleElementView(changedProperties[elementName]['new']['name']));
+										if (changedProperties[elementName]['new']['type'][0].split("/")[0]) {
+											view.append(self.renderImgs('change', changedProperties[elementName]));
+										}
+									} else {
+										view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
+										if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
+											view.append(self.renderImgs('change', changedProperties[elementName]));
 									}
 								}
 							}
 						} else {
 							if (changedProperties.hasOwnProperty(elementName)) {
-							view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
-							if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
-								view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
+								view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
+								if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
+									view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
 								}
 							}
 						}
-					} else if (elementsTypes[onlyElementKey]['plugin'] == 'date'){
+					} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
 						view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
-					} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
+						} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
 							const container = jQuery("<div></div>");
 							const containerFlex = jQuery("<div></div>");
 							containerFlex.append("");
@@ -1197,16 +1169,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							originalElement[0].style.flex = "1";
 							containerFlex.append(originalElement);
 							containerFlex.append(newElement);
-							// view.append(this.buildMultipleElementView(obj, onlyElementKey));
 							container.append(containerFlex);
 							view.append(container);
 						} else {
-							// self.createInputsBeforeAfter(elementKey, originalString, requestString)
 							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
 						}
 					}
 				}
 			}
+
 			for (var key in repeatGroups) {
 				const group = repeatGroups[key];
 				const container = jQuery("<div><p>" + key + "</p></div>");
@@ -1227,6 +1198,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				container.append(containerFlex);
 				view.append(container);
 			}
+
 			return view;
 		},
 
@@ -1242,6 +1214,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			div.append(ul);
 			return div;
 		},
+
 		buildRepeatGroupView: function (element, key) {
 			var key = key ? key : "";
 			var div = jQuery("<div><p>" + key + "</p></div>");
@@ -1264,10 +1237,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					empty++;
 				}
 			});
+
 			div.append(ul);
 			if (element.length > empty) {
 				return div;
 			}
+
 			return null;
 		},
 
@@ -1283,18 +1258,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					groups[property].append(repeatGroups[key]);
 				}
 			}
-			// var groups = {};
-			// for(const key in repeatGroups) {
-			// 	const indice = key.indexOf("___");
-			// 	const property = key.substr(0,indice);
-			// 	const objName = key.substr(indice+3);
-			// 	if(groups.hasOwnProperty(property)) {
-			// 		groups[property][objName] = repeatGroups[key]
-			// 	} else {
-			// 		groups[property] = {};
-			// 		groups[property][objName] = repeatGroups[key];
-			// 	}
-			// }
+
 			return groups;
 		},
 
@@ -1312,6 +1276,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					});
 				}
 			}
+
 			return filesArray;
 		},
 
@@ -1352,10 +1317,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var inputId = key;
 							const inputContainer5 = self.createInput(inputLabel, data['req_request_type_id'], inputId);
 							requestInputsContainer.append(inputContainer5);
-							// self.getRequestType(data[key]).done(function (response) {
-							// 	const inputContainer = self.createInput(inputLabel, response[0].name, inputId);
-							// 	requestInputsContainer.append(inputContainer);
-							// });
 							break;
 						case 'req_file':
 							var div = jQuery('<div></div>');
@@ -1397,6 +1358,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				}
 			}
+
 			// Parsing the json from form_data to an object
 			var formData = JSON.parse(data['form_data']);
 			// Container to the new/edited data of the request
@@ -1434,17 +1396,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								delete files['is_files'];
 								formDataInputsContainer.append(self.renderFilesOriginalRequest(key, originalFileList, files));
 							});
-							// var div = jQuery('<div></div>');
-							// var label = jQuery('<p>' + key + '</p>');
-							// div.append(label);
-							// var link;
-							// var files = formData[key];
-							// delete files['is_files'];
-							// for (var chave in files) {
-							// 	link = jQuery('<p><a target="_blank" href="'+self.options.root_url+files[chave]+'">' + files[chave] + ' </a></p>');
-							// 	div.append(link);
-							// }
-							// formDataInputsContainer.append(div);
 						} else if (!(formData[key] == reqData[0][key])) {
 							const elementKey = key;
 							self.getElementsType(data['req_list_id']).done(function (data) {
@@ -1508,23 +1459,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, formData[elementKey], reqData[0][elementKey]));
 								}
 							});
-							// const originalNewInputContainer = jQuery("<div></div>");
-							// originalNewInputContainer.attr('style', 'display: flex;');
-							// const inputContainer = self.createInput(key, formData[key], key);
-							// const inputOriginalContainer = self.createInput(key+'_original', reqData[0][key], key+'_original');
-							// inputContainer[0].style.paddingLeft = "5px";
-							// inputOriginalContainer[0].style.paddingLeft = "5px";
-							// inputContainer[0].style.flex = "1";
-							// inputOriginalContainer[0].style.flex = "1";
-							// originalNewInputContainer.append(inputOriginalContainer);
-							// originalNewInputContainer.append(inputContainer);
-							// formDataInputsContainer.append(self.createInputsBeforeAfter(key, reqData[0][key], formData[key]));
 						}
 					}
 				});
+
 				form.append(formDataInputsContainer);
-			} else {
-				// delete_record
 			}
 
 			// Returns the form
@@ -1543,6 +1482,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			requestImages.append(label);
 			requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
 			var url_root = this.options.root_url;
+
 			if (option == 'change') {
 				originalImages.append(originalLabel);
 				originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
@@ -1569,7 +1509,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			} else if ('new') {
 				if (Array.isArray(files)) {
 					files.forEach(function (element, index) {
-					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
+						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
 						requestImages.append(link);
 					});
 				} else {
@@ -1578,10 +1518,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 				containerDiv.append(requestImages);
 			}
-			//requestImages.append(link);
-			//containerDiv.append(requestImages);
+
 			return containerDiv;
 		},
+
 		getDatabaseJoinSingleElements: function (join_db_name, original_element_id,
 			element_id, join_val_column, join_key_column) {
 			return jQuery.ajax({
@@ -1603,9 +1543,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			});
 		},
 
-		getDatabaseJoinMultipleElements: function (join_db_name, parent_table_name,
-			element_name, parent_id, join_val_column,
-			join_key_column, request_elements_array) {
+		getDatabaseJoinMultipleElements: function (join_db_name, parent_table_name, element_name, parent_id, join_val_column, join_key_column, request_elements_array) {
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
@@ -1724,6 +1662,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 			});
 		},
+
 	});
+
 	return FabrikWorkflow;
 });

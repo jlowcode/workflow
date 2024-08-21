@@ -5,7 +5,7 @@
  * 
  * @package     Joomla.Plugin
  * @subpackage  Fabrik.form.workflow
- * @copyright   Copyright (C) 2018-2024  Marcel Ferrante - All rights reserved.
+ * @copyright   Copyright (C) 2018-2024 Jlowcode Org - All rights reserved.
  * @license     GNU/GPL http://www.gnu.org/copyleft/gpl.html
  */
 // No direct access
@@ -18,6 +18,10 @@ require_once JPATH_COMPONENT . '/controller.php';
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\User\User;
+use Joomla\CMS\Access\Access;
+use Joomla\CMS\Filesystem\Path;
 
 /**
  * Form workflow plugin
@@ -58,7 +62,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         'form_data'
     );
 
-
     const REQUEST_TYPE_ADD_RECORD = 1;
     const REQUEST_TYPE_EDIT_RECORD = 2;
     const REQUEST_TYPE_DELETE_RECORD = 3;
@@ -67,29 +70,25 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
     const REQUESTS_TABLE_NAME = '#__fabrik_requests';
 
-
-    // Plugin update in October - 2019
-
-    // Ajax functions
-
-    function onGetSessionToken()
+    /**
+     * 
+     * 
+     * @return      Null
+     */
+    public function onGetSessionToken()
     {
         echo JFactory::getSession()->getFormToken();
     }
 
     /**
-     * This function gets the request list from
-     * the server.
-     * @param approve_for_own_records
-     * @param wfl_action
-     * @param list_id
-     * @param user_id
-     * @return req_status
-     * @ajax this function is called by AJAX
+     * This function gets the request list from the server. Called by AJAX.
+     * 
+     * @return      Null
      */
-    function onGetRequestList()
+    public function onGetRequestList()
     {
         jimport('joomla.access.access');
+
         // Get params to find requests
         $approveOwn = $_REQUEST['approve_for_own_records'];
         $wfl_action = $_REQUEST['wfl_action'];
@@ -100,7 +99,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $allow_review_request =  $_REQUEST['allow_review_request'];
 
         // Get DB object to make the query
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
         // Create the query
@@ -126,19 +125,17 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             ->select('req_reviewers_votes')
             ->select('workflow_request_type.name as req_request_type_name')
             ->select('form_data')
-            ->from($db->quoteName('#__fabrik_requests'))
+            ->from($db->qn('#__fabrik_requests'))
             ->join('INNER', "workflow_request_type on (req_request_type_id = workflow_request_type.id)")
-            ->join('INNER', $db->quoteName('#__users', 'u_req') . ' ON (' . $db->quoteName('req_user_id') . ' = ' . $db->quoteName('u_req.id') . ')')
-            ->join('LEFT', $db->quoteName('#__users', 'u_owner') . ' ON (' . $db->quoteName('req_owner_id') . ' = ' . $db->quoteName('u_owner.id') . ')')
-            ->join('LEFT', $db->quoteName('#__users', 'u_rev') . ' ON (' . $db->quoteName('req_reviewer_id') . ' = ' . $db->quoteName('u_rev.id') . ')')
+            ->join('INNER', $db->qn('#__users', 'u_req') . ' ON (' . $db->qn('req_user_id') . ' = ' . $db->qn('u_req.id') . ')')
+            ->join('LEFT', $db->qn('#__users', 'u_owner') . ' ON (' . $db->qn('req_owner_id') . ' = ' . $db->qn('u_owner.id') . ')')
+            ->join('LEFT', $db->qn('#__users', 'u_rev') . ' ON (' . $db->qn('req_reviewer_id') . ' = ' . $db->qn('u_rev.id') . ')')
             ->order("FIELD(req_status, 'verify', 'approved', 'not-approved', 'pre-approved')")
             ->where("req_list_id = '{$list_id}'");
 
         if ($wfl_action == 'list_requests') {
             $query->where("req_status = '{$req_status}'");
         }
-
-
 
         // Set search if exists
         if (isset($_REQUEST['search'])) {
@@ -217,19 +214,21 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         echo json_encode($dados);
     }
 
-    // Get the last formData from #__fabrik_requests table
-    // to compare on approve a edit request
-    function onGetLastRecordFormData()
+    /**
+     * Get the last formData from #__fabrik_requests table to compare on approve a edit request
+     * 
+     * @return      Null
+     */
+    public function onGetLastRecordFormData()
     {
         $req_record_id = $_REQUEST['req_record_id'];
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
         // Get the last formData from #__fabrik_requests table
-        $query
-            ->select($db->quoteName("form_data"))
-            ->from($db->quoteName("#__fabrik_requests"))
-            ->where($db->quoteName("req_record_id") . ' = ' . "$req_record_id")
+        $query->select($db->qn("form_data"))
+            ->from($db->qn("#__fabrik_requests"))
+            ->where($db->qn("req_record_id") . ' = ' . "$req_record_id")
             ->where("(`req_status` = 'approved' or `req_status` = 'pre-approved')")
             ->order('req_id desc');
         $db->setQuery($query);
@@ -240,13 +239,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * This function gets the files uploaded
-     * @param parent_table_name
-     * @param element_name
-     * @param parent_id
-     * @ajax this function is called by AJAX
+     * This function gets the files uploaded. Called by AJAX
+     * 
+     * @return      Null
      */
-    function onGetFileUpload()
+    public function onGetFileUpload()
     {
         // Filter the request
         $filter = JFilterInput::getInstance();
@@ -258,14 +255,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $parent_id = $request['parent_id'];
 
         // Get DB and query object
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
         // Get all images where parent_id is equal to $parent_id
         $query
-            ->select($db->quoteName($element_name) . ' as value')
-            ->from($db->quoteName($parent_table_name . "_repeat_" . $element_name))
-            ->where($db->quoteName("parent_id") . ' = ' . "$parent_id");
+            ->select($db->qn($element_name) . ' as value')
+            ->from($db->qn($parent_table_name . "_repeat_" . $element_name))
+            ->where($db->qn("parent_id") . ' = ' . "$parent_id");
         $db->setQuery($query);
         $db->execute();
 
@@ -274,27 +271,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         // Encode and return images paths
         echo json_encode($ids);
     }
-    // Apagar?
-    function onCanApproveRequest()
-    {
-        require_once JPATH_COMPONENT . '/controller.php';
-        $app = JFactory::getApplication();
-        $app->set('jquery', true);
-        $input = $app->input;
-        $controllerName = $input->getCmd('view');
-        //        FabrikControllerList
-        $package = $input->get('package', 'fabrik');
-        $controller = new FabrikControllerList;
-        $app->setUserState('com_fabrik.package', $package);
-        $controller->execute('process');
-        echo "<html>";
-        echo "<pre>";
-        var_dump($controller);
-        echo "</pre>";
-        echo "</html>";
-    }
 
-    function onGetElementsPlugin($list_id = null)
+    /**
+     * 
+     * 
+     * @return      Object|Null
+     */
+    public function onGetElementsPlugin($list_id = null)
     {
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
@@ -302,15 +285,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $req_list_id = $list_id ? $list_id : $request['req_list_id'];
 
         // Recebe o obj para acessar o DB
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $subQuery = $db->getQuery(true);
         // Sub Query to catch the group_id using a list_id
         $subQuery
-            ->select($db->quoteName('b.group_id'))
-            ->from($db->quoteName('#__fabrik_lists', 'a'))
-            ->join('INNER', $db->quoteName('#__fabrik_formgroup', 'b') .
-                ' ON ' . $db->quoteName('a.form_id') . ' = ' . $db->quoteName('b.form_id'))
-            ->where($db->quoteName('a.id') . ' = ' . $req_list_id);
+            ->select($db->qn('b.group_id'))
+            ->from($db->qn('#__fabrik_lists', 'a'))
+            ->join('INNER', $db->qn('#__fabrik_formgroup', 'b') .
+                ' ON ' . $db->qn('a.form_id') . ' = ' . $db->qn('b.form_id'))
+            ->where($db->qn('a.id') . ' = ' . $req_list_id);
 
         // Get all groups to get all elements
         $db->setQuery($subQuery);
@@ -325,9 +308,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $query = $db->getQuery(true);
             $group_id = $group->group_id;
             $query
-                ->select(array($db->quoteName('name'), $db->quoteName('plugin'), $db->quoteName('params')))
-                ->from($db->quoteName('#__fabrik_elements'))
-                ->where($db->quoteName('group_id') . ' = ' . "$group_id");
+                ->select(array($db->qn('name'), $db->qn('plugin'), $db->qn('params')))
+                ->from($db->qn('#__fabrik_elements'))
+                ->where($db->qn('group_id') . ' = ' . "$group_id");
 
             $db->setQuery($query);
             $db->execute();
@@ -357,8 +340,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
 
-
-
         if (isset($list_id) && !empty($list_id)) {
             return $elements;
         } else {
@@ -366,7 +347,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
     }
 
-    function onGetDatabaseJoinMultipleData()
+    /**
+     * 
+     * 
+     * @return      Null
+     */
+    public function onGetDatabaseJoinMultipleData()
     {
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
@@ -387,14 +373,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
 
         // Recebe o obj para acessar o DB
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
         // Pega os IDs originais
         $query
-            ->select($db->quoteName($element_name) . ' as value')
-            ->from($db->quoteName($parent_table_name . "_repeat_" . $element_name))
-            ->where($db->quoteName("parent_id") . ' = ' . "$parent_id");
+            ->select($db->qn($element_name) . ' as value')
+            ->from($db->qn($parent_table_name . "_repeat_" . $element_name))
+            ->where($db->qn("parent_id") . ' = ' . "$parent_id");
 
         $db->setQuery($query);
         $db->execute();
@@ -408,12 +394,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $whereClauses = array();
 
             foreach ($ids as $id) {
-                $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $db->q($id->value);
+                $whereClauses[] = $db->qn($join_key_column) . ' = ' . $db->q($id->value);
             }
 
             $query
-                ->select(array($db->quoteName($join_val_column) . ' as value', 'id'))
-                ->from($db->quoteName($join_db_name))
+                ->select(array($db->qn($join_val_column) . ' as value', 'id'))
+                ->from($db->qn($join_db_name))
                 ->where($whereClauses, 'OR');
 
             $db->setQuery($query);
@@ -430,11 +416,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $whereClauses = array();
 
         foreach ($request_elements_array as $id) {
-            $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $db->q($id);
+            $whereClauses[] = $db->qn($join_key_column) . ' = ' . $db->q($id);
         }
         $query
-            ->select(array($db->quoteName($join_val_column) . ' as value', 'id'))
-            ->from($db->quoteName($join_db_name))
+            ->select(array($db->qn($join_val_column) . ' as value', 'id'))
+            ->from($db->qn($join_db_name))
             ->where($whereClauses, 'OR');
 
         $db->setQuery($query);
@@ -445,32 +431,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         echo json_encode($response);
     }
 
-    // Delete was removed from workflow 01/04/20
-    // function onDeleteRecord() {
-    //     $filter = JFilterInput::getInstance();
-    //     $request = $filter->clean($_REQUEST, 'array');
-
-    //     $list_name = $request['list_name'];
-    //     $record_id = $request['record_id'];
-    //     $db = JFactory::getDbo();
-
-    //     $query = $db->getQuery(true);
-
-    //     $conditions = array(
-    //         $db->quoteName('id') . ' = ' . $record_id,
-    //     );
-
-    //     $query->delete($db->quoteName($list_name));
-    //     $query->where($conditions);
-
-    //     $db->setQuery($query);
-
-    //     $result = $db->execute();
-
-    //     echo $result;
-    // }
-
-    function onGetDatabaseJoinSingleData()
+    /**
+     * 
+     * 
+     * @return      Null
+     */
+    public function onGetDatabaseJoinSingleData()
     {
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
@@ -481,16 +447,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $element_id = $request['element_id'];
         $original_element_id = $request['original_element_id'];
 
-
-
         // Recebe o obj para acessar o DB
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
         $query
-            ->select($db->quoteName($join_val_column) . ' as value')
-            ->from($db->quoteName($join_db_name))
-            ->where($db->quoteName($join_key_column) . ' = ' . "$element_id");
+            ->select($db->qn($join_val_column) . ' as value')
+            ->from($db->qn($join_db_name))
+            ->where($db->qn($join_key_column) . ' = ' . "$element_id");
 
         $db->setQuery($query);
         $db->execute();
@@ -505,9 +469,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $query = $db->getQuery(true);
 
             $query
-                ->select($db->quoteName($join_val_column) . ' as value')
-                ->from($db->quoteName($join_db_name))
-                ->where($db->quoteName($join_key_column) . ' = ' . "$original_element_id");
+                ->select($db->qn($join_val_column) . ' as value')
+                ->from($db->qn($join_db_name))
+                ->where($db->qn($join_key_column) . ' = ' . "$original_element_id");
 
             $db->setQuery($query);
             $db->execute();
@@ -518,7 +482,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         echo json_encode($return);
     }
 
-    function onUploadFileToRequest()
+    /**
+     * 
+     * 
+     * 
+     * @return      Null
+     */
+    public function onUploadFileToRequest()
     {
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
@@ -532,21 +502,20 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         } catch (Exception $e) {
             echo $e;
         }
-
-
-
-
-        //        $req_list_id = $request['req_list_id'];
-
     }
 
+    /**
+     * 
+     * 
+     * @return      Null
+     */
     public function onGetRequest()
     {
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
         $req_id = $request['req_id'];
         // Recebe o obj para acessar o DB
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
 
         // Cria novo obj query
         $query = $db->getQuery(true);
@@ -555,15 +524,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $query->select(array('a.*', 'b.name as req_user_name', 'c.name as req_owner_name', 'd.name as req_reviewer_id_raw'));
 
         // Da tabela $join_name
-        $query->from($db->quoteName('#__fabrik_requests', 'a'));
+        $query->from($db->qn('#__fabrik_requests', 'a'));
 
         // If has req_id, set where
         if (isset($_GET['req_id'])) {
             $req_id = $_GET['req_id'];
-            $query->join('LEFT', $db->quoteName('#__users', 'b') . ' ON (' . $db->quoteName('a.req_user_id') . ' = ' . $db->quoteName('b.id') . ')');
-            $query->join('LEFT', $db->quoteName('#__users', 'c') . ' ON (' . $db->quoteName('a.req_owner_id') . ' = ' . $db->quoteName('c.id') . ')');
-            $query->join('LEFT', $db->quoteName('#__users', 'd') . ' ON (' . $db->quoteName('a.req_reviewer_id') . ' = ' . $db->quoteName('d.id') . ')');
-            $query->where($db->quoteName('req_id') . ' = ' . $db->quote($req_id));
+            $query->join('LEFT', $db->qn('#__users', 'b') . ' ON (' . $db->qn('a.req_user_id') . ' = ' . $db->qn('b.id') . ')');
+            $query->join('LEFT', $db->qn('#__users', 'c') . ' ON (' . $db->qn('a.req_owner_id') . ' = ' . $db->qn('c.id') . ')');
+            $query->join('LEFT', $db->qn('#__users', 'd') . ' ON (' . $db->qn('a.req_reviewer_id') . ' = ' . $db->qn('d.id') . ')');
+            $query->where($db->qn('req_id') . ' = ' . $db->q($req_id));
         } else {
             die('Error getting requests, no req_id was passed.');
         }
@@ -578,26 +547,36 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         echo json_encode($results);
     }
 
-    function onGetUserValue()
+    /**
+     * 
+     * 
+     * @return      Null
+     */
+    public function onGetUserValue()
     {
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
         $userId = $request['user_id'];
 
-        $user = JFactory::getUser($userId);
+        $user = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($userId);
 
         echo $user->name;
     }
 
-    function onGetUserValueBeforeAfter()
+    /**
+     * 
+     * 
+     * @return      Null
+     */
+    public function onGetUserValueBeforeAfter()
     {
         $filter = JFilterInput::getInstance();
         $request = $filter->clean($_REQUEST, 'array');
         $lastUserId = $request['last_user_id'];
         $newUserId = $request['new_user_id'];
 
-        $last = JFactory::getUser($lastUserId);
-        $new = JFactory::getUser($newUserId);
+        $last = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($lastUserId);
+        $new = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($newUserId);
 
         $r = new StdClass;
         $r->last = $last->name;
@@ -606,11 +585,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         echo json_encode($r);
     }
 
-    /*
-     * Called by AJAX, this method updates the request record
-     * on the #__fabrik_requests table
+    /**
+     * Called by AJAX, this method updates the request record on the #__fabrik_requests table
+     * 
+     * @return      Null
      */
-    function onProcessRequest()
+    public function onProcessRequest()
     {
         $fieldsToUpdate = array(
             "req_id",
@@ -632,15 +612,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         // Catch ajax params
         $requestData = $request['formData'][0];
         $data = $requestData;
-
-        // Get Joomla DB obj
         foreach ($requestData as $key => $value) {
             if (!in_array($key, $fieldsToUpdate)) {
                 unset($requestData[$key]);
             }
         }
 
-        $usuario = &JFactory::getUser();
+        $usuario = &Factory::getApplication()->getIdentity();
 
         if ($request["options"]["workflow_approval_by_votes"] == 1) {
             if ($requestData['req_status'] == 'approved' || $requestData['req_status'] == 'not-approved') {
@@ -655,9 +633,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $requestData['req_vote_approve'] =  $requestData['req_vote_approve'] === '' ? null : $requestData['req_vote_approve'];
         $requestData['req_vote_disapprove'] = $requestData['req_vote_disapprove'] === '' ? null : $requestData['req_vote_disapprove'];
 
-
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $requestData['req_reviewer_id'] = $requestData['req_reviewer_id'] === '' ? "{$usuario->id}" : $requestData['req_reviewer_id'];
+
         $obj = (object) $requestData;
         $results = $db->updateObject('#__fabrik_requests', $obj, 'req_id', false);
         $return->response = true;
@@ -670,9 +648,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         echo json_encode($return);
     }
 
-    // Ajax functions end
-
-    function loadTranslationsOnJS()
+    /**
+     * Function sends message texts to javascript file
+     *
+	 * @return  	Null
+     */
+    public function loadTranslationsOnJS()
     {
         Text::script('PLG_FORM_WORKFLOW_REQ_ID_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL');
@@ -720,29 +701,35 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL');
     }
 
-    /*
+    /**
      * Updates the record on the main list
+     * 
+	 * @param		Array 		$formData		    xxxxxxxxxxxxxxxxxxxxxxxx
+	 * @param		xxxxxx 		$requestData		xxxxxxxxxxxxxxxxxxxxxxxx
+	 * @param		xxxxxx 		$sendMail		    xxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
      */
-    function saveToMainList($formData, $requestData, $sendMail)
+    public function saveToMainList($formData, $requestData, $sendMail)
     {
         try {
             $filesElements = array();
             // Recebe o obj para acessar o DB
-            $db = JFactory::getDBO();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
             $subQuery = $db->getQuery(true);
             // Sub Query to catch the group_id using a list_id
             $subQuery
-                ->select($db->quoteName('b.group_id'))
-                ->from($db->quoteName('#__fabrik_lists', 'a'))
-                ->join('INNER', $db->quoteName('#__fabrik_formgroup', 'b') .
-                    ' ON ' . $db->quoteName('a.form_id') . ' = ' . $db->quoteName('b.form_id'))
-                ->where($db->quoteName('a.id') . ' = ' . $requestData['req_list_id']);
+                ->select($db->qn('b.group_id'))
+                ->from($db->qn('#__fabrik_lists', 'a'))
+                ->join('INNER', $db->qn('#__fabrik_formgroup', 'b') .
+                    ' ON ' . $db->qn('a.form_id') . ' = ' . $db->qn('b.form_id'))
+                ->where($db->qn('a.id') . ' = ' . $requestData['req_list_id']);
             // Query to catch plugins type from all elements from a group_id
             $query
-                ->select(array($db->quoteName('name'), $db->quoteName('plugin')))
-                ->from($db->quoteName('#__fabrik_elements'))
-                ->where($db->quoteName('group_id') . ' = ' . "($subQuery)");
+                ->select(array($db->qn('name'), $db->qn('plugin')))
+                ->from($db->qn('#__fabrik_elements'))
+                ->where($db->qn('group_id') . ' = ' . "($subQuery)");
             // All the query have this pattern:
             // SELECT `plugin` FROM h4rjm_fabrik_elements WHERE group_id = (SELECT h4rjm_fabrik_formgroup.group_id FROM h4rjm_fabrik_lists inner join h4rjm_fabrik_formgroup on h4rjm_fabrik_lists.form_id = h4rjm_fabrik_formgroup.form_id where h4rjm_fabrik_lists.id = 23)
             $db->setQuery($query);
@@ -757,14 +744,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $listName = $this->getListName($requestData["req_list_id"])->db_table_name;
             $record_id = $requestData["req_record_id"];
             if ($requestData['req_request_type_id'] == 'delete_record') {
-                $query->delete($db->quoteName($listName))
-                    ->where(array($db->quoteName('id') . " = '{$record_id}'"));
+                $query->delete($db->qn($listName))
+                    ->where(array($db->qn('id') . " = '{$record_id}'"));
             } else {
                 $columns = $values = $strValues = array();
                 foreach ($formData as $k => $v) {
-                    // if (stripos($k, 'req_') !== false) {
-                    //     continue;
-                    // }
                     if ($k == 'id') {
                         continue;
                     }
@@ -786,8 +770,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                 if ($results) {
                                     // Delete the older options
                                     $query = $db->getQuery(true);
-                                    $query->delete($db->quoteName($table_name))
-                                        ->where(array($db->quoteName('parent_id') . " = '{$record_id}'"));
+                                    $query->delete($db->qn($table_name))
+                                        ->where(array($db->qn('parent_id') . " = '{$record_id}'"));
                                     $db->setQuery($query);
                                     $db->execute();
                                     // Insert the new options
@@ -804,25 +788,25 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                 break;
                             default:
                                 $columns[] = $k;
-                                $values[] = $db->quote($v);
-                                $strValues[] = "{$db->quoteName($k)} = {$db->quote($v)}";
+                                $values[] = $db->q($v);
+                                $strValues[] = "{$db->qn($k)} = {$db->q($v)}";
                                 break;
                         }
                     } else {
                         $columns[] = $k;
-                        $values[] = $db->quote($v);
-                        $strValues[] = "{$db->quoteName($k)} = {$db->quote($v)}";
+                        $values[] = $db->q($v);
+                        $strValues[] = "{$db->qn($k)} = {$db->q($v)}";
                     }
                 }
                 $query = $db->getQuery(true);
                 if ($requestData['req_request_type_id'] == "add_record") {
-                    $query->insert($db->quoteName($listName))
-                        ->columns($db->quoteName($columns))
+                    $query->insert($db->qn($listName))
+                        ->columns($db->qn($columns))
                         ->values(implode(',', $values));
                 } else  if ($requestData['req_request_type_id'] == "edif_field_value") {
-                    $query->update($db->quoteName($listName))
+                    $query->update($db->qn($listName))
                         ->set($strValues)
-                        ->where(array($db->quoteName('id') . " = {$record_id}"));
+                        ->where(array($db->qn('id') . " = {$record_id}"));
                 }
             }
             $db->setQuery($query);
@@ -840,14 +824,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $results = $db->loadObjectList();
             $record_id = ($results[0])->id;
 
-
             foreach ($dbJoinOptions as $key => $object) {
                 $query = $db->getQuery(true);
                 $columns = array('parent_id', $object->k);
                 $values = array($record_id, $object->option);
                 $query
-                    ->insert($db->quoteName($object->table_name))
-                    ->columns($db->quoteName($columns))
+                    ->insert($db->qn($object->table_name))
+                    ->columns($db->qn($columns))
                     ->values(implode(',', $values));
                 $db->setQuery($query);
                 $db->execute();
@@ -861,11 +844,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         $query = $db->getQuery(true);
 
                         $columns = array('parent_id', 'imagem');
-                        $values = array($db->quote($record_id), $db->quote($link));
+                        $values = array($db->q($record_id), $db->q($link));
 
                         $query
-                            ->insert($db->quoteName($saveToTableName))
-                            ->columns($db->quoteName($columns))
+                            ->insert($db->qn($saveToTableName))
+                            ->columns($db->qn($columns))
                             ->values(implode(',', $values));
 
                         $db->setQuery($query);
@@ -879,30 +862,39 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
             return true;
         } catch (Exception $e) {
-
-            JFactory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+            Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
             return false;
         }
     }
 
-
-
-    function getListName($listId)
+    /**
+     * 
+     * 
+     * @param       Int         $listId         The list id
+     * 
+     * @return      Object
+     */
+    public function getListName($listId)
     {
         // Recebe o obj para acessar o DB
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
-        $query->select($db->quoteName('db_table_name'));
-        $query->from($db->quoteName('#__fabrik_lists'));
-        $query->where($db->quoteName('id') . ' = ' . $listId);
+        $query->select($db->qn('db_table_name'));
+        $query->from($db->qn('#__fabrik_lists'));
+        $query->where($db->qn('id') . ' = ' . $listId);
         // Reset the query using our newly populated query object.
         $db->setQuery($query);
         // Load the results as a list of stdClass objects (see later for more options on retrieving data).
         $results = $db->loadObjectList();
+        
         return $results[0];
     }
 
-
+    /**
+	 * Function to load the javascript code for the plugin
+	 *
+	 * @return  	Null
+	 */
     protected function loadJs()
     {
         $wfl_action = filter_input(INPUT_GET, 'wfl_action', FILTER_SANITIZE_STRING);
@@ -917,7 +909,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->listName = $this->listName;
         $options->user = $this->user;
         $options->requestsCount = $this->countRequestsNumber();
-        // @TODO remove approve_for_own_records option
         $options->user->approve_for_own_records = $this->params->get('approve_for_own_records');
         $options->wfl_action = $wfl_action;
         $options->user->canApproveRequests = $this->canApproveRequests();
@@ -927,7 +918,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->workflow_approval_by_votes = $this->getParams()->get('workflow_approval_by_vote');
         $options->workflow_votes_to_approve = $this->getParams()->get('workflow_votes_to_approve');
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
-        $options->root_url = JURI::root();
+        $options->root_url = URI::root();
         $options->sendMail = $sendMail;
         $options = json_encode($options);
         $jsFiles = array();
@@ -938,8 +929,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * This method pass the list of requests to
-     * the view, it is replacing this->processLog()
+     * This method pass the list of requests to the view, it is replacing this->processLog()
+     * 
+     * @return      Null
      */
     public function listRequests()
     {
@@ -974,7 +966,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         );
 
         //data
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->select('req_id')
             ->select('req_user_id')
@@ -995,9 +987,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             ->select('workflow_request_type.name as req_request_type_name')
             ->from(self::REQUESTS_TABLE_NAME)
             ->join('INNER', "workflow_request_type on (req_request_type_id = workflow_request_type.id)")
-            ->join('INNER', $db->quoteName('#__users', 'u_req') . ' ON (' . $db->quoteName('req_user_id') . ' = ' . $db->quoteName('u_req.id') . ')')
-            ->join('LEFT', $db->quoteName('#__users', 'u_owner') . ' ON (' . $db->quoteName('req_owner_id') . ' = ' . $db->quoteName('u_owner.id') . ')')
-            ->join('LEFT', $db->quoteName('#__users', 'u_rev') . ' ON (' . $db->quoteName('req_reviewer_id') . ' = ' . $db->quoteName('u_rev.id') . ')')
+            ->join('INNER', $db->qn('#__users', 'u_req') . ' ON (' . $db->qn('req_user_id') . ' = ' . $db->qn('u_req.id') . ')')
+            ->join('LEFT', $db->qn('#__users', 'u_owner') . ' ON (' . $db->qn('req_owner_id') . ' = ' . $db->qn('u_owner.id') . ')')
+            ->join('LEFT', $db->qn('#__users', 'u_rev') . ' ON (' . $db->qn('req_reviewer_id') . ' = ' . $db->qn('u_rev.id') . ')')
             ->order("FIELD(req_status, 'verify', 'approved', 'not-approved', 'pre-approved')")
             ->order("req_id asc")
             ->where("req_list_id = '{$this->listId}'");;
@@ -1037,52 +1029,52 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $_REQUEST['workflow']['requests_colCount'] = count($headings);
         $_REQUEST['workflow']['requests_list'] = $dados;
         $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests();
-        //$_REQUEST['workflow']['requests_isGrouped'] = true;
-        //$_REQUEST['workflow']['requests_grouptemplates'] = $statusLista;
-        ////$_REQUEST['workflow']['requests_group_by_show_count'] = false;
     }
 
-    /*
+    /**
      * This function get all reviewers of the workflow plugin for this form
-     * */
-
-    function getReviewers($row = null)
+     * 
+     * @param       xxxxx       $row        xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Array
+     */
+    public function getReviewers($row=null)
     {
         jimport('joomla.access.access');
         // Get viewl level id
-        $reviewrs_group_id = $this->params->get('allow_review_request');
+        $reviewers_group_id = $this->params->get('allow_review_request');
 
         // Get the groups from view level
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
-        $query->select($db->quoteName('rules'))
-            ->from($db->quoteName('#__viewlevels'))
-            ->where('id = ' . $reviewrs_group_id);
+        $query->select($db->qn('rules'))
+            ->from($db->qn('#__viewlevels'))
+            ->where('id = ' . $reviewers_group_id);
         $db->setQuery($query);
         $db->execute();
         $r = $db->loadObjectList();
 
         $groups = json_decode($r[0]->rules);
-        $allUsers = array();
+        $allUsers = Array();
 
         foreach ($groups as $group) {
-            $users = JAccess::getUsersByGroup($group);
+            $users = Access::getUsersByGroup($group);
             foreach ($users as $user) {
                 $allUsers[] = $user;
             }
         }
 
-        if ($this->params->get('approve_for_own_records') == 1) {
+        if ($this->params->get('approve_for_own_records') == 1){
             $owner_element_id = $this->params->get('workflow_owner_element');
             // If $owner_element_id has been setted
             if (isset($owner_element_id) && !empty($owner_element_id)) {
                 // Get the DB object
-                $db = JFactory::getDbo();
+                $db = Factory::getContainer()->get('DatabaseDriver');
                 // Get a new query object
                 $query = $db->getQuery(true);
                 // Get the owner id element name from fabrik's elements table
-                $query->select($db->quoteName('name'))
-                    ->from($db->quoteName('#__fabrik_elements'))
+                $query->select($db->qn('name'))
+                    ->from($db->qn('#__fabrik_elements'))
                     ->where('id = ' . $owner_element_id);
                 $db->setQuery($query);
                 $db->execute();
@@ -1100,16 +1092,20 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 }
             }
         }
+
         return $allUsers;
     }
 
-
-    // Create the log object
+    /**
+     * Create the log object
+     * 
+     * @param       Array           $formData               xxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Boolean         $hasPermission          xxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
+     */
     public function creatLog($formData, $hasPermission)
     {
-        // Set the request type var
-        // $this->setRequestType($formData, false);
-
         // Owner_id var
         $owner_id = null;
 
@@ -1122,12 +1118,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             // If $owner_element_id has been setted
             if (isset($owner_element_id) && !empty($owner_element_id)) {
                 // Get the DB object
-                $db = JFactory::getDbo();
+                $db = Factory::getContainer()->get('DatabaseDriver');
                 // Get a new query object
                 $query = $db->getQuery(true);
                 // Get the owner id element name from fabrik's elements table
-                $query->select($db->quoteName('name'))
-                    ->from($db->quoteName('#__fabrik_elements'))
+                $query->select($db->qn('name'))
+                    ->from($db->qn('#__fabrik_elements'))
                     ->where('id = ' . $owner_element_id);
                 $db->setQuery($query);
                 $db->execute();
@@ -1139,16 +1135,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         } else if ($this->requestType == self::REQUEST_TYPE_EDIT_RECORD) {
             // Get the DB object
-            $db = JFactory::getDbo();
+            $db = Factory::getContainer()->get('DatabaseDriver');
 
             // Verify if has requests on log table 
             $req_record_id = $formData['rowid'];
             $query = $db->getQuery(true);
             // Get the last formData from #__fabrik_requests table
             $query
-                ->select(array($db->quoteName('req_owner_id'), $db->quoteName("form_data")))
-                ->from($db->quoteName("#__fabrik_requests"))
-                ->where($db->quoteName("req_record_id") . ' = ' . "$req_record_id")
+                ->select(array($db->qn('req_owner_id'), $db->qn("form_data")))
+                ->from($db->qn("#__fabrik_requests"))
+                ->where($db->qn("req_record_id") . ' = ' . "$req_record_id")
                 ->where("(`req_status` = 'approved' or `req_status` = 'pre-approved')")
                 ->order('req_id desc');
             $db->setQuery($query);
@@ -1164,8 +1160,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     // Get a new query object
                     $query = $db->getQuery(true);
                     // Get the owner id element name from fabrik's elements table
-                    $query->select($db->quoteName('name'))
-                        ->from($db->quoteName('#__fabrik_elements'))
+                    $query->select($db->qn('name'))
+                        ->from($db->qn('#__fabrik_elements'))
                         ->where('id = ' . $owner_element_id);
                     $db->setQuery($query);
                     $db->execute();
@@ -1176,8 +1172,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     // Get the owner_id
                     // Get a new query object
                     $query = $db->getQuery(true);
-                    $query->select(array($db->quoteName($owner_element_name) . ' as value',))
-                        ->from($db->quoteName($this->listName))
+                    $query->select(array($db->qn($owner_element_name) . ' as value',))
+                        ->from($db->qn($this->listName))
                         ->where('id = ' . $formData['rowid']);
                     $db->setQuery($query);
                     $db->execute();
@@ -1193,21 +1189,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             } else {
                 $owner_id = $results[0]->req_owner_id;
             }
-            // // If the request type is edit
-            // // Preserve the original owner_id
-            // // Get a new query object
-            // $query = $db->getQuery(true);
-            // $query->select($db->quoteName('req_owner_id'))
-            //     ->from($db->quoteName('#__fabrik_requests'))
-            //     ->where('req_record_id = '. $formData['rowid']);
-
-            // $db->setQuery($query);
-
-            // $db->execute();
-            // //  // Get the query results
-            // $r = $db->loadObjectList();
-            // var_dump($db->getQuery()->__toString());
-            // $owner_id = $r[0]->req_owner_id;
         } else if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
             $owner_id = $formData["owner_id_raw"];
         }
@@ -1230,23 +1211,28 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         if (!$hasPermission) {
             //define a mensagem de retorno
             if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
+                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
             } else if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
+                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
             } else {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
+                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
             }
 
             return false;
         }
+
         return true;
     }
+
     /**
-     * This method creates a request in 
-     * fabrik_workflow table, it is replacing
-     * this->processLog()
+     * This method creates a request in fabrik_workflow table, it is replacing this->processLog()
+     * 
+     * @param       Array           $formData           xxxxxxxxxxxxxxxxxxxxxx
+     * @param       Boolean         $delete             xxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
      */
-    public function createRequest($formData, $delete = false)
+    public function createRequest($formData, $delete=false)
     {
         // Verifies if it is in request_list
         if ($this->isRequestList()) {
@@ -1264,10 +1250,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $owner_element_id = $this->params->get('workflow_owner_element');
             if (isset($owner_element_id) && !empty($owner_element_id)) {
                 //get the element name to catch the owner_id from formdata
-                $db = JFactory::getDbo();
+                $db = Factory::getContainer()->get('DatabaseDriver');
                 $query = $db->getQuery(true);
-                $query->select($db->quoteName('name'))
-                    ->from($db->quoteName('#__fabrik_elements'))
+                $query->select($db->qn('name'))
+                    ->from($db->qn('#__fabrik_elements'))
                     ->where('id = ' . $owner_element_id);
                 $db->setQuery($query);
                 $db->execute();
@@ -1276,22 +1262,17 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 $owner_id = $formData[$this->listName . '___' . $owner_element_name];
             }
 
-            // echo "<pre>";
-            // var_dump($owner_id);
-            // echo "</pre>";
-            // die();
-
             if (isset($owner_id) && !empty($owner_id)) {
                 $formData["owner_id"] = $owner_id;
             } else {
                 // sets owner_id
                 $formData["owner_id"] = $this->user->id;
             }
-        } else if ($this->requestType == self::REQUEST_TYPE_EDIT_RECORD) {
-            $db = JFactory::getDbo();
+        } else if ($this->requestType == self::REQUEST_TYPE_EDIT_RECORD)  {
+           $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
-            $query->select($db->quoteName('req_owner_id'))
-                ->from($db->quoteName('#__fabrik_requests'))
+            $query->select($db->qn('req_owner_id'))
+                ->from($db->qn('#__fabrik_requests'))
                 ->where('req_record_id = ' . $formData['rowid']);
             $db->setQuery($query);
             $db->execute();
@@ -1304,35 +1285,32 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             die(Text::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
         }
 
-
-
         if (!$hasPermission) {
             //define a mensagem de retorno
             if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
+                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
             } else if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
+                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
             } else {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
+                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
             }
 
             return false;
         }
+
         return true;
     }
 
-
-
-
     /**
-     * This method saves a request in 
-     * fabrik_workflow table, it is replacing
-     * this->saveFormDataToLog()
+     * This method saves a request in fabrik_workflow table, it is replacing this->saveFormDataToLog()
+     * 
+     * @param       Array          $formData       xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
      */
-
     public function saveLog($formData)
     {
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $mainListFormData = new StdClass;
 
@@ -1341,7 +1319,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         foreach ($formData as $k => $v) {
             if (strpos($k, $this->fieldPrefix) !== false) {
                 if (!empty($v)) {
-                    $query->set("{$k} = " . $db->quote($v));
+                    $query->set("{$k} = " . $db->q($v));
                 }
             } else {
                 if (!empty($v)) {
@@ -1355,7 +1333,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $mainListFormDataJson = json_encode($mainListFormData);
 
-        $query->set("form_data = " . $db->quote($mainListFormDataJson));
+        $query->set("form_data = " . $db->q($mainListFormDataJson));
         $db->setQuery($query);
 
         try {
@@ -1364,18 +1342,24 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             return false;
         }
 
-        // @TODO - CATCH ID TO SEND MAIL
-
         return true;
     }
 
+    /**
+     * 
+     * 
+     * @param       Array           $formData               xxxxxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Boolean         $hasPermission          xxxxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
+     */
     public function persistRequest($formData, $hasPermission)
     {
 
         $dados = $this->getFormDataToLog($formData);
         $dados[$this->fieldPrefix . "status"] = ($hasPermission ? 'pre-approved' : 'verify');
 
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
         $mainListFormData = new StdClass;
@@ -1385,19 +1369,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         foreach ($dados as $k => $v) {
             if (strpos($k, $this->fieldPrefix) !== false) {
                 if (!empty($v)) {
-                    $query->set("{$k} = " . $db->quote($v));
+                    $query->set("{$k} = " . $db->q($v));
                 }
             } else {
                 if (!empty($v)) {
                     $mainListFormData->$k = $v;
                 }
-                // $query->set("{$k} = " . $db->quote($v));
             }
         }
 
         $mainListFormDataJson = json_encode($mainListFormData);
 
-        $query->set("form_data = " . $db->quote($mainListFormDataJson));
+        $query->set("form_data = " . $db->q($mainListFormDataJson));
         $db->setQuery($query);
         try {
             $db->execute();
@@ -1408,12 +1391,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         // Get request id
         $req_created_date = $dados['req_created_date'];
         $req_owner_id = $dados['req_owner_id'];
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->select('req_id')
             ->from('#__fabrik_requests')
             ->where("req_created_date = '$req_created_date'");
-        // ->where("req_created_date = '$req_created_date' and req_owner_id = $req_owner_id");
         $db->setQuery($query);
 
         try {
@@ -1432,15 +1414,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         // sends mail
         $sendMail = (bool) $this->params->get('workflow_send_mail');
-        // @TODO - $this->enviarEmailRequestApproval($requestData, $record_id) verify
-        //        if($sendMail) {
-        //            $this->enviarEmailRequestApproval($dados, $request_id);
-        //        }
+
         return true;
     }
 
     /**
-     * This method count the 
+     * This method count the requests
+     * 
+     * @return      Boolean
      */
     public function countRequests()
     {
@@ -1461,17 +1442,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
 
-
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->clear();
-
 
         try {
             $requestList = '#__fabrik_requests';
             $status = 'verify';
 
-            $db = JFactory::getDbo();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
             $query->clear();
             $sql = "SELECT (
@@ -1498,17 +1477,20 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
             $_REQUEST['workflow']['list_link'] = "index.php?option=com_fabrik&{$opt['list']}&listid={$this->listId}";
             $_REQUEST['workflow']['requests_link'] =  $_REQUEST['workflow']['listLinkUrl'] . "?wfl_action=list_requests#eventsContainer";
-            // $_REQUEST['workflow']['requests_link'] = "index.php?option=com_fabrik&{$opt['list']}&listid={$this->listId}&wfl_action=list_requests#eventsContainer";
-            // $_REQUEST['workflow']['requests_link'] = "index.php/" . $this->listName . "?wfl_action=list_requests&layout=bootstrap#eventsContainer";
             $_REQUEST['workflow']['requests_form_link'] = "index.php?option=com_fabrik&{$opt['form']}&formid={$this->requestListFormId}&rowid=";
             $_REQUEST['workflow']['requests_details_link'] = "index.php?option=com_fabrik&{$opt['details']}&formid={$this->requestListFormId}&rowid=";
+
             return true;
         } catch (Exception $e) {
-            //die($e->getTraceAsString());
             return false;
         }
     }
 
+    /**
+     * This method count the requests
+     * 
+     * @return      Int|Boolean
+     */
     public function countRequestsNumber()
     {
         $approveOwn = (int)$this->params->get('approve_for_own_records');
@@ -1527,16 +1509,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
 
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->clear();
-
 
         try {
             $requestList = '#__fabrik_requests';
             $status = 'verify';
 
-            $db = JFactory::getDbo();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
             $query->clear();
             $sql = "SELECT (
@@ -1554,16 +1535,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
             return $r;
         } catch (Exception $e) {
-            //die($e->getTraceAsString());
             return false;
         }
     }
 
     /**
-     * This method updates the request to approved or not, and call the method to save
-     * the information to the target lists if is approved it is replacing
-     * this->processRequest()
-     * $formModel->fullFormData
+     * This method updates the request to approved or not, and call the method to save the information to the target lists if is approved.
+     * It is replacing this->processRequest()
+     * 
+     * @return      Boolean
      */
     public function updateRequest($fullFormData)
     {
@@ -1573,10 +1553,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $status = $formData['req_approval'] === '1' ? 'approved' : 'not-approved';
 
             //atualiza o status do request
-            $db = JFactory::getDbo();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
-            $query->set("{$this->fieldPrefix}status = " . $db->quote($status));
-            $query->update('#__fabrik_requests')->where("{$this->fieldPrefix}id = " . $db->quote($rowid));
+            $query->set("{$this->fieldPrefix}status = " . $db->q($status));
+            $query->update('#__fabrik_requests')->where("{$this->fieldPrefix}id = " . $db->q($rowid));
             $db->setQuery($query);
             $db->execute();
 
@@ -1587,20 +1567,19 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             //envia email com o resultado da operacao
             $this->enviarEmailRequestApproval($formData, $status);
         }
+
         return true;
     }
-    // End
+
     /**
      * Add the heading information to the Fabrik list, so as to include a column for the add to cart link
      *
-     * @param array $args
-     *
-     * @return void
+     * @return      Null
      */
     public function onGetPluginRowHeadings()
     {
+        // Execute the method only once
         if (isset($_REQUEST['workflow']['init']) && $_REQUEST['workflow']['init'] == true) {
-            //executar o metodo apenas uma vez
             return false;
         }
 
@@ -1608,23 +1587,30 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         if ($this->isRequestList()) {
             return true;
         }
+
         $this->checkAddRequestButton();
         $this->checkEventsButton();
         $this->listRequests();
         $_REQUEST['workflow']['init'] = true;
     }
 
-    function processFormDataToSave($formData)
+    /**
+     * 
+     * 
+     * @param       Array       $formData       xxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Array
+     */
+    public function processFormDataToSave($formData)
     {
         // Catch db obj
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         // catch databasejoin joins
         $elementsPlugins = $this->onGetElementsPlugin($formData['listid']);
         $elementModels = $this->getListElementModels();
         $listModel = $this->getModel()->getListModel();
-
         $formModel = $this->getModel();
-
+       
         foreach ($elementsPlugins as $key => $value) {
             $completeElName = $this->listName . "___" . $key;
             // if plugin is databasejoin
@@ -1647,12 +1633,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         $whereClauses = array();
 
                         foreach ($ids as $id) {
-                            $whereClauses[] = $db->quoteName($join_key_column) . ' = ' . $db->q($id);
+                            $whereClauses[] = $db->qn($join_key_column) . ' = ' . $db->q($id);
                         }
 
                         $query
-                            ->select(array($db->quoteName($join_val_column) . ' as value'))
-                            ->from($db->quoteName($join_db_name))
+                            ->select(array($db->qn($join_val_column) . ' as value'))
+                            ->from($db->qn($join_db_name))
                             ->where($whereClauses, 'OR');
 
                         $db->setQuery($query);
@@ -1685,7 +1671,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                         $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
                                         $formModel->formData[$workflowElementUploadName] = $ajaxFiles;
                                         $formData[$workflowElementUploadName] = $ajaxFiles;
-
+                                    
                                         $_FILES[$element->name] = $ajaxFiles;
                                         $fileData      = $_FILES[$element->name]['name'];
 
@@ -1700,16 +1686,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                                 'size'     => $_FILES[$element->name]['size'][$i],
                                                 'path'     => $folder
                                             );
-                                            array_push($completeElNameData, JPath::clean($folder . $file['name']));
+                                            array_push($completeElNameData, Path::clean($folder . $file['name']));
 
-                                            $tmpFile  = $file['tmp_name'];
-                                            // if(strlen($file['name']) > 0){
-                                            //     $formData[$completeElName] = $folder . $file['name'];
-                                            // }                            
+                                            $tmpFile  = $file['tmp_name'];                       
                                             if ($storage->appendServerPath()) {
                                                 $folderPath = JPATH_SITE . '/' . $folder . '/' . $file['name'];
                                             }
-                                            $filePath = JPath::clean($folderPath);
+                                            $filePath = Path::clean($folderPath);
                                             copy($tmpFile, $filePath);
                                         }
                                         $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
@@ -1719,7 +1702,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                         $formData[$completeElName . '_raw'] = $completeElNameData;
                                         $formModel->updateFormData($workflowElementUploadName, $file);
                                         $formModel->formData[$workflowElementUploadName] = $file;
-                                        //$formData[$workflowElementUploadName] = $file;
                                     }
                                 } else {
                                     $file  = array(
@@ -1734,22 +1716,22 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                     $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
                                     $formModel->formData[$workflowElementUploadName] = $file;
                                     $formData[$workflowElementUploadName] = $file;
-                                    $completeElNameData = JPath::clean($folder . $file['name']);
+                                    $completeElNameData = Path::clean($folder . $file['name']);
                                     $formModel->updateFormData($completeElName, $completeElNameData);
                                     $formModel->updateFormData($completeElName . '_raw', $completeElNameData);
                                     $formModel->updateFormData($workflowElementUploadName, $file);
                                     $tmpFile  = $file['tmp_name'];
-                                    if (strlen($file['name']) > 0) {
+                                    if(strlen($file['name']) > 0) {
                                         $formData[$completeElName] = $folder . $file['name'];
                                     }
                                     if ($storage->appendServerPath()) {
                                         $folder = JPATH_SITE . '/' . $folder;
                                     }
                                     $folder = $folder . '/' . $file['name'];
-                                    $filePath = JPath::clean($folder);
+                                    $filePath = Path::clean($folder);
                                     copy($tmpFile, $filePath);
-                                }
-                            } else {
+                                    }              
+                            }  else {
                                 // SE NAO FOR AJAX
                                 if (array_key_exists($completeElName, $_FILES) && $_FILES[$completeElName]['name'] != '') {
                                     // SE É A REQUISIÇÃO REGISTERED
@@ -1761,18 +1743,19 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                         'size' => $_FILES[$completeElName]['size'],
                                         'path' => $folder
                                     );
-
+                                    
                                     $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
                                     $formModel->formData[$workflowElementUploadName] = $file;
-                                    $completeElNameData = JPath::clean($folder . $file['name']);
+                                    $completeElNameData = Path::clean($folder . $file['name']);
                                     $formData[$workflowElementUploadName] = $file;
                                     $tmpFile  = $file['tmp_name'];
 
+               
                                     if ($storage->appendServerPath()) {
                                         $folder = JPATH_SITE . '/' . $folder;
                                     }
                                     $folder = $folder . '/' . $file['name'];
-                                    $filePath = JPath::clean($folder);
+                                    $filePath = Path::clean($folder);
 
                                     copy($tmpFile, $filePath);
                                     $formModel->updateFormData($completeElName, $completeElNameData);
@@ -1797,7 +1780,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                             ];
                                             $listModel->insertObject($db_table_name, $oRecord, false);
                                         }
-                                        //$formData[$completeElName] = '';
                                     } else {
                                         $_FILES[$completeElName]['name'] = $formData[$this->listName . '_FILE_' . $completeElName]['name'];
                                         $_FILES[$completeElName]['type'] = $formData[$this->listName . '_FILE_' . $completeElName]['type'];
@@ -1806,11 +1788,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                         $_FILES[$completeElName]['size'] = $formData[$this->listName . '_FILE_' . $completeElName]['size'];
                                         $_FILES[$completeElName]['workflow'] = '1';
                                         $imagePath = JPATH_SITE . '/' . $folder . '/' . $_FILES[$completeElName]['name'];
-                                        $imagePath = JPath::clean($imagePath);
+                                        $imagePath = Path::clean($imagePath);
                                         $newPath =  $_FILES[$completeElName]['tmp_name'];
                                         copy($newPath, $imagePath);
                                         unset($formData[$this->listName . '_FILE_' . $completeElName]);
-                                        $completeElNameData = JPath::clean($folder . $_FILES[$completeElName]['name']);
+                                        $completeElNameData = Path::clean($folder . $_FILES[$completeElName]['name']);
                                         $formData[$completeElName] = $completeElNameData;
                                         $formModel->updateFormData($completeElName, $completeElNameData);
                                     }
@@ -1832,14 +1814,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                             );
                                             $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
                                             $formData[$workflowElementUploadName] = $file;
-                                            $completeElNameData = JPath::clean($folder . $file['name']);
+                                            $completeElNameData = Path::clean($folder . $file['name']);
                                             $formData[$completeElName] = $completeElNameData;
                                             $formData[$completeElName . '_raw'] = $completeElNameData;
                                             $formModel->updateFormData($completeElName, $completeElNameData);
                                             $formModel->updateFormData($completeElName . '_raw', $completeElNameData);
                                             $formModel->updateFormData($workflowElementUploadName, $file);
                                             $imagePath = JPATH_SITE . '/' . $completeElNameData;
-                                            $imagePath = JPath::clean($imagePath);
+                                            $imagePath = Path::clean($imagePath);
                                             $newPath =  $file['tmp_name'];
                                             copy($newPath, $imagePath);
                                         }
@@ -1848,7 +1830,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                             } else {
                                 // SE TEM AUTORIZAÇÃO E NAO ESTA VAZIO
                                 if (array_key_exists($completeElName, $_FILES) && $_FILES[$completeElName]['name'] != '') {
-                                    // SE TEM AUTORIZAÇÃO E NÃO É AJAX
+                                // SE TEM AUTORIZAÇÃO E NÃO É AJAX
                                     $file  = array(
                                         'name' => $_FILES[$completeElName]['name'],
                                         'type' => $_FILES[$completeElName]['type'],
@@ -1859,9 +1841,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                     );
                                     $tmpFile  = $file['tmp_name'];
 
-                                    $completeElNameData = JPath::clean($folder . $file['name']);
+                                    $completeElNameData = Path::clean($folder . $file['name']);
 
-                                    if (strlen($file['name']) > 0) {
+                                    if(strlen($file['name']) > 0) {
                                         $formModel->formData[$completeElName] = $folder . $file['name'];
                                     }
                                     if ($storage->appendServerPath()) {
@@ -1871,13 +1853,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                     $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
                                     $formModel->formData[$workflowElementUploadName] = $file;
                                     $folder = $folder . '/' . $file['name'];
-                                    $filePath = JPath::clean($folder);
+                                    $filePath = Path::clean($folder);
                                     copy($tmpFile, $filePath);
-                                }
+                            }
                             }
                         }
                     }
                 }
+
                 if (isset($formData[$completeElName]['cropdata'])) {
                     $imageLink = array_keys($formData[$completeElName]['id'])[0];
 
@@ -1905,12 +1888,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     $whereClauses = array();
 
                     foreach ($ids as $id) {
-                        $whereClauses[] = $db->quoteName('id') . ' = ' . $id;
+                        $whereClauses[] = $db->qn('id') . ' = ' . $id;
                     }
 
                     $query
-                        ->select(array($db->quoteName('title')))
-                        ->from($db->quoteName($tags_dbname))
+                        ->select(array($db->qn('title')))
+                        ->from($db->qn($tags_dbname))
                         ->where($whereClauses, 'OR');
 
                     $db->setQuery($query);
@@ -1924,6 +1907,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 }
             }
         }
+
         // Params to save request
         $ajaxParams = array(
             'listid', 'listref', 'rowid', 'Itemid', 'option', 'task', 'isMambot', 'formid',
@@ -1937,49 +1921,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             if ((strpos($key, $this->listName) !== false ||
                 strpos($key, 'repeat_group') !== false ||
                 strpos($key, 'hiddenElements') !== false)) {
-                //if is raw
-                //                if(strpos($key, '_raw') !== false) {
-                //                    $idsKey = str_replace("_raw", "", $key);
-                //                    // if raw value is not equal to id values
-                //                    if($formData[$key] != $formData[$idsKey]) {
-                //                        $newFormData[$key] = $value;
-                //                    }
-                //                } else {
-                $newFormData[$key] = $value;
-                //                }
 
+                $newFormData[$key] = $value;
             }
         }
+
         // Foreach that catchs params to make the request to save the register later
         foreach ($ajaxParams as $value) {
             $newFormData[$value] = $formData[$value];
         }
+
         return $newFormData;
-    }
-    public function uploadFiles()
-    {
-
-        // $tmpFile  = $file['tmp_name'];
-        // $completeElNameData = JPath::clean($folder.$file['name']);
-        // if(strlen($file['name']) > 0){
-        //     $formModel->formData[$completeElName] = $folder . $file['name'];
-        // }     
-
-        // if ($storage->appendServerPath()) {
-        //     $folder = JPATH_SITE . '/' . $folder;
-        // }
-
-        // $workflowElementUploadName = $this->listName . '_FILE_' . $completeElName;
-        // $formModel->formData[$workflowElementUploadName] = $file;
-        // $folder = $folder . '/' . $file['name'];
-        // $filePath = JPath::clean($folder);
-        // copy($tmpFile, $filePath);
     }
 
     /**
      * Run right at the beginning of the form processing
      *
-     * @return bool
+     * @return      Boolean
      */
     public function onBeforeProcess()
     {
@@ -2012,91 +1970,25 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
     }
 
-    // public function onBeforeProcess() {
-    //     $this->init();
-    //     $formModel = $this->getModel();
-    //     $fullFormData = $formModel->fullFormData;
-    //     $isReview = false;
-    //     if(isset($fullFormData['review']) && $fullFormData['review']) {
-    //         $isReview = true;
-    //     }
-
-    //     $processedFormData = $this->processFormDataToSave($fullFormData);       
-
-    //     if(!$isReview) {
-    //         if($this->hasPermission($processedFormData)) {
-    //             $this->createRequest($processedFormData);
-    //         } else {
-    //             return $this->createRequest($processedFormData);
-    //         }
-    //     } else {
-    //         $this->isReview = true;
-    //         $this->req_id = $fullFormData['req_id'];
-    //     }
-    // }
-
-    // Returns if can bypass workflow
-    function canAdd()
+    /**
+     * Returns if can bypass workflow
+     *
+     * @return      Boolean
+     */
+    public function canAdd()
     {
         $listModel = $this->getModel()->getListModel();
         $params = $listModel->getParams();
         $groups = $this->user->getAuthorisedViewLevels();
         $canAdd = in_array($params->get('allow_add'), $groups);
+
         return $canAdd;
     }
 
-    // Delete was removed from workflow 01/04/20
-    // public function onDeleteRowsForm(&$groups) {
-    //     //die('onDeleteRowForm');
-    //     $this->init();
-    //     $rows = array();
-    //     // $formModel = $this->getModel();
-    //     // $fullFormData = $formModel->fullFormData;
-    //     // if(isset($fullFormData['review']) && $fullFormData['review']) {
-    //     //     $isReview = true;
-    //     // }
-    //     // if(!$isReview) {
-
-    //         foreach ($groups[0][0] as $row) {
-    //             $rows[] = array("rowid" => $row->__pk_val);
-    //         }
-
-    //         $rowid = $rows[0]["rowid"];
-
-    //         $db = JFactory::getDBO();
-    //         $query = $db->getQuery(true);
-
-    //         // Get the last formData from #__fabrik_requests table
-    //         $query
-    //             ->select($db->quoteName("req_owner_id"))
-    //             ->from($db->quoteName("#__fabrik_requests"))
-    //             ->where($db->quoteName("req_record_id") . ' = ' . "$rowid" )
-    //             ->order('req_created_date asc');
-    //         $db->setQuery($query);
-    //         $db->execute();
-    //         $results = $db->loadResult();
-
-    //         // Update owner_id
-    //         $rows["owner_id"] = $results;
-
-    //         return $this->createRequest($rows, true);
-
-    //         // if($this->hasPermission($processedFormData)) {
-    //         //     $this->createRequest($rows, true);
-    //         // } else {
-    //         //     return $this->createRequest($rows, true);
-    //         // }
-    //     // } else {
-    //     //     $this->isReview = true;
-    //     //     $this->req_id = $fullFormData['req_id'];
-    //     // }
-    // }
-
     /**
-     * Run right at the end of the form processing
-     * form needs to be set to record in database for this to hook to be called
+     * Run right at the end of the form processing, form needs to be set to record in database for this to hook to be called
      *
-     * @return    bool
+     * @return      Null|Boolean
      */
     public function onAfterProcess()
     {
@@ -2114,10 +2006,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $id_raw = $formModel->fullFormData[$table_name . '___' . $pk[0]['colname'] . '_raw'];
         $owner_id = $formModel->fullFormData[$table_name . '___' . $owner_element_name][0];
 
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
-        $query->set("{$owner_element_name} = " . $db->quote($owner_id));
-        $query->update($table_name)->where("{$pk[0]['colname']} = " . $db->quote($id_raw));
+        $query->set("{$owner_element_name} = " . $db->q($owner_id));
+        $query->update($table_name)->where("{$pk[0]['colname']} = " . $db->q($id_raw));
         $db->setQuery($query);
         $db->execute();
 
@@ -2126,73 +2018,28 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $req_id = $formModel->fullFormData['req_id'];
 
             // Update record id
-            $db = JFactory::getDbo();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
             $query->clear();
-            $query->set("req_record_id = " . $db->quote($row_id))->set("req_reviewer_id = " . $db->quote($this->user->id));
-            $query->update('#__fabrik_requests')->where("req_id = " . $db->quote($req_id));
+            $query->set("req_record_id = " . $db->q($row_id))->set("req_reviewer_id = " . $db->q($this->user->id));
+            $query->update('#__fabrik_requests')->where("req_id = " . $db->q($req_id));
             $db->setQuery($query);
             $db->execute();
-
-            // It's a review 
-            // echo "ARE ON AFTER PROCESS";
-            // echo "<pre>";
-            //     var_dump("row_id", $row_id);
-            //     var_dump("req_id", $req_id);
-            //     var_dump("isReview", $this->isReview, "req_id", $this->req_id);
-            // echo "</pre>";
-            // die("IS REVIEW");
         } else {
             // Get the form data
             $fullFormData = $formModel->fullFormData;
             // Process form data to save later
             $processedFormData = $this->processFormDataToSave($fullFormData);
             $hasPermission = $this->hasPermission($processedFormData);
+
             return $this->creatLog($processedFormData, $hasPermission);
         }
-
-        // if(isset($this->isReview) && $this->isReview) {
-        // $formModel = $this->getModel();
-        // $row_id = $formModel->fullFormData['rowid'];
-        // $req_id = $formModel->fullFormData['req_id'];
-        //     // Updates the record_id on pre-approved records
-        //     // and on reviewing requests
-        // $db = JFactory::getDbo();
-        // $query = $db->getQuery(true);
-        // $query->set("req_record_id = " . $db->quote($row_id));
-        // $query->update('#__fabrik_requests')->where("req_id = " . $db->quote($req_id));
-        // $db->setQuery($query);
-        // $db->execute();
-        // // Update if is fileupload
-        // $formData = $formModel->fullFormData;
-        // $tableName = $this->listName . "_repeat_" . $elementName;
-        // $elementName = 
-        // foreach($formData as $elementKey => $element) {
-        //     if(
-        //         strpos($elementKey, $this->listName."___") !== false && 
-        //         isset($element->crop)
-        //     ) {
-
-        //     }
-        // }
-
-        // } else {
-        //     if($this->persistedRequestStatus === "pre-approved") {
-        //         $formModel = $this->getModel();
-        //         $row_id = $formModel->fullFormData['rowid'];
-        //         $db = JFactory::getDbo();
-        //         $query = $db->getQuery(true);
-        //         $query->set("req_record_id = " . $db->quote($row_id));
-        //         $query->update('#__fabrik_requests')->where("req_id = " . $db->quote($this->persistedRequestId));
-        //         $db->setQuery($query);
-        //         $db->execute();
-        //     }
-        // }
     }
 
     /**
-     * Get the table name to insert / update to
-     * @return  string
+     * Get the table name to insert/updates
+     * 
+     * @return      String
      */
     protected function getTableName()
     {
@@ -2205,8 +2052,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * Inicializa o plugin
-     */
+	 * Init function
+	 *
+	 * @return  	Null
+	 */
     private function init()
     {
         $this->loadTranslationsOnJS();
@@ -2215,17 +2064,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $formModel = $this->getModel();
             $form = $formModel->getForm();
             $listId = $formModel->getListModel()->getId();
-            $db = JFactory::getDBO();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $db->setQuery("SELECT " . $db->qn('db_table_name') . " FROM " . $db->qn('#__fabrik_lists') . " WHERE " . $db->qn('form_id') . " = " . (int) $form->id);
             $listName = $db->loadResult();
         } catch (Exception $e) {
             $listId = null;
             $listName = '';
         }
+
         $this->listId = $listId;
         $this->listName = $listName;
 
-        $this->dbtable_request_sufixo = '_request'; //$params->get('record_in');
+        $this->dbtable_request_sufixo = '_request';
         $this->checkIsRequestList();
 
         if (!$this->isRequestList()) {
@@ -2235,7 +2085,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 $formModel = $this->getModel();
                 $form = $formModel->getForm();
                 $listId = $formModel->getListModel()->getId();
-                $db = JFactory::getDBO();
+                $db = Factory::getContainer()->get('DatabaseDriver');
                 $db->setQuery("SELECT " . $db->qn('id') . ", " . $db->qn('form_id') . " FROM " . $db->qn('#__fabrik_lists') . " WHERE " . $db->qn('db_table_name') . " = '{$this->requestListName}'");
                 $r = $db->loadObjectList();
                 if (count($r) > 0) {
@@ -2247,80 +2097,34 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         //set field prefix
-        $fieldPrefix = 'req_'; //$params->get('field_prefix');
+        $fieldPrefix = 'req_';
         $this->fieldPrefix = $fieldPrefix;
     }
 
     /**
-     * Executa os processos de log da lista principal
-     * @param type $forms
-     * @param type $delete
-     * @return boolean
-     * @deprecated replaced by $this->createRequest
-     */
-    private function processLog($forms, $delete = false)
-    {
-        if ($this->isRequestList()) {
-            return true;
-        }
-
-        //verifica o tipo de request
-        $this->setRequestType($forms[0], $delete);
-
-        //salva o log
-        $hasPermission = false;
-        foreach ($forms as $form) {
-            $formData = $this->extractFormData($form);
-            $hasPermission = $this->hasPermission($formData);
-
-            if (!$this->saveFormDataToLog($formData, $hasPermission)) {
-                die(Text::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
-            }
-            if (!$hasPermission) {
-                if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD && empty($formData["owner_id"])) {
-                    //define o usuario dono do registro caso nao tenha
-                    $formData["owner_id"] = $this->user->id;
-                }
-                //envia email
-                $this->enviarEmailRequest($formData);
-            }
-        }
-
-        if (!$hasPermission) {
-            //define a mensagem de retorno
-            if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
-            } else if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
-            } else {
-                JFactory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
-            }
-
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Executa os processos da lista de request
-     * @return boolean
+     * Executes the processes from the request list
+     * 
+     * @param       Array       $fullFormData       xxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
      */
     private function processRequest($fullFormData)
     {
-        //         die('Saved Request');
         if (!$this->isRequestList()) {
             return true;
         }
+
         $formData = $this->extractFormData($fullFormData);
         $rowid = $formData["rowid"];
+
         if ($formData['req_approval'] === '1' || $formData['req_approval'] === '0') {
             $status = $formData['req_approval'] === '1' ? 'approved' : 'not-approved';
 
             //atualiza o status do request
-            $db = JFactory::getDbo();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
-            $query->set("{$this->fieldPrefix}status = " . $db->quote($status));
-            $query->update($this->listName)->where("{$this->fieldPrefix}id = " . $db->quote($rowid));
+            $query->set("{$this->fieldPrefix}status = " . $db->q($status));
+            $query->update($this->listName)->where("{$this->fieldPrefix}id = " . $db->q($rowid));
             $db->setQuery($query);
             $db->execute();
 
@@ -2331,13 +2135,17 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             //envia email com o resultado da operacao
             $this->enviarEmailRequestApproval($formData, $status);
         }
+
         return true;
     }
 
     /**
-     * Define o valor do atributo requestType
-     * @param type $form
-     * @param type $delete
+     * Sets the value of the requestType attribute
+     * 
+     * @param       Array       $form       xxxxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Array       $form       xxxxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Null
      */
     private function setRequestType($form, $delete)
     {
@@ -2351,19 +2159,21 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * Extrai somente os dados principais do formulario (sem os campos auxiliares do Joomla)
-     * @param type $fullFormData
-     * @return type
+     * Extracts only the main data from the form without the auxiliary Joomla fields
+     * 
+     * @param       Array       $fullFormData       xxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Array
      */
     protected function extractFormData($fullFormData)
     {
         $listName = $this->listName;
         $rowid = $fullFormData["rowid"];
         $campos = array('rowid' => $rowid);
+
         foreach ($fullFormData as $k => $v) {
             if (stripos($k, "{$listName}__") !== false) {
                 $field = str_replace(array("{$listName}___", "_raw"), '', $k);
-                //if (stripos($k, '_raw') !== false || in_array($field, array('id', 'date_time', 'modified_by'))) {
                 if (stripos($k, '_raw') !== false) {
                     continue;
                 }
@@ -2380,20 +2190,24 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     }
                 }
 
-                // $v = is_array($v) ? $v[0] : $v; //<- Erro
                 $campos[$new_k] = $v;
             }
         }
+
         return $campos;
     }
 
     /**
-     * Verifica se o usuario tem permissao para executar a ação e permite ou nao, 
-     * persistir os dados no banco de dados
-     * Atualizado em Março de 2020
-     * @return boolean
+     * Checks whether the user has permission to perform the action and allows or disallows persisting the data in the database.
+     * 
+     * @param       Array           $formData           xxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Boolean         $delete             xxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Object          $listModel          xxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Boolean         $optionsJs          xxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
      */
-    protected function hasPermission($formData, $delete = false, $listModel = false, $optionsJs = false)
+    protected function hasPermission($formData, $delete=false, $listModel=false, $optionsJs = false)
     {
         if (!isset($this->requestType)) {
             $this->setRequestType($formData, $delete);
@@ -2404,6 +2218,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         } else {
             $listModel = $this->getModel()->getListModel();
         }
+
         $params = $listModel->getParams();
         $editOwnElement = NULL;
 
@@ -2434,6 +2249,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $approve_for_own_records = $this->params->get('approve_for_own_records');
             $owner_element_id = $this->params->get('workflow_owner_element');
         }
+
         $owner_element = $listModel->getElements('id');
         $formModel = $listModel->getFormModel();
         $owner_element_name = $owner_element[$owner_element_id]->element->name;
@@ -2465,23 +2281,33 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 }
                 break;
         }
+
         return true;
     }
 
+    /**
+     * This method verify if the user can make requests
+     * 
+     * @return      Boolean
+     */
     protected function canRequest()
     {
         $listModel = $this->getModel()->getListModel();
-        $groups = JFactory::getUser()->getAuthorisedViewLevels();
+        $groups = Factory::getApplication()->getIdentity()->getAuthorisedViewLevels();
+        
         return in_array($listModel->getParams()->get('allow_request_record'), $groups);
     }
 
     /**
-     * Verifica quais requisições o usuário pode ver.
-     * @return string (all || only_own)
+     * Checks which requests the user can see.
+     * 
+     * @param       String      $allow_review_request       xxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      String
      */
-    protected function canViewRequests($allow_review_request = '')
+    protected function canViewRequests($allow_review_request='')
     {
-        $groups = JFactory::getUser()->getAuthorisedViewLevels();
+        $groups = Factory::getApplication()->getIdentity()->getAuthorisedViewLevels();
         $canView = 'only_own';
         if ($this->user->authorise('core.admin')) {
             $canView = 'all';
@@ -2490,24 +2316,32 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         } else if (in_array($allow_review_request, $groups)) {
             $canView = 'all';
         }
+
         return $canView;
     }
 
     /**
-     * Verifica se o usuario pode aprovar requisições
-     * @return boolean
+     * Checks if the user can approve requests
+     * 
+     * @return      Boolean
      */
     protected function canApproveRequests()
     {
-        $groups = JFactory::getUser()->getAuthorisedViewLevels();
+        $groups = Factory::getApplication()->getIdentity()->getAuthorisedViewLevels();
         if ($this->user->authorise('core.admin')) {
             return true;
         } else if (in_array($this->getParams()->get('allow_review_request'), $groups)) {
             return true;
         }
+
         return false;
     }
 
+    /**
+     * This method check if the add button is set
+     * 
+     * @return      Null
+     */
     protected function checkAddRequestButton()
     {
         $listModel = $this->getModel()->getListModel();
@@ -2518,21 +2352,28 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $_REQUEST['workflow']['eventsButton'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_EVENTS');
     }
 
+    /**
+     * This method check if the show events button is set
+     * 
+     * @return      Null
+     */
     protected function checkEventsButton()
     {
-        //$showEventsButton = $this->canViewRequests();
         $showEventsButton = true;
         if (!$this->countRequests()) {
             $showEventsButton = false;
         }
+
         $_REQUEST['workflow']['showEventsButton'] = $showEventsButton;
     }
 
     /**
-     * Salva os dados na tabela de log/request
-     * @param type $formData
-     * @param type $hasPermission
-     * @return boolean
+     * Saves data to log/request table
+     * 
+     * @param       Array           $formData               xxxxxxxxxxxxxxxxxxxxx
+     * @param       Boolean         $hasPermission          xxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Boolean
      */
     protected function saveFormDataToLog($formData, $hasPermission)
     {
@@ -2542,24 +2383,26 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $this->createOrUpdateLogTable();
         $requestListName = $this->requestListName;
 
-        $db = JFactory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->insert($requestListName);
         foreach ($dados as $k => $v) {
-            $query->set("{$k} = " . $db->quote($v));
+            $query->set("{$k} = " . $db->q($v));
         }
         $db->setQuery($query);
         $db->execute();
-        //$id = $db->insertid();
+
         return true;
     }
 
     /**
-     * Adiciona os demais campos de log junto aos dados do formulario
-     * @param type $formData
-     * @return array
+     * Add the other log fields along with the form data
+     * 
+     * @param       Array       $formData       xxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Array
      */
-    protected function getFormDataToLog($formData, $hasPermission = false)
+    protected function getFormDataToLog($formData, $hasPermission=false)
     {
         $fieldPrefix = $this->fieldPrefix;
 
@@ -2584,6 +2427,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         return $formData;
     }
 
+    /**
+     * 
+     * 
+     * @param       Array           $formData           xxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Int             $userId             xxxxxxxxxxxxxxxxxxxxxxx
+     * @param       Int             $ownerId            xxxxxxxxxxxxxxxxxxxxxxx
+     * @param       String          $date_time          xxxxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Array
+     */
     protected function createLogPreApproved($formData, $userId, $ownerId, $date_time)
     {
         $newFormData = array();
@@ -2598,33 +2451,39 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $newFormData[$fieldPrefix . "comment"] = "created by workflow";
         $rowid = $formData["rowid"] ? $formData["rowid"] : $formData[0]["rowid"];
         $newFormData[$fieldPrefix . "record_id"] = $rowid;
+
         return $newFormData;
     }
 
+    /**
+     * 
+     * 
+     * @return      Array
+     */
     protected function getListElementModels()
     {
         $elements = array();
         $formModel = $this->getModel();
         $groups = $formModel->getGroupsHiarachy();
         foreach ($groups as $groupModel) {
-            //$group = $groupModel->getGroup();
-            //$elementModels = $groupModel->getPublishedElements();
             $elementModels = $groupModel->elements;
             foreach ($elementModels as $elementModel) {
                 $elements[] = $elementModel;
             }
         }
+
         return $elements;
     }
 
     /**
      * Create or update log table
-     * @return boolean
+     * 
+     * @return      Boolean
      */
     protected function createOrUpdateLogTable()
     {
         try {
-            $db = JFactory::getDBO();
+            $db = Factory::getContainer()->get('DatabaseDriver');
 
             //default log columns
             $clabelsCreateDb = array();
@@ -2673,16 +2532,20 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             die($e->getMessage());
             return false;
         }
+
         return true;
     }
 
     /**
-     * Update log table
-     * @param type $defaultTableColumns
+     * Method that update log table
+     * 
+     * @param       Array       $defaultTableColumns        xxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Null
      */
     private function updateLogTable($defaultTableColumns)
     {
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $db->setQuery("DESCRIBE `{$this->requestListName}`;");
         $columns = $db->loadObjectList();
         $requestTableColumns = array();
@@ -2706,6 +2569,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 $clabelsCreateDb[] = "ADD COLUMN " . $desc;
             }
         }
+
         if (count($clabelsCreateDb) > 0) {
             $clabels_createdb = implode(", ", $clabelsCreateDb);
             $create_custom_table = "ALTER TABLE " . $db->qn($this->requestListName) . " $clabels_createdb;";
@@ -2713,62 +2577,20 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $db->execute();
         }
     }
+
     /**
-     * @deprecated replaced by countRequests()
+     * 
+     * 
+     * @param       Array       $request        xxxxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Null
      */
-    protected function countEvents()
-    {
-        try {
-            $requestList = $this->requestListName;
-            $status = 'verify';
-            $whereUser = '';
-            if ($this->canViewRequests() == 'only_own') {
-                $whereUser = "AND req_user_id = '{$this->user->id}'";
-            }
-
-            $db = JFactory::getDbo();
-            $query = $db->getQuery(true);
-            $query->clear();
-            $sql = "SELECT (
-                    -- requisicoes de novo registro
-                    COALESCE((SELECT count(id) FROM {$requestList} WHERE req_status = '{$status}' 
-                        AND (req_record_id IS NULL OR req_record_id = 0) {$whereUser}), 0) 
-                    
-                    -- requisicoes de alteracao/exclusao de registro
-                    + COALESCE((SELECT count(req_id) FROM {$requestList} WHERE req_status = '{$status}' 
-                        AND (req_record_id IS NOT NULL AND req_record_id <> 0) {$whereUser}), 0)
-            ) as 'events'";
-            $db->setQuery($sql);
-            $r = $db->loadResult();
-            $_REQUEST['workflow']['requests_count'] = $r;
-            $_REQUEST['workflow']['label_request_aproval'] = Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
-            $_REQUEST['workflow']['label_request_view'] = Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_VIEW');
-
-            //parametro para url de lista e form (depende se frontend ou backend)
-            $opt = array('list' => '&view=list', 'form' => '&view=form', 'details' => '&view=details');
-            if (stripos($_SERVER['REQUEST_URI'], 'administrator') !== false) {
-                //backend
-                $opt = array('list' => 'task=list.view', 'form' => 'task=list.form', 'details' => 'task=details.view');
-            }
-            $_REQUEST['workflow']['list_link'] = "index.php/" . $this->listName;
-            $_REQUEST['workflow']['requests_link'] = "index.php/" . $this->listName . "?layout=bootstrap" . "&wfl_action=list_requests";
-            // $_REQUEST['workflow']['list_link'] = "index.php?option=com_fabrik&{$opt['list']}&listid={$this->listId}";
-            // $_REQUEST['workflow']['requests_link'] = "index.php?option=com_fabrik&{$opt['list']}&listid={$this->listId}&wfl_action=list_requests";
-            $_REQUEST['workflow']['requests_form_link'] = "index.php?option=com_fabrik&{$opt['form']}&formid={$this->requestListFormId}&rowid=";
-            $_REQUEST['workflow']['requests_details_link'] = "index.php?option=com_fabrik&{$opt['details']}&formid={$this->requestListFormId}&rowid=";
-            return true;
-        } catch (Exception $e) {
-            //die($e->getTraceAsString());
-            return false;
-        }
-    }
-
-    private function enviarEmailRequest($request = null, $req_id = null)
+    private function enviarEmailRequest($request=null)
     {
         $request_type =  $this->requestTypes[$request['req_request_type_id']];
 
         $request_user = $this->user;
-        $owner_user = !empty($request['owner_id']) ? JFactory::getUser($request['owner_id']) : null;
+        $owner_user = !empty($request['owner_id']) ? Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($request['owner_id']) : null;
 
         //email para o solicitante da mudanca
         $emailTo = array($request_user->email);
@@ -2777,31 +2599,36 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $emailTo[] = $owner_user->email;
         }
 
-        // Catch all reviewrs data
+        // Catch all reviewers data
         jimport('joomla.access.access');
-        $reviewrs_id = $this->getReviewers();
-        $reviewrs_data = array();
+        $reviewers_id = $this->getReviewers();
+        $reviewers_data = array();
 
         $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
         $listModel->setId($request['listid']);
 
-        foreach ($reviewrs_id as $id) {
-            $reviewrs_data[] = JFactory::getUser($id);
+        foreach ($reviewers_id as $id) {
+            $reviewers_data[] = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($id);
         }
 
-        foreach ($reviewrs_data as $reviewr) {
-            $emailTo[] = $reviewr->email;
+        foreach ($reviewers_data as $reviewers) {
+            $emailTo[] = $reviewers->email;
         }
 
-        //$link = JURI::root() . "index.php/" . "$this->listName?show_request_id=$req_id";
-        $link = JURI::root() . "index.php" . $listModel->getTableAction();
-
+        $link = URI::root() . "index.php" . $listModel->getTableAction();
         $subject = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_SUBJECT', $this->listName) . " :: " . $this->config->get('sitename');
         $message = Text::sprintf('PLG_FORM_WORKFLOW_EMAIL_REQUEST_BODY', $request_type, $this->listName, $link);
 
         $this->enviarEmail($emailTo, $subject, $message);
     }
 
+    /**
+     * 
+     * @param       Array       $request            xxxxxxxxxxxxxxxxxxx
+     * @param       Int         $record_id          xxxxxxxxxxxxxxxxxxx
+     * 
+     * @return      Null
+     */
     private function enviarEmailRequestApproval($request, $record_id)
     {
         $owner_user_email = !empty($request["req_user_email"]) ? $request["req_user_email"] : null;
@@ -2817,7 +2644,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
         $listModel->setId($list_id);
 
-        $db = JFactory::getDBO();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->select('label')
             ->from('#__fabrik_lists')
@@ -2845,11 +2672,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
         $request_status = $request['req_approval'] === '1' ? 'Aprovada' : 'Não Aprovada';
 
-        //email para o dono da lista
-        //...
-
-        // $link = JURI::root() . "index.php/" . "$list_label/details/$list_id/$record_id";
-        $link = JURI::root() . "index.php" .  $listModel->viewDetailsLink($record_id) . $record_id;
+        $link = URI::root() . "index.php" .  $listModel->viewDetailsLink($record_id).$record_id;
 
         $request_type = $request["req_request_type_id"];
         switch ($request_type) {
@@ -2873,6 +2696,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $this->enviarEmail($emailTo, $subject, $message);
     }
 
+    /**
+     * This method send the emails needed
+     * 
+     * @param       Array       $emailTo        List of emails to send
+     * @param       String      $subject        The subject of the email
+     * @param       String      $message        The message od the email
+     * 
+     * @return      Null
+     */
     private function enviarEmail($emailTo, $subject, $message)
     {
         jimport('joomla.mail.helper');
@@ -2886,7 +2718,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
 
             if (FabrikWorker::isEmail($email)) {
-                $mail = JFactory::getMailer();
+                $mail = Factory::getMailer();
                 $res = Fabrik\Helpers\Worker::sendMail($emailFrom, $emailFromName, $email, $subject, $message, true);
                 if ($res !== true) {
                     $this->app->enqueueMessage(Text::sprintf('PLG_FORM_WORKFLOW_DID_NOT_SEND_EMAIL', $email), 'notice');
@@ -2898,7 +2730,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * Define se a lista é de request
+     * Defines if the list is a request list or not
+     * 
+     * @return      Boolean
      */
     private function checkIsRequestList()
     {
@@ -2906,8 +2740,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * Retorna se a lista é de request
-     * @return type
+     * Returns if the list is a request list or not
+     * 
+     * @return      Boolean
      */
     private function isRequestList()
     {
@@ -2915,109 +2750,30 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * @deprecated replaced by $this->listRequests()
+     * 
+     * 
+     * @param       Int         $rowId      xxxxxxxxxxxxxxxx     
+     * 
+     * @return      Object
      */
-    public function listarRequests()
-    {
-        $dbtable = $this->requestListName;
-        $wfl_action = filter_input(INPUT_GET, 'wfl_action', FILTER_SANITIZE_STRING);
-        $req_status = filter_input(INPUT_GET, 'wfl_status', FILTER_SANITIZE_STRING);
-        $req_status = $req_status ?: 'verify';
-        $_REQUEST['wfl_action'] = $wfl_action;
-        $_REQUEST['wfl_status'] = $req_status;
-
-        //headings
-        $headings = array(
-            'req_request_type_name' => 'Request Type',
-            'req_user_name' => 'User',
-            'req_created_date' => 'Date Time',
-            'req_owner_name' => 'Owner',
-            'req_reviewer_name' => 'Reviewer',
-            'req_revision_date' => 'Revision Date',
-            'req_status' => 'Status',
-            'req_record_id' => 'Record',
-            'req_approval' => 'Approval',
-            'req_vote_approve' => 'Votes Approval',
-            'req_vote_disapprove' => 'Votes Disapproval',
-            'req_reviewers_votes' => 'Votes Reviewers'
-        );
-
-        //grupos
-        $statusLista = array(
-            'verify' => 'Verify',
-            'approved' => 'Approved',
-            'not-approved' => 'Not Approved',
-            'pre-approved' => 'Pre-Approved',
-        );
-
-        //data
-        $db = JFactory::getDbo();
-        $query = $db->getQuery(true);
-        $query->select('req_id')
-            ->select('req_user_id')
-            ->select('u_req.name as req_user_name')
-            ->select('req_created_date')
-            ->select('req_owner_id')
-            ->select('u_owner.name as req_owner_name')
-            ->select('req_reviewer_id')
-            ->select('u_rev.name as req_reviewer_name')
-            ->select('req_revision_date')
-            ->select('req_status')
-            ->select('req_request_type_id')
-            ->select('req_approval')
-            ->select('req_record_id')
-            ->select('workflow_request_type.name as req_request_type_name')
-            ->from($dbtable)
-            ->join('INNER', "workflow_request_type on (req_request_type_id = workflow_request_type.id)")
-            ->join('INNER', $db->quoteName('#__users', 'u_req') . ' ON (' . $db->quoteName('req_user_id') . ' = ' . $db->quoteName('u_req.id') . ')')
-            ->join('LEFT', $db->quoteName('#__users', 'u_owner') . ' ON (' . $db->quoteName('req_owner_id') . ' = ' . $db->quoteName('u_owner.id') . ')')
-            ->join('LEFT', $db->quoteName('#__users', 'u_rev') . ' ON (' . $db->quoteName('req_reviewer_id') . ' = ' . $db->quoteName('u_rev.id') . ')')
-            ->order("FIELD(req_status, 'verify', 'approved', 'not-approved', 'pre-approved')")
-            ->order("req_id asc");
-
-        if ($wfl_action == 'list_requests') {
-            $query->where("req_status = '{$req_status}'");
-        }
-        if ($this->canViewRequests() == 'only_own') {
-            $query->where("req_user_id = '{$this->user->id}'");
-        }
-
-        $db->setQuery($query);
-        $db->execute();
-        $r = $db->loadObjectList();
-
-        //organiza os dados
-        $dados = array();
-        foreach ($r as $row) {
-            $dados[$row->req_status][] = (object)array('data' => $row);
-        }
-
-        //passa as variaveis para a view
-        $_REQUEST['workflow']['requests_tabs'] = $statusLista;
-        $_REQUEST['workflow']['requests_headings'] = $headings;
-        $_REQUEST['workflow']['requests_colCount'] = count($headings);
-        $_REQUEST['workflow']['requests_list'] = $dados;
-        $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests();
-        //$_REQUEST['workflow']['requests_isGrouped'] = true;
-        //$_REQUEST['workflow']['requests_grouptemplates'] = $statusLista;
-        ////$_REQUEST['workflow']['requests_group_by_show_count'] = false;
-    }
-
     private function getRowData($rowId)
     {
-        $myDb = JFactory::getDbo();
+        $myDb = Factory::getContainer()->get('DatabaseDriver');
         $query = $myDb->getQuery(true);
         $query->select("*")->from($this->listName)
-            ->where("{$this->fieldPrefix}id = " . $myDb->quote($rowId));
+            ->where("{$this->fieldPrefix}id = " . $myDb->q($rowId));
         $myDb->setQuery($query);
         $row = $myDb->loadAssoc();
+
         return $row;
     }
 
     /**
-     * Aplica as mudancas do request ao registro da tabela principal
-     * @param type $formData
-     * @return boolean
+     * This method applies the request changes to the main table record
+     * 
+     * @param       Int         $rowid      xxxxxxxxxxxxxxxx 
+     * 
+     * @return      Boolean
      */
     public function applyRequestChange($rowid)
     {
@@ -3030,12 +2786,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $requestType = $rowData['req_request_type_id'];
             $record_id = $rowData["{$this->fieldPrefix}record_id"];
 
-            $db = JFactory::getDbo();
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
 
             if ($requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                $query->delete($db->quoteName($dbTable))
-                    ->where(array($db->quoteName($pkey) . " = '{$record_id}'"));
+                $query->delete($db->qn($dbTable))
+                    ->where(array($db->qn($pkey) . " = '{$record_id}'"));
             } else {
                 $columns = $values = $strValues = array();
                 foreach ($rowData as $k => $v) {
@@ -3046,32 +2802,37 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         continue;
                     }
                     $columns[] = $k;
-                    $values[] = $db->quote($v);
-                    $strValues[] = "{$db->quoteName($k)} = {$db->quote($v)}";
+                    $values[] = $db->q($v);
+                    $strValues[] = "{$db->qn($k)} = {$db->q($v)}";
                     echo ("k: $k - v: $v <br>");
                 }
                 if ($requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                    $query->insert($db->quoteName($dbTable))
-                        ->columns($db->quoteName($columns))
+                    $query->insert($db->qn($dbTable))
+                        ->columns($db->qn($columns))
                         ->values(implode(',', $values));
                 } else {
-                    $query->update($db->quoteName($dbTable))
+                    $query->update($db->qn($dbTable))
                         ->set($strValues)
-                        ->where(array($db->quoteName($pkey) . " = {$record_id}"));
+                        ->where(array($db->qn($pkey) . " = {$record_id}"));
                 }
             }
             $db->setQuery($query);
             $db->execute();
             return true;
         } catch (Exception $e) {
-            JFactory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+            Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
             return false;
         }
     }
 
+    /**
+     * Trigger called when a row is deleted.
+     * 
+     * @return      Null
+     */
     public function onDeleteRow()
     {
-        $app = JFactory::getApplication();
+        $app = Factory::getApplication();
         JModelLegacy::addIncludePath(JPATH_SITE . '/components/com_fabrik/models');
         $fabrikModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
         $rowId = $app->input->getInt('rowId');
@@ -3080,9 +2841,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $ok = $fabrikModel->deleteRows($rowId);
     }
 
+    /**
+     * 
+     * 
+     * @return      Null
+     */
     public function onReportAbuse()
     {
-        $app = JFactory::getApplication();
+        $app = Factory::getApplication();
         $listRowIds = $_REQUEST['listRowIds'];
         $optionsJs = $_REQUEST['options'];
         $listId = explode(":", $listRowIds)[0];
@@ -3105,7 +2871,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $owner_id = $formData[$table_name . '___' . $owner_element_name . '_raw'];
 
         $date = Factory::getDate();
-        $usuario = &JFactory::getUser();
+        $usuario = &Factory::getApplication()->getIdentity();
         $data['req_id'] = '';
         $data['req_request_type_id'] = '3';
         $data['req_user_id'] = $usuario->get('id');;
@@ -3135,6 +2901,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
     }
 
+    /**
+     * 
+     * 
+     * @return      Boolean
+     */
     public function onBeforeGetData()
     {
         $this->init();
@@ -3144,9 +2915,19 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $can_delete = in_array($this->user->id, $this->getReviewers($row));
         $_REQUEST['workflow_can_delete_upload'] = $can_delete;
         unset($listModel);
+
         return true;
     }
 
+    /**
+	 * Render the element admin settings
+	 *
+	 * @param       Array       $data               Admin data
+	 * @param       Int         $repeatCounter      Repeat plugin counter
+	 * @param       String      $mode               How the fieldsets should be rendered currently support 'nav-tabs'
+	 *
+	 * @return      String
+	 */
     public function onRenderAdminSettings($data = array(), $repeatCounter = null, $mode = null)
     {
         $this->install();
@@ -3157,20 +2938,19 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     /**
      * Install the plugin db tables
      *
-     * @return  void
+     * @return      Null
      */
     public function install()
     {
         $db = FabrikWorker::getDbo();
-
 
         /* Create the tables */
         $sql = "CREATE TABLE IF NOT EXISTS `#__fabrik_requests` (
 			`req_id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 			`req_request_type_id` INT(11),
 			`req_user_id` INT(11),
-			`req_field_id` INT(11) ,
-			`req_created_date` TIMESTAMP ,
+			`req_field_id` INT(11),
+			`req_created_date` TIMESTAMP,
 			`req_owner_id` INT(11) ,
 			`req_reviewer_id` INT(11),
 			`req_revision_date` TIMESTAMP,
