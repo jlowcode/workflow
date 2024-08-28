@@ -6,6 +6,7 @@
  */
 define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	'use strict';
+
 	var FabrikWorkflow = new Class({
 		Implements: [Events],
 		statusName: {
@@ -18,7 +19,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		requestTypeText: {
 			'add_record': Joomla.JText._('PLG_FORM_WORKFLOW_ADD_RECORD'),
 			'edit_field_value': Joomla.JText._('PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD'),
-			'delete_record': Joomla.JText._('PLG_FORM_WORKFLOW_DELETE_RECORD')
+			'delete_record': Joomla.JText._('PLG_FORM_WORKFLOW_DELETE_RECORD'),
+			'add_field': Joomla.JText._('PLG_FORM_WORKFLOW_ADD_FIELD'),
+			'edit_field': Joomla.JText._('PLG_FORM_WORKFLOW_EDIT_FIELD')
 		},
 
 		elementsName: {
@@ -505,115 +508,41 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								formData[0]['req_vote_disapprove'] += 1;
 							}
 
-						jModalBody.empty();
-						jModalBody.append(jQuery('<h3>Carregando... </h3>'));
+							jModalBody.empty();
+							jModalBody.append(jQuery('<h3>Carregando... </h3>'));
 
-						var recordData = JSON.decode(formData[0]['form_data']);
-						for (var chave in recordData) {
-							if (!recordData.hasOwnProperty(chave)) continue;
-							if (chave.indexOf("_raw") !== -1) {
-								delete recordData[chave];
+							var recordData = JSON.decode(formData[0]['form_data']);
+							for (var chave in recordData) {
+								if (!recordData.hasOwnProperty(chave)) continue;
+								if (chave.indexOf("_raw") !== -1) {
+									delete recordData[chave];
+								}
 							}
-						}
 
-						var approvedOrdisapproved = 'verify';
-						approvedOrdisapproved = self.options.workflow_votes_to_approve == formData[0]['req_vote_approve'] ? 'approved' : approvedOrdisapproved;
-						approvedOrdisapproved = self.options.workflow_votes_to_disapprove == formData[0]['req_vote_disapprove'] ? 'not-approved' : approvedOrdisapproved;
-						formData[0]['req_status'] = approvedOrdisapproved;
+							var approvedOrdisapproved = 'verify';
+							approvedOrdisapproved = self.options.workflow_votes_to_approve == formData[0]['req_vote_approve'] ? 'approved' : approvedOrdisapproved;
+							approvedOrdisapproved = self.options.workflow_votes_to_disapprove == formData[0]['req_vote_disapprove'] ? 'not-approved' : approvedOrdisapproved;
+							formData[0]['req_status'] = approvedOrdisapproved;
 
-						var approved = approvedOrdisapproved == "approved" ? true : false;
-						if (approved) {
-							if (requestType == 3) {
-								// const rowId = JSON.decode(formData[0]['form_data'])[0]['rowid'];
-								const rowId = formData[0].req_record_id;
-								const listId = formData[0].req_list_id;
-								self.deleteRecord(rowId, listId);
-							} else {
-								self.createUpdateRecord(formData);
+							var approved = approvedOrdisapproved == "approved" ? true : false;
+							if (approved) {
+								switch (requestType) {
+									case 1:
+									case 2:
+										self.createUpdateRecord(formData);
+										break;
+									case 3:
+										const rowId = formData[0].req_record_id;
+										const listId = formData[0].req_list_id;
+										self.deleteRecord(rowId, listId);
+										break;
+									
+									case 4:
+									case 5:
+										
+										break;
+								}
 							}
-						}
-
-						jQuery.ajax({
-							'url': '',
-							'method': 'post',
-							'data': {
-								'formData': formData,
-								'options': self.options,
-								'option': 'com_fabrik',
-								'format': 'raw',
-								'task': 'plugin.pluginAjax',
-								'plugin': 'workflow',
-								'method': 'ProcessRequest',
-								'g': 'form',
-							},
-							success: function (data) {
-								console.log(data)
-								modal.style.display = "none";
-								alert('Concluído');
-								document.location.reload(true);
-							}
-						});
-					} else {
-						var approved = jQuery("input[name='yesnooptions']:checked").val() == "yes" ? true : false;
-
-						jModalBody.empty();
-						jModalBody.append(jQuery('<h3>Carregando... </h3>'));
-						if (approved) {
-							formData[0]['req_approval'] = '1';
-						} else {
-							formData[0]['req_approval'] = '0';
-						}
-
-						if (jQuery(form).find("#commentTextArea")[0]) {
-
-							formData[0]['req_comment'] = jQuery(form).find("#commentTextArea")[0].value;
-						}
-
-						// remove raws from the record data
-						var recordData = JSON.decode(formData[0]['form_data']);
-						for (var chave in recordData) {
-							if (!recordData.hasOwnProperty(chave)) continue;
-							if (chave.indexOf("_raw") !== -1) {
-								delete recordData[chave];
-							}
-						}
-
-						if (approved) {
-							if (requestType == 3) {
-								// const rowId = JSON.decode(formData[0]['form_data'])[0]['rowid'];
-								const rowId = formData[0].req_record_id;
-								const listId = formData[0].req_list_id;
-								self.deleteRecord(rowId, listId);
-							} else {
-
-								self.createUpdateRecord(formData);
-							}
-						}
-
-						if (uploadFileInput.val()) {
-							self.uploadFile(uploadFileInput).done(function (response) {
-								formData[0]['req_file'] = response;
-								jQuery.ajax({
-									'url': '',
-									'method': 'post',
-									'data': {
-										'formData': formData,
-										'options': self.options,
-										'option': 'com_fabrik',
-										'format': 'raw',
-										'task': 'plugin.pluginAjax',
-										'plugin': 'workflow',
-										'method': 'ProcessRequest',
-										'g': 'form',
-									},
-									success: function (data) {
-										modal.style.display = "none";
-										alert('Concluído');
-										document.location.reload(true);
-									}
-								});
-							});
-						} else {
 
 							jQuery.ajax({
 								'url': '',
@@ -634,7 +563,93 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									document.location.reload(true);
 								}
 							});
-						}
+						} else {
+							var approved = jQuery("input[name='yesnooptions']:checked").val() == "yes" ? true : false;
+
+							jModalBody.empty();
+							jModalBody.append(jQuery('<h3>Carregando... </h3>'));
+							if (approved) {
+								formData[0]['req_approval'] = '1';
+							} else {
+								formData[0]['req_approval'] = '0';
+							}
+
+							if (jQuery(form).find("#commentTextArea")[0]) {
+								formData[0]['req_comment'] = jQuery(form).find("#commentTextArea")[0].value;
+							}
+
+							// remove raws from the record data
+							var recordData = JSON.decode(formData[0]['form_data']);
+							for (var chave in recordData) {
+								if (!recordData.hasOwnProperty(chave)) continue;
+								if (chave.indexOf("_raw") !== -1) {
+									delete recordData[chave];
+								}
+							}
+
+							if (approved) {
+								switch (requestType) {
+									case 1:
+									case 2:
+										self.createUpdateRecord(formData);
+										break;
+									case 3:
+										const rowId = formData[0].req_record_id;
+										const listId = formData[0].req_list_id;
+										self.deleteRecord(rowId, listId);
+										break;
+									
+									case 4:
+									case 5:
+										self.addEditFields(formData);
+										break;
+								}
+							}
+
+							if (uploadFileInput.val()) {
+								self.uploadFile(uploadFileInput).done(function (response) {
+									formData[0]['req_file'] = response;
+									jQuery.ajax({
+										'url': '',
+										'method': 'post',
+										'data': {
+											'formData': formData,
+											'options': self.options,
+											'option': 'com_fabrik',
+											'format': 'raw',
+											'task': 'plugin.pluginAjax',
+											'plugin': 'workflow',
+											'method': 'ProcessRequest',
+											'g': 'form',
+										},
+										success: function (data) {
+											modal.style.display = "none";
+											alert('Concluído');
+											document.location.reload(true);
+										}
+									});
+								});
+							} else {
+								jQuery.ajax({
+									'url': '',
+									'method': 'post',
+									'data': {
+										'formData': formData,
+										'options': self.options,
+										'option': 'com_fabrik',
+										'format': 'raw',
+										'task': 'plugin.pluginAjax',
+										'plugin': 'workflow',
+										'method': 'ProcessRequest',
+										'g': 'form',
+									},
+									success: function (data) {
+										modal.style.display = "none";
+										alert('Concluído');
+										document.location.reload(true);
+									}
+								});
+							}
 						}
 					});
 
@@ -661,8 +676,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			});
 		},
 
-		// Uses the process() function of fabrik's controller to
-		// create or update a record
+		/**
+		 * This function uses the process() function of fabrik's controller to create or update a record
+		 * 
+		 */
 		createUpdateRecord: function (formData) {
 			this.getSessionToken().done(function (token) {
 				var recordData = JSON.decode(formData[0]['form_data']);
@@ -674,8 +691,26 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					url: "",
 					data: recordData
 				}).done(function (retorno) {
-					// console.log(retorno);
+
 				});
+			});
+		},
+
+		/**
+		 * This function call save method on easyadmin plugin to add or edit new elements
+		 * 
+		 */
+		addEditFields: function(formData) {
+			var self = this;
+			var data = JSON.parse(formData[0]['form_data']);
+			var url = self.options.root_url + "index.php?option=com_fabrik&format=raw&task=plugin.pluginAjax&g=list&plugin=easyadmin&method=SaveModal";
+
+			jQuery.ajax({
+				url     : url,
+				method	: 'post',
+				data: data,
+			}).done(function (r) {
+
 			});
 		},
 
@@ -755,7 +790,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
 			const label = jQuery('<p>' + id + '</p>');
-			const originalLabel = jQuery('<p>' + id + '_original</p>');
+			const originalLabel = jQuery('<p>' + id + ' - Original</p>');
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			originalImages.append(originalLabel);
@@ -809,6 +844,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// Appending label to div
 			div.append(label);
 			div.append(input);
+
 			return div;
 		},
 
@@ -817,7 +853,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			const originalNewInputContainer = jQuery("<div></div>");
 			originalNewInputContainer.attr('style', 'display: flex;');
 			const inputContainer = self.createInput(key, newValue, key);
-			const inputOriginalContainer = self.createInput(key + '_original', originalValue, key + '_original');
+			const inputOriginalContainer = self.createInput(key + ' - Original', originalValue, key + ' - Original');
 			inputContainer[0].style.paddingLeft = "5px";
 			inputOriginalContainer[0].style.paddingLeft = "5px";
 			inputContainer[0].style.flex = "1";
@@ -835,17 +871,30 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// Container to the Request Data, such as
 			// [req_user_id. req_created_data, ...]
 			var requestInputsContainer = jQuery('<div></div>');
+
 			// Set a title to the container
-			if (data['req_request_type_id'] == 1) {
-				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT') + '<h2><hr />');
-			} else if (data['req_request_type_id'] == 2) {
-				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_TEXT') + '<h2><hr />');
-			} else if (data['req_request_type_id'] == 3) {
-				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_DELETE_TEXT') + '<h2><hr />');
+			var typeLabel = '';
+			switch (data['req_request_type_id']) {
+				case 1:
+					typeLabel = Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT');
+					break;
+				case 2:
+					typeLabel = Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_TEXT');
+					break;
+				case 3:
+					typeLabel = Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_DELETE_TEXT');
+					break;
+				case 4:
+					typeLabel = Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_FIELD_TEXT');
+					break;
+				case 5:
+					typeLabel = Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_FIELD_TEXT');
+					break;
 			}
+			requestInputsContainer.append('<h2>' + typeLabel + '<h2><hr />');
 			requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL') + '<h2>');
-			// Iterates over data creating a input form for each entry
-			// and appending it to the container
+
+			// Iterates over data creating a input form for each entry and appending it to the container
 			for (var key in data) {
 				if (key == 'form_data')
 					continue;
@@ -857,8 +906,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						case 'req_list_id':
 						case 'req_user_email':
 						case 'req_reviewers_votes':
+						case 'req_owner_id':
+						case 'req_user_id':
 							continue;
 							break;
+
 						case 'req_file':
 							var div = jQuery('<div></div>');
 							var label = jQuery('<p>' + self.elementsName[key] + '</p>');
@@ -867,22 +919,19 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
-						case 'req_owner_id':
-							continue;
-							break;
-						case 'req_user_id':
-							continue;
-							break;
+
 						case 'req_status':
 							var d = this.statusName[data[key]];
 							const inputContainerA = self.createInput(self.elementsName[key], d, key);
 							requestInputsContainer.append(inputContainerA);
 							break;
+
 						case 'req_request_type_name':
 							var d = this.requestTypeText[data[key]];
 							const inputContainerB = self.createInput(self.elementsName[key], d, key);
 							requestInputsContainer.append(inputContainerB);
 							break;
+
 						case 'req_record_id':
 							var div = jQuery('<div></div>');
 							var label = jQuery('<label for="' + self.elementsName[key] + '">' + self.elementsName[key] + ' </label>')
@@ -891,16 +940,25 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var baseUrl = form[0].baseURI.split('?')[0]
 							baseUrl = baseUrl.indexOf("list") != -1 ? baseUrl.replace('list', 'details') + '/' + data[key] : baseUrl + '/details/' + data['req_list_id'] + '/' + data[key];
 
-							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"><a target="_blank" href="' + baseUrl + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a></div>')
+							
+							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"></div>');
+
+							if(data['req_request_type_id'] != 5) {
+								var btnLink = jQuery('<a target="_blank" href="' + baseUrl + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a>');
+								link.append(btnLink);
+							}
+
 							div.append(link);
 							requestInputsContainer.append(div);
 							break;
-							case 'req_vote_approve':
-							case 'req_vote_disapprove':
-								var d = data[key];
-								const inputContainerC = self.createInput('Pontuação Parcial: ' + self.elementsName[key], d, key);
-								requestInputsContainer.append(inputContainerC);
-								break;
+
+						case 'req_vote_approve':
+						case 'req_vote_disapprove':
+							var d = data[key];
+							const inputContainerC = self.createInput('Pontuação Parcial: ' + self.elementsName[key], d, key);
+							requestInputsContainer.append(inputContainerC);
+							break;
+
 						default:
 							const inputContainer = self.createInput(self.elementsName[key], data[key], key);
 							requestInputsContainer.append(inputContainer);
@@ -924,59 +982,201 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// Append the request data to the form
 			form.append(requestInputsContainer);
 			form.append(formDataInputsContainer);
-			if (data['req_request_type_id'] == "delete_record" || data['req_request_type_id'] == 3) {
-				// delete record
-				// const recordId = formData.rowid;
-				const recordId = data['req_record_id'];
-				this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
-					// const link = self.options.root_url + "index.php/" + listName + "/details/" + self.options.listId + "/" + recordId;
-					const link = self.options.root_url + "component/fabrik/details/" + self.options.listId + "/" + recordId;
-					formDataInputsContainer.append("<a class='btn btn-outline-primary' href='" + link + "'  target='_blank'>Clique aqui</a> para ver o registro a ser deletado.");
-					form.append(formDataInputsContainer);
-				});
-			} else {
-				// Get elements types to render the data
-				this.getElementsType(formData['listid']).done(function (elementsTypes) {
-					var elementTypesObj = JSON.decode(elementsTypes);
-					// add_record || edit_field_value
-					if (data['req_request_type_id'] == "add_record" || data['req_request_type_id'] == 1) {
-						formDataInputsContainer.append(self.buildAddDeleteRecordView(formData, elementTypesObj));
-						form.append(formDataInputsContainer);
-					} else if (data['req_request_type_id'] == "edit_field_value" || data['req_request_type_id'] == 2) {
-						// edit record
-						self.getLastRecordFormData(data['req_record_id']).done(function (lastRecordFormData) {
-							var lastFormData = JSON.decode(lastRecordFormData);
-							const obj = self.compareRecords(lastFormData, formData);
-							var hasProperty = false;
-							if (jQuery.isEmptyObject(lastFormData)) {
-								hasProperty = false;
-							} else {
-								for (var k in obj) {
-									// Se o objeto tiver alguma propriedade
-									// ou seja, o formulário adicionado tem um log gravado anteriormente
-									if (obj.hasOwnProperty(k)) {
-										formDataInputsContainer.append(
-											self.buildEditRecordView(lastFormData, formData, elementTypesObj));
-										hasProperty = true;
-										break;
-									}
-								}
-							}
-							if (!hasProperty) {
-								formDataInputsContainer.append(self.buildAddDeleteRecordView(formData, elementTypesObj)).append(
-									"<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_LOG') + "</p>"
-								);
-							}
-							// formDataInputsContainer.append(self.buildEditRecordView(lastFormData, formData, elementTypesObj));
-						});
-					}
-				});
+
+			switch (data['req_request_type_id']) {
+				case 3:
+				case "delete_record":
+					this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
+						self.buildFormDeleteRecords(data, formDataInputsContainer, form);
+					});
+					break;
+
+				case 4:
+				case "add_field":
+					self.buildFormAddFields(formData, formDataInputsContainer, form);
+					break;
+
+				case 5:
+				case "edt_field":
+					self.buildFormEditFields(formData, formDataInputsContainer, form);
+					break;
+
+				default:
+					this.getElementsType(formData['listid']).done(function (elementsTypes) {
+						var elementTypesObj = JSON.decode(elementsTypes);
+
+						if (data['req_request_type_id'] == "add_record" || data['req_request_type_id'] == 1) {
+							self.buildFormAddRecords(elementTypesObj, formData, formDataInputsContainer, form);
+						} else {
+							self.getLastRecordFormData(data['req_record_id']).done(function (lastRecordFormData) {
+								self.buildFormEditRecords(elementTypesObj, formData, formDataInputsContainer, lastRecordFormData);
+							});
+						}
+					});
+					break;
 			}
 
 			// Returns the form
 			return form;
 		},
 
+		/**
+		 * Function that build the form to review the request for type Add Records (request_type = 1)
+		 * 
+		 */
+		buildFormAddRecords: function (elementTypesObj, formData, formDataInputsContainer, form) {
+			var self = this;
+
+			formDataInputsContainer.append(self.buildAddDeleteRecordView(formData, elementTypesObj));
+			form.append(formDataInputsContainer);
+		},
+
+		/**
+		 * Function that build the form to review the request for type Edit Records (request_type = 2)
+		 * 
+		 */
+		buildFormEditRecords: function (elementTypesObj, formData, formDataInputsContainer, lastRecordFormData) {
+			var self = this;
+
+			var lastFormData = JSON.decode(lastRecordFormData);
+			const obj = self.compareRecords(lastFormData, formData);
+			var hasProperty = false;
+
+			if (jQuery.isEmptyObject(lastFormData)) {
+				hasProperty = false;
+			} else {
+				for (var k in obj) {
+					// Se o objeto tiver alguma propriedade
+					// ou seja, o formulário adicionado tem um log gravado anteriormente
+					if (obj.hasOwnProperty(k)) {
+						formDataInputsContainer.append(
+							self.buildEditRecordView(lastFormData, formData, elementTypesObj));
+						hasProperty = true;
+						break;
+					}
+				}
+			}
+
+			if (!hasProperty) {
+				formDataInputsContainer.append(self.buildAddDeleteRecordView(formData, elementTypesObj)).append(
+					"<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_LOG') + "</p>"
+				);
+			}
+		},
+
+		/**
+		 * Function that build the form to review the request for type Delete Records (request_type = 3)
+		 * 
+		 */
+		buildFormDeleteRecords: function (data, formDataInputsContainer, form) {
+			var self = this;
+
+			const recordId = data['req_record_id'];
+			const link = self.options.root_url + "component/fabrik/details/" + self.options.listId + "/" + recordId;
+			formDataInputsContainer.append("<a class='btn btn-outline-primary' href='" + link + "'  target='_blank'>Clique aqui</a> para ver o registro a ser deletado.");
+			form.append(formDataInputsContainer);
+		},
+
+		/**
+		 * Function that build the form to review the request for type Add Fields (request_type = 4)
+		 * 
+		 */
+		buildFormAddFields: function (formData, formDataInputsContainer, form) {
+			var self = this;
+
+			self.getBuildFormEasyadmin(formData).done(function(body) {
+				formDataInputsContainer.append(body);
+				form.append(formDataInputsContainer);
+				try {
+					require(['/plugins/fabrik_list/easyadmin/easyadmin.js'], function (fabrikEasyAdmin) {
+						var easyadmin = new fabrikEasyAdmin(self.options.optsEasyadmin);
+						easyadmin.setElementType('_wfl');
+						easyadmin.setElementLabelAdvancedLink('_wfl');
+						easyadmin.showHideElements('show_in_list', 'element', 'yesno', '', '_wfl');
+
+						jQuery('#easyadmin_modal___type_wfl').trigger('change');
+						jQuery('label[for="easyadmin_modal___label_advanced_link_wfl"]').trigger('click', {button: 'edit-element', sufix: '_wfl'});
+						jQuery('#easyadmin_modal___options_dropdown_wfl').attr('disabled', true);
+						jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list-auto-complete').attr('disabled', true);
+					}, function (err) {
+						console.warn(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_LOAD_EASYADMIN_FILE'), err);
+					});
+				} catch (e) {
+					console.warn(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_LOAD_EASYADMIN_FILE'), e);
+				}
+
+			})
+		},
+
+		/**
+	 	 * Function that build the form to review the request for type Edit Fields (request_type = 5)
+	 	 * 
+		 */
+		buildFormEditFields: function (formData, formDataInputsContainer, form) {
+			var self = this;
+
+			jQuery.ajax({
+				'url': '',
+				'method': 'post',
+				'data': {
+					'formData': formData,
+					'option': 'com_fabrik',
+					'format': 'raw',
+					'task': 'plugin.pluginAjax',
+					'plugin': 'easyadmin',
+					'method': 'buildFormEditFieldsWfl',
+					'g': 'list',
+					'requestWorkflow': '1',
+					'listid': formData['easyadmin_modal___listid']
+				},
+			}).done(function (fields) {
+				fields = JSON.parse(fields);
+				var formHtml = jQuery('<div style="display:flex"></div>');
+				var formHtmlOld = jQuery('<div style="width: 50%"></div>');
+				var formHtmlNew = jQuery('<div style="width: 50%"></div>');
+
+				fields.forEach(field => {
+					formHtmlOld.append(field.old);
+					formHtmlNew.append(field.new);
+				});
+
+				formHtml.append(formHtmlOld);
+				formHtml.append(formHtmlNew);
+				formDataInputsContainer.append(formHtml);
+				form.append(formDataInputsContainer);
+
+				jQuery('#easyadmin_modal___options_dropdown_wfl').attr('disabled', true);
+				jQuery('#easyadmin_modal___options_dropdown_wfl_orig').attr('disabled', true);
+				jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list-auto-complete').attr('disabled', true);
+				jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list_orig-auto-complete').attr('disabled', true);
+			});
+		},
+
+		/**
+		 * This function returns the preview of the review form, looking for the rendering in the easyadmin plugin
+		 * 
+		 */
+		getBuildFormEasyadmin: function (formData) {
+			return jQuery.ajax({
+				'url': '',
+				'method': 'post',
+				'data': {
+					'formData': formData,
+					'option': 'com_fabrik',
+					'format': 'raw',
+					'task': 'plugin.pluginAjax',
+					'plugin': 'easyadmin',
+					'method': 'workflowBuildForm',
+					'g': 'list',
+					'requestWorkflow': '1'
+				},
+			});
+		},
+
+		/**
+		 *	This function returns the review form view, building the elements with their respective values.
+		 *  
+		 */
 		buildAddDeleteRecordView: function (formData, elementsTypes) {
 			var self = this;
 			var view = jQuery("<div></div>");
@@ -1005,23 +1205,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						// Get value if owner id
 						if (elementsTypes[onlyElementKey] != undefined) {
 							if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
-								//onGetUserValue
-								jQuery.ajax({
-									'url': '',
-									'method': 'get',
-									'data': {
-										'user_id': obj[0],
-										'option': 'com_fabrik',
-										'format': 'raw',
-										'task': 'plugin.pluginAjax',
-										'plugin': 'workflow',
-										'method': 'GetUserValue',
-										'g': 'form',
-									},
-									success: function (data) {
-										view.append(self.createInput(onlyElementKey, data, onlyElementKey));
-									}
-								});
+								view.append(self.createInput(onlyElementKey, self.options.user.name, onlyElementKey));
 							} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
 								if ([listName + '_FILE_' + listName + '___' + onlyElementKey]) {
 									try{
@@ -1112,9 +1296,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								},
 								success: function (data) {
 									const res = JSON.decode(data);
-									// self.createInputsBeforeAfter(elementKey, originalString, requestString)
 									view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
-									// view.append(self.createInput(onlyElementKey, data, onlyElementKey));
 								}
 							});
 						} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
@@ -1156,7 +1338,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							containerFlex.append("");
 							containerFlex.attr('style', 'display: flex;');
 							var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-							var originalElement = jQuery("<div><p>" + onlyElementKey + "_original</p></div>");
+							var originalElement = jQuery("<div><p>" + onlyElementKey + " - Original</p></div>");
 							if (!obj['last'] || obj['last'] == undefined) {
 								// originalElement.append("VAZIO");
 							} else {
@@ -1280,203 +1462,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			return filesArray;
 		},
 
-		buildForm: function (data) {
-			var self = this;
-			// Creates the form
-			var form = jQuery('<form></form>');
-			// Container to the Request Data, such as
-			// [req_user_id. req_created_data, ...]
-			var requestInputsContainer = jQuery('<div></div>');
-			// Set a title to the container
-			if (data['req_request_type_id'] == 1) {
-				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT') + '<h2><hr />');
-			} else if (data['req_request_type_id'] == 2) {
-				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_TEXT') + '<h2><hr />');
-			} else if (data['req_request_type_id'] == 3) {
-				requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_DELETE_TEXT') + '<h2><hr />');
-			}
-			requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL') + '<h2>');
-			// Iterates over data creating a input form for each entry
-			// and appending it to the container
-			for (var key in data) {
-				if (key == 'form_data')
-					continue;
-				if (data[key]) {
-					switch (key) {
-						case 'req_request_type_id':
-						case 'req_id':
-						case 'req_revision_date':
-						case 'req_list_id':
-						case 'req_user_email':
-							continue;
-							break;
-						case 'req_request_type_id':
-							data['req_request_type_id'] = data['req_request_type_name'];
-							delete data['req_request_type_name'];
-							var inputLabel = self.elementsName[key];
-							var inputId = key;
-							const inputContainer5 = self.createInput(inputLabel, data['req_request_type_id'], inputId);
-							requestInputsContainer.append(inputContainer5);
-							break;
-						case 'req_file':
-							var div = jQuery('<div></div>');
-							var label = jQuery('<p>' + self.elementsName[key] + '</p>');
-							div.append(label);
-							var link = jQuery('<p><a target="_blank" href="' + this.options.root_url + data[key] + '">' + data[key] + ' </a></p>');
-							div.append(link);
-							requestInputsContainer.append(div);
-							break;
-						case 'req_owner_id':
-							data['req_owner_id'] = data['req_owner_name'];
-							delete data['req_owner_name'];
-							const inputContainer1 = self.createInput('Dono do registro', data[key], key);
-							requestInputsContainer.append(inputContainer1);
-							break;
-						case 'req_user_id':
-							data['req_user_id'] = data['req_user_name'];
-							delete data['req_user_name'];
-							const inputContainer2 = self.createInput('Dono da requisição', data[key], key);
-							requestInputsContainer.append(inputContainer2);
-							break;
-						case 'req_record_id':
-							var div = jQuery('<div></div>');
-							var label = jQuery('<label for="' + self.elementsName[key] + '">' + self.elementsName[key] + ' </label>')
-							div.append(label);
-
-							var baseUrl = form[0].baseURI.split('?')[0]
-
-							var baseUrl = baseUrl.indexOf("list") != -1 ? baseUrl + '/' + data[key] : baseUrl.replace('list', 'details') + '/' + data[key];
-
-							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"><a target="_blank" href="' + form[0].baseURI.split('?')[0].replace('list', 'details') + '/' + data[key] + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a></div>')
-							div.append(link);
-							requestInputsContainer.append(div);
-							break;
-						default:
-							const inputContainer = self.createInput(self.elementsName[key], data[key], key);
-							requestInputsContainer.append(inputContainer);
-							break;
-					}
-				}
-			}
-
-			// Parsing the json from form_data to an object
-			var formData = JSON.parse(data['form_data']);
-			// Container to the new/edited data of the request
-			var formDataInputsContainer = jQuery('<div></div>');
-			formDataInputsContainer.attr('class', 'formDataInputsContainer');
-			formDataInputsContainer.attr('style', 'dispay: flex;');
-			formDataInputsContainer.attr('style', 'flex-direction: column;');
-			formDataInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + '<h2>');
-			// Append the request data to the form
-			form.append(requestInputsContainer);
-			// add_record || edit_field_value
-			if (data['req_request_type_id'] == "add_record") {
-				// Iterates over formData creating inputs for each entry
-				for (var key in formData) {
-					if (formData[key]['is_files']) {
-						delete formData[key]['is_files'];
-						var links = self.renderFiles(key, formData[key]);
-						formDataInputsContainer.append(links);
-					} else {
-						const inputContainer = self.createInput(key, formData[key], key);
-						formDataInputsContainer.append(inputContainer);
-					}
-				}
-				form.append(formDataInputsContainer);
-			} else if (data['req_request_type_id'] == "edit_field_value") {
-				self.getRecord(data['req_list_id'], data['req_record_id']).done(function (reqData) {
-					var req_record_id = data['req_record_id'];
-					for (var key in formData) {
-						// @TODO - Mostrar imagem antes e depois
-						if (formData[key]['is_files']) {
-							const listName = self.options.listName;
-							self.getFileUploadOriginals(listName, key, req_record_id).done(function (returnData) {
-								var originalFileList = JSON.decode(returnData);
-								var files = formData[key];
-								delete files['is_files'];
-								formDataInputsContainer.append(self.renderFilesOriginalRequest(key, originalFileList, files));
-							});
-						} else if (!(formData[key] == reqData[0][key])) {
-							const elementKey = key;
-							self.getElementsType(data['req_list_id']).done(function (data) {
-								const allElementsType = JSON.decode(data);
-								const currentElementData = allElementsType[elementKey];
-								if (currentElementData['plugin'] == 'databasejoin') {
-									var elementValue = JSON.decode(formData[elementKey]);
-									// If is databasejoin verify if is multiple or single to get the elements
-									if (currentElementData['database_join_display_type'] == 'multilist' ||
-										currentElementData['database_join_display_type'] == 'checkbox') {
-										const listName = self.options.listName;
-										self.getDatabaseJoinMultipleElements(currentElementData['join_db_name'], listName,
-											elementKey, req_record_id, currentElementData['join_val_column'],
-											currentElementData['join_key_column'], formData[elementKey]).done(function (ajaxReturn) {
-												const elementsData = JSON.decode(ajaxReturn);
-												const elementsOriginal = elementsData.original;
-												const elementsOriginalLength = elementsOriginal.length;
-												const elementsRequest = elementsData.request;
-												const elementsRequestLength = elementsRequest.length;
-												var originalString = "";
-												var requestString = "";
-												// Create strings with ,
-												elementsOriginal.forEach(function (element, index) {
-													originalString += element.value;
-													if (index != elementsOriginalLength - 1) {
-														originalString += ', ';
-													} else {
-														originalString += '.';
-													}
-												});
-												elementsRequest.forEach(function (element, index) {
-													requestString += element.value;
-													if (index != elementsRequestLength - 1) {
-														requestString += ', ';
-													} else {
-														requestString += '.';
-													}
-												});
-												formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, originalString, requestString));
-											});
-									} else {
-										// Verify if trying to save multiple on single element
-										if (Array.isArray(elementValue)) {
-											alert('Warning: Element ' + elementKey + ' is single, but the request has multiple values.');
-										} else {
-											self.getDatabaseJoinSingleElements(currentElementData['join_db_name'],
-												reqData[0][elementKey], formData[elementKey], currentElementData['join_val_column'],
-												currentElementData['join_key_column']).done(function (data) {
-													const result = JSON.decode(data);
-													const newValue = result['new'][0]['value'];
-													if ('original' in result) {
-														const originalValue = result['original'][0]['value'];
-														formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, originalValue, newValue));
-													} else {
-														formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, " ", newValue));
-													}
-												});
-										}
-									}
-								} else {
-									formDataInputsContainer.append(self.createInputsBeforeAfter(elementKey, formData[elementKey], reqData[0][elementKey]));
-								}
-							});
-						}
-					}
-				});
-
-				form.append(formDataInputsContainer);
-			}
-
-			// Returns the form
-			return form;
-		},
-
 		renderImgs: function (option, files, path = null) {
 			var self = this;
 			// Creates the div
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
 			const label = jQuery('<p>nova imagem</p>');
-			const originalLabel = jQuery('<p>imagem_original</p>');
+			const originalLabel = jQuery('<p>imagem - Original</p>');
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			requestImages.append(label);
