@@ -539,7 +539,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									
 									case 4:
 									case 5:
-										
+										self.addEditFields(formData);
 										break;
 								}
 							}
