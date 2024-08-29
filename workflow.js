@@ -993,12 +993,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				case 4:
 				case "add_field":
-					self.buildFormAddFields(formData, formDataInputsContainer, form);
+					self.buildFormAddFields(formData, formDataInputsContainer, form, data);
 					break;
 
 				case 5:
 				case "edt_field":
-					self.buildFormEditFields(formData, formDataInputsContainer, form);
+					self.buildFormEditFields(formData, formDataInputsContainer, form, data);
 					break;
 
 				default:
@@ -1081,10 +1081,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		 * Function that build the form to review the request for type Add Fields (request_type = 4)
 		 * 
 		 */
-		buildFormAddFields: function (formData, formDataInputsContainer, form) {
+		buildFormAddFields: function (formData, formDataInputsContainer, form, data) {
 			var self = this;
 
-			self.getBuildFormEasyadmin(formData).done(function(body) {
+			self.getBuildFormEasyadmin(formData, data).done(function(body) {
 				formDataInputsContainer.append(body);
 				form.append(formDataInputsContainer);
 				try {
@@ -1112,7 +1112,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	 	 * Function that build the form to review the request for type Edit Fields (request_type = 5)
 	 	 * 
 		 */
-		buildFormEditFields: function (formData, formDataInputsContainer, form) {
+		buildFormEditFields: function (formData, formDataInputsContainer, form, data) {
 			var self = this;
 
 			jQuery.ajax({
@@ -1127,10 +1127,20 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					'method': 'buildFormEditFieldsWfl',
 					'g': 'list',
 					'requestWorkflow': '1',
-					'listid': formData['easyadmin_modal___listid']
+					'listid': formData['easyadmin_modal___listid'],
+					'req_status': data['req_status']
 				},
 			}).done(function (fields) {
 				fields = JSON.parse(fields);
+
+				if (fields.length == 0) {
+					formDataInputsContainer.append().append(
+						"<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_LOG') + "</p>"
+					);
+
+					return;
+				}
+
 				var formHtml = jQuery('<div style="display:flex"></div>');
 				var formHtmlOld = jQuery('<div style="width: 50%"></div>');
 				var formHtmlNew = jQuery('<div style="width: 50%"></div>');
@@ -1156,7 +1166,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		 * This function returns the preview of the review form, looking for the rendering in the easyadmin plugin
 		 * 
 		 */
-		getBuildFormEasyadmin: function (formData) {
+		getBuildFormEasyadmin: function (formData, data) {
 			return jQuery.ajax({
 				'url': '',
 				'method': 'post',
@@ -1168,7 +1178,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					'plugin': 'easyadmin',
 					'method': 'workflowBuildForm',
 					'g': 'list',
-					'requestWorkflow': '1'
+					'requestWorkflow': '1',
+					'req_status': data['req_status']
 				},
 			});
 		},
