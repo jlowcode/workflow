@@ -553,7 +553,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $query->join('LEFT', $db->qn('#__users', 'd') . ' ON (' . $db->qn('a.req_reviewer_id') . ' = ' . $db->qn('d.id') . ')');
             $query->where($db->qn('req_id') . ' = ' . $db->q($req_id));
         } else {
-            die('Error getting requests, no req_id was passed.');
+            die(Text::_("PLG_FORM_WORKFLOW_ERROR_GETTING_REQUEST"));
         }
 
         // Aplica a query no obj DB
@@ -709,6 +709,19 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_LABEL');
         Text::script('PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL');
         Text::script('PLG_FORM_WORKFLOW_ERROR_LOAD_EASYADMIN_FILE');
+        Text::script('PLG_FORM_WORKFLOW_SUCCESS');
+        Text::script('PLG_FORM_WORKFLOW_NO_RECORDS_FOUND');
+        Text::script('PLG_FORM_WORKFLOW_PARTIAL_VOTES');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_NEEDED_VOTES');
+        Text::script('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_VOTES_IN_FAVOR');
+        Text::script('PLG_FORM_WORKFLOW_VOTES_AGAINST');
+        Text::script('PLG_FORM_WORKFLOW_LOADING');
+        Text::script('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
+        Text::script('PLG_FORM_WORKFLOW_VIEW');
+        Text::script('PLG_FORM_WORKFLOW_PARTIAL_SCORE');
+        Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
     }
 
     /**
@@ -724,10 +737,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     {
         try {
             $filesElements = array();
-            // Recebe o obj para acessar o DB
             $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true);
             $subQuery = $db->getQuery(true);
+
             // Sub Query to catch the group_id using a list_id
             $subQuery
                 ->select($db->qn('b.group_id'))
@@ -735,16 +748,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 ->join('INNER', $db->qn('#__fabrik_formgroup', 'b') .
                     ' ON ' . $db->qn('a.form_id') . ' = ' . $db->qn('b.form_id'))
                 ->where($db->qn('a.id') . ' = ' . $requestData['req_list_id']);
+
             // Query to catch plugins type from all elements from a group_id
             $query
                 ->select(array($db->qn('name'), $db->qn('plugin')))
                 ->from($db->qn('#__fabrik_elements'))
                 ->where($db->qn('group_id') . ' = ' . "($subQuery)");
-            // All the query have this pattern:
-            // SELECT `plugin` FROM h4rjm_fabrik_elements WHERE group_id = (SELECT h4rjm_fabrik_formgroup.group_id FROM h4rjm_fabrik_lists inner join h4rjm_fabrik_formgroup on h4rjm_fabrik_lists.form_id = h4rjm_fabrik_formgroup.form_id where h4rjm_fabrik_lists.id = 23)
             $db->setQuery($query);
             $db->execute();
             $results = $db->loadObjectList();
+
             $elements = new StdClass;
             $dbJoinOptions = array();
             foreach ($results as $result) {
@@ -886,15 +899,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function getListName($listId)
     {
-        // Recebe o obj para acessar o DB
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->select($db->qn('db_table_name'));
         $query->from($db->qn('#__fabrik_lists'));
         $query->where($db->qn('id') . ' = ' . $listId);
-        // Reset the query using our newly populated query object.
         $db->setQuery($query);
-        // Load the results as a list of stdClass objects (see later for more options on retrieving data).
         $results = $db->loadObjectList();
         
         return $results[0];
@@ -1080,19 +1090,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $owner_element_id = $workflow_owner_element;
             // If $owner_element_id has been setted
             if (isset($owner_element_id) && !empty($owner_element_id)) {
-                // Get the DB object
                 $db = Factory::getContainer()->get('DatabaseDriver');
-                // Get a new query object
                 $query = $db->getQuery(true);
-                // Get the owner id element name from fabrik's elements table
                 $query->select($db->qn('name'))
                     ->from($db->qn('#__fabrik_elements'))
                     ->where('id = ' . $owner_element_id);
                 $db->setQuery($query);
                 $db->execute();
-                // Get the query results
                 $r = $db->loadObjectList();
                 $owner_element_name = $r[0]->name;
+
                 // Updates the owner_id var to the value
                 if ($row) {
                     $owner_id = $row->{$this->model->form->db_table_name . '___' . $owner_element_name . '_raw'};
@@ -1140,24 +1147,20 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $owner_element_id = $this->params->get('workflow_owner_element');
             // If $owner_element_id has been setted
             if (isset($owner_element_id) && !empty($owner_element_id)) {
-                // Get the DB object
                 $db = Factory::getContainer()->get('DatabaseDriver');
-                // Get a new query object
                 $query = $db->getQuery(true);
-                // Get the owner id element name from fabrik's elements table
                 $query->select($db->qn('name'))
                     ->from($db->qn('#__fabrik_elements'))
                     ->where('id = ' . $owner_element_id);
                 $db->setQuery($query);
                 $db->execute();
-                // Get the query results
                 $r = $db->loadObjectList();
-                $owner_element_name = $r[0]->name;
+
                 // Updates the owner_id var to the value
+                $owner_element_name = $r[0]->name;
                 $owner_id = $formData[$this->listName . '___' . $owner_element_name][0];
             }
         } else if ($this->requestType == self::REQUEST_TYPE_EDIT_RECORD) {
-            // Get the DB object
             $db = Factory::getContainer()->get('DatabaseDriver');
 
             // Verify if has requests on log table 
@@ -1180,28 +1183,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 // If $owner_element_id has been setted
                 if (isset($owner_element_id) && !empty($owner_element_id)) {
                     // Get oner id element name
-                    // Get a new query object
                     $query = $db->getQuery(true);
-                    // Get the owner id element name from fabrik's elements table
                     $query->select($db->qn('name'))
                         ->from($db->qn('#__fabrik_elements'))
                         ->where('id = ' . $owner_element_id);
                     $db->setQuery($query);
                     $db->execute();
-                    // Get the query results
                     $r = $db->loadObjectList();
                     $owner_element_name = $r[0]->name;
 
-                    // Get the owner_id
-                    // Get a new query object
                     $query = $db->getQuery(true);
                     $query->select(array($db->qn($owner_element_name) . ' as value',))
                         ->from($db->qn($this->listName))
                         ->where('id = ' . $formData['rowid']);
                     $db->setQuery($query);
                     $db->execute();
-                    // Get the query results
                     $r = $db->loadObjectList();
+
                     $owner_id = $r[0]->value;
                     $date_time = date('Y-m-d H:i:s');
 
@@ -1396,7 +1394,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         $validador = true;
                         if ($v['lista'] == $formData["req_list_id"]) {
                             $validador = false;
-                            // parei aqui
                             // retirar apenas do usuario atual se for votacao
                             if (($formData['req_status'] == "verify") && ($is_vote == 0)) {
                                 $values['requisicoes'][$k]['qtd']  = $v['qtd'] + 1;
@@ -1406,6 +1403,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                                     unset($values['requisicoes'][$k]);
                                 }
                             }
+
                             $value = json_encode($values);
                             JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
                             $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
@@ -1485,10 +1483,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $db->execute();
         } catch (Exception $e) {
             var_dump($db->getQuery()->__toString());
-
-            echo "Não há log desse registro no banco de dados, o que impossibilita completar esta tarefa!";
-            die('ERRO');
-            return false;
+            die(Text::_("PLG_FORM_WORKFLOW_ERROR_NOT_LOG_REGISTER"));
         }
         $request_id = $db->loadResult();
 
@@ -1688,9 +1683,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function processFormDataToSave($formData)
     {
-        // Catch db obj
         $db = Factory::getContainer()->get('DatabaseDriver');
-        // catch databasejoin joins
         $elementsPlugins = $this->onGetElementsPlugin($formData['listid']);
         $elementModels = $this->getListElementModels();
         $listModel = $this->getModel()->getListModel();
@@ -1698,7 +1691,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
        
         foreach ($elementsPlugins as $key => $value) {
             $completeElName = $this->listName . "___" . $key;
-            // if plugin is databasejoin
+
             if ($value['plugin'] == 'databasejoin') {
                 $join_key_column = $value['join_key_column'];
                 $join_val_column = $value['join_val_column'];
@@ -1999,9 +1992,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             'returntoform', 'fabrik_referrer', 'fabrik_ajax', 'package', 'packageId', 'nodata',
             'format',
         );
-        // New obj to save the params and elements
-        $newFormData = array();
+
         // Foreach that catchs only elements of the list if is no raw
+        $newFormData = array();
         foreach ($formData as $key => $value) {
             if ((strpos($key, $this->listName) !== false ||
                 strpos($key, 'repeat_group') !== false ||
@@ -2028,17 +2021,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     {
         // Inits workflow
         $this->init();
-        // Get the form model
         $formModel = $this->getModel();
-        // Get the form data
         $fullFormData = $formModel->fullFormData;
-        // Process form data to save later
         $processedFormData = $this->processFormDataToSave($fullFormData);
-        // Get user permission
         $hasPermission = $this->hasPermission($processedFormData);
-        // Set request type
         $this->setRequestType($fullFormData, false);
         $isReview = false;
+
         // Set isReview to true if is review
         if (isset($fullFormData['review']) && $fullFormData['review']) {
             $isReview = true;
@@ -2077,7 +2066,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function onAfterProcess()
     {
-        // Get the form and list model
         $formModel = $this->getModel();
 
         // Update user own 
@@ -2519,8 +2507,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $newFormData[$fieldPrefix . "created_date"] = $date_time;
         $newFormData[$fieldPrefix . "list_id"] = $this->listId;
         $newFormData[$fieldPrefix . "owner_id"] = $ownerId;
-        $newFormData[$fieldPrefix . "description"] = "created by workflow";
-        $newFormData[$fieldPrefix . "comment"] = "created by workflow";
+        $newFormData[$fieldPrefix . "description"] = Text::_("PLG_FORM_WORKFLOW_COMMENT_CREATED_BY");
+        $newFormData[$fieldPrefix . "comment"] = Text::_("PLG_FORM_WORKFLOW_COMMENT_CREATED_BY");
         $rowid = $formData["rowid"] ? $formData["rowid"] : $formData[0]["rowid"];
         $newFormData[$fieldPrefix . "record_id"] = $rowid;
 
@@ -2664,7 +2652,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $request_user = $this->user;
         $owner_user = !empty($request['owner_id']) ? Factory::getUser($request['owner_id']) : null;
 
-        //email para o solicitante da mudanca
         $emailTo = array($request_user->email);
         //email para o dono do registro
         if ($owner_user && $owner_user->id != $request_user->id) {
@@ -2726,13 +2713,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         switch ($request_type) {
             case '1':
-                $request_type = "Inclusão";
+                $request_type = Text::_("PLG_FORM_WORKFLOW_ADD_RECORD_EMAIL");
                 break;
             case '2':
-                $request_type = "Edição";
+                $request_type = Text::_("PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD_EMAIL");
                 break;
             case '3':
-                $request_type = "Reportar Abuso";
+                $request_type = Text::_("PLG_FORM_WORKFLOW_DELETE_RECORD_EMAIL");
                 break;
             
             case '4':

@@ -94,9 +94,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				});
 
-				// Get the <span> element that closes the modal
-				var span = jQuery('.modalCloseBtn')[0];
 				// When the user clicks on <span> (x), close the modal
+				var span = jQuery('.modalCloseBtn')[0];
 				span.onclick = function () {
 					modal.style.display = "none";
 				};
@@ -109,7 +108,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				};
 
 				if ('show_request_id' in self.options) {
-
 					const requestId = parseInt(self.options.show_request_id, 10);
 					self.getRequest(requestId).done(function (data) {
 						var objData = JSON.decode(data);
@@ -167,7 +165,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							'g': 'form',
 						},
 						success: function (data) {
-							alert("Sucesso!");
+							alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
 							location.reload();
 						}
 					});
@@ -251,15 +249,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				startButtonPagination.on('click', function () {
 					var selected = jQuery('#requestTypeSelect')[0].value
 					self.loadRequestList(self.modal, selected, 1);
-					// self.loadRequestList(self.modal, 'verify', 1);
 				});
 				prevButtonPagination.on('click', function () {
 					if (actualPage != 1) {
 						var selected = jQuery('#requestTypeSelect')[0].value
 						self.loadRequestList(self.modal, selected, actualPage - 1);
-						// self.loadRequestList(self.modal, 'verify', actualPage-1);
 					}
-
 				});
 				startButtonPagination.attr("style", cursorPointer);
 				prevButtonPagination.attr("style", cursorPointer);
@@ -268,7 +263,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			}
 
 			for (var i = 1; i <= pageCount; i++) {
-
 				const pageButton = jQuery('<a class="page-link" rel="noreferrer" target="_blank" type="button">' + i + '</a>');
 
 				if (actualPage == i) {
@@ -279,10 +273,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					(function (index) {
 						pageButton.attr("style", cursorPointer);
 						pageButton.on('click', function () {
-							// self.setPagination(index);
 							var selected = jQuery('#requestTypeSelect')[0].value
 							self.loadRequestList(self.modal, selected, index);
-							// self.loadRequestList(self.modal, 'verify', index);
 
 						});
 					})(i);
@@ -300,14 +292,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					if (actualPage != pageCount) {
 						var selected = jQuery('#requestTypeSelect')[0].value
 						self.loadRequestList(self.modal, selected, actualPage + 1);
-						// self.loadRequestList(self.modal, 'verify', actualPage+1);
 					}
 				});
+
 				endButtonPagination.on('click', function () {
 					var selected = jQuery('#requestTypeSelect')[0].value
 					self.loadRequestList(self.modal, selected, pageCount);
-					// self.loadRequestList(self.modal, 'verify', pageCount);
 				});
+
 				nextButtonPagination.attr("style", cursorPointer);
 				endButtonPagination.attr("style", cursorPointer);
 				paginationUl.append(jQuery('<li></li>').append(nextButtonPagination));
@@ -333,13 +325,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			const loadImg = jQuery('<img style="display:block; margin: auto;" src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/35771931234507.564a1d2403b3a.gif">');
 			tableBody.empty();
 			tableBody.empty();
-			var empty = jQuery("<tr><td  colspan='10'>Nenhum registro encontrado</td></tr>");
+			var empty = jQuery("<tr><td  colspan='10'>" + Joomla.JText._('PLG_FORM_WORKFLOW_NO_RECORDS_FOUND') + "</td></tr>");
 			tableBody.append(empty);
+
 			if (page == 1) {
 				start = 0;
 			} else {
 				start = ((page - 1) * 5);
 			}
+
 			self.getRequestsList(type, 5, start, search, 0, orderBy).done(function (response) {
 				var requests = JSON.decode(response);
 
@@ -456,19 +450,19 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var uploadFileApprove = jQuery("<input type='file' name='uploadFileApprove' id='uploadFileApprove'>");
 			var yesno = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
 				"  <label class=\"btn btn-success\">\n" +
-				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonYes\" value=\"yes\" autocomplete=\"off\" checked> Sim\n" +
+				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonYes\" value=\"yes\" autocomplete=\"off\" checked> " + Joomla.JText._('JYES') + "\n" +
 				"  </label>\n" +
 				"  <label class=\"btn btn-danger\">\n" +
-				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonNo\" value=\"no\" autocomplete=\"off\"> Não \n" +
+				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonNo\" value=\"no\" autocomplete=\"off\"> " + Joomla.JText._('JNO') + " \n" +
 				"  </label>\n" +
 				"</div>");
 
 				var vote = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
 					"  <label class=\"btn btn-success\">\n" +
-					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> A favor\n" +
+					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_IN_FAVOR') + "\n" +
 					"  </label>\n" +
 					"  <label class=\"btn btn-danger\">\n" +
-					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> Contra \n" +
+					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_AGAINST') + "\n" +
 					"  </label>\n" +
 					"</div>");
 	
@@ -476,7 +470,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					case '1':
 						var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
 						var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
-						var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>Votos Parciais: <br> Aprovar: " + parcialAprovar + " (Necessário " + this.options.workflow_votes_to_approve + ")<br> Reprovar: " + parcialDesaprovar + " (Necessário " + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
+						var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>" + Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_VOTES') + ": <br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + parcialAprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_approve + ")<br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL') + parcialDesaprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
 						approvedCheckboxContainer.append(vote);
 						var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
 						break;
@@ -521,7 +515,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							}
 
 							jModalBody.empty();
-							jModalBody.append(jQuery('<h3>Carregando... </h3>'));
+							jModalBody.append(jQuery('<h3>' + Joomla.JText._('PLG_FORM_WORKFLOW_LOADING') + '</h3>'));
 
 							var recordData = JSON.decode(formData[0]['form_data']);
 							for (var chave in recordData) {
@@ -571,7 +565,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								},
 								success: function (data) {
 									modal.style.display = "none";
-									alert('Concluído');
+									alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
 									document.location.reload(true);
 								}
 							});
@@ -636,7 +630,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 										},
 										success: function (data) {
 											modal.style.display = "none";
-											alert('Concluído');
+											alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
 											document.location.reload(true);
 										}
 									});
@@ -657,7 +651,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									},
 									success: function (data) {
 										modal.style.display = "none";
-										alert('Concluído');
+										alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
 										document.location.reload(true);
 									}
 								});
@@ -775,8 +769,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		isEqual: function (e1, e2) {
 			const e1Json = JSON.encode(e1);
 			const e2Json = JSON.encode(e2);
-			if (e1Json === e2Json)
-				return true;
+			if (e1Json === e2Json) return true;
+
 			return false;
 		},
 
@@ -801,7 +795,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
 			const label = jQuery('<p>' + id + '</p>');
-			const originalLabel = jQuery('<p>' + id + ' - Original</p>');
+			const originalLabel = jQuery('<p>' + id + ' - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + '</p>');
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			originalImages.append(originalLabel);
@@ -835,24 +829,19 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					data: form_data,
 					type: 'post',
 					success: function (php_script_response) {
-						// console.log(php_script_response); // display response from the PHP script, if any
 					}
 				});
 			}
 		},
 
 		createInput: function (labelText, value, id) {
-			// Creates the div
 			var div = jQuery('<div></div>');
-			// Creates the label with id
 			var label = jQuery('<label for="' + id + '"> </label>')
-			// Setting label text
-			jQuery(label).html(labelText);
-			// Creating input
 			var input = jQuery('<input id="' + id + '" type="text" disabled/>');
-			// Setting input value
+
+			jQuery(label).html(labelText);
 			jQuery(input).val(value);
-			// Appending label to div
+
 			div.append(label);
 			div.append(input);
 
@@ -861,10 +850,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		createInputsBeforeAfter: function (key, originalValue = null, newValue) {
 			var self = this;
+			var originalLabel = ' - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
+
 			const originalNewInputContainer = jQuery("<div></div>");
 			originalNewInputContainer.attr('style', 'display: flex;');
 			const inputContainer = self.createInput(key, newValue, key);
-			const inputOriginalContainer = self.createInput(key + ' - Original', originalValue, key + ' - Original');
+			const inputOriginalContainer = self.createInput(key + originalLabel, originalValue, key + originalLabel);
 			inputContainer[0].style.paddingLeft = "5px";
 			inputOriginalContainer[0].style.paddingLeft = "5px";
 			inputContainer[0].style.flex = "1";
@@ -877,8 +868,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		buildFormTest: function (data) {
 			var self = this;
-			// Creates the form
 			var form = jQuery('<form></form>');
+
 			// Container to the Request Data, such as
 			// [req_user_id. req_created_data, ...]
 			var requestInputsContainer = jQuery('<div></div>');
@@ -955,7 +946,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"></div>');
 
 							if(data['req_request_type_id'] != 5) {
-								var btnLink = jQuery('<a target="_blank" href="' + baseUrl + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">Vizualizar</button></a>');
+								var btnLink = jQuery('<a target="_blank" href="' + baseUrl + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">' + Joomla.JText._('PLG_FORM_WORKFLOW_VIEW') + '</button></a>');
 								link.append(btnLink);
 							}
 
@@ -966,7 +957,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						case 'req_vote_approve':
 						case 'req_vote_disapprove':
 							var d = data[key];
-							const inputContainerC = self.createInput('Pontuação Parcial: ' + self.elementsName[key], d, key);
+							const inputContainerC = self.createInput(Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_SCORE') + self.elementsName[key], d, key);
 							requestInputsContainer.append(inputContainerC);
 							break;
 
@@ -1057,8 +1048,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				hasProperty = false;
 			} else {
 				for (var k in obj) {
-					// Se o objeto tiver alguma propriedade
-					// ou seja, o formulário adicionado tem um log gravado anteriormente
+					// Se o formulário adicionado tem um log gravado anteriormente
 					if (obj.hasOwnProperty(k)) {
 						formDataInputsContainer.append(
 							self.buildEditRecordView(lastFormData, formData, elementTypesObj));
@@ -1084,7 +1074,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			const recordId = data['req_record_id'];
 			const link = self.options.root_url + "component/fabrik/details/" + self.options.listId + "/" + recordId;
-			formDataInputsContainer.append("<a class='btn btn-outline-primary' href='" + link + "'  target='_blank'>Clique aqui</a> para ver o registro a ser deletado.");
+			formDataInputsContainer.append("<a class='btn btn-outline-primary' href='" + link + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_CLICK_HERE') + "</a>");
 			form.append(formDataInputsContainer);
 		},
 
@@ -1204,22 +1194,22 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var view = jQuery("<div></div>");
 			const listName = this.options.listName;
 			var repeatGroups = {};
-			// Iterates form data
+
 			for (var key in formData) {
 				// If has raw continue iteration
 				// Verify if is list element
 				if (key.indexOf(listName) !== -1) {
-					// Ultimo raplace (.replace("-auto-complete", "")) serve para remover o sufixo q provavelmente é utilizado
-					// pela implementação da Karine no databasejoin
 					const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
 					if (key.indexOf("_raw") !== - 1) continue;
+
 					if (this.options.workflow_ignore_elements != null) {
 						if (this.options.workflow_ignore_elements.indexOf(onlyElementKey) !== -1) continue;
 					}
+
 					// If has value ignore ids
 					if (formData.hasOwnProperty(listName + "___" + onlyElementKey + "_value") && !(key.indexOf("_value") !== - 1)) continue;
+
 					var obj = formData[key];
-					// Verify if is repeat group
 					const isRepeatGroup = key.indexOf('repeat');
 					if (isRepeatGroup !== -1) {
 						repeatGroups[key] = obj;
@@ -1235,7 +1225,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 										if (Array.isArray(elementName)) {
 											view.append(this.buildMultipleElementView(elementName, onlyElementKey));
 										} else {
-											// view.append(this.createInput(onlyElementKey, createInput, onlyElementKey));
 											view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
 										}
 										if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
@@ -1248,7 +1237,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
 								view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
 							} else {
-								// Verify if is array
 								if (Array.isArray(obj)) {
 									view.append(this.buildMultipleElementView(obj, onlyElementKey));
 								} else {
@@ -1259,6 +1247,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					}
 				}
 			}
+
 			var groups = this.processRepeatGroups(repeatGroups);
 			for (const groupKey in groups) {
 				const groupArray = groups[groupKey];
@@ -1276,7 +1265,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			const changedProperties = self.compareRecords(lastFormData, newFormData);
 
 			for (var key in changedProperties) {
-				// If is not own property continue to next iteration
 				if (!changedProperties.hasOwnProperty(key)) continue;
 
 				// if is not raw continue to next iteration
@@ -1292,13 +1280,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				if (key.indexOf("_id") !== -1) continue;
 
 				if ((key.indexOf("_raw") !== -1 || key.indexOf("-auto-complete") !== -1) && (changedProperties.hasOwnProperty(listName + "___" + onlyElementKey + "_value"))) continue;
-				// Verify if is repeat group
-				const isRepeatGroup = key.indexOf('repeat');
 
+				const isRepeatGroup = key.indexOf('repeat');
 				if (isRepeatGroup !== -1) {
 					repeatGroups[key] = obj;
 				} else {
-					// Verify if is array
 					// Get value if owner id
 					if (elementsTypes[onlyElementKey] != undefined) {
 						if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
@@ -1360,7 +1346,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							containerFlex.append("");
 							containerFlex.attr('style', 'display: flex;');
 							var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-							var originalElement = jQuery("<div><p>" + onlyElementKey + " - Original</p></div>");
+							var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
 							if (!obj['last'] || obj['last'] == undefined) {
 								// originalElement.append("VAZIO");
 							} else {
@@ -1398,7 +1384,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				originalElement[0].style.flex = "1";
 				containerFlex.append(originalElement);
 				containerFlex.append(newElement);
-				// view.append(this.buildMultipleElementView(obj, onlyElementKey));
 				container.append(containerFlex);
 				view.append(container);
 			}
@@ -1411,11 +1396,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			if (key) {
 				div = jQuery("<div><p>" + key + "</p></div>");
 			}
+
 			var ul = jQuery("<ul class='workflow-ul-request'></ul>");
 			element.forEach(function (one) {
 				ul.append("<li>" + one + "</li>")
 			});
 			div.append(ul);
+
 			return div;
 		},
 
@@ -1486,11 +1473,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		renderImgs: function (option, files, path = null) {
 			var self = this;
-			// Creates the div
+
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
 			const label = jQuery('<p>nova imagem</p>');
-			const originalLabel = jQuery('<p>imagem - Original</p>');
+			const originalLabel = jQuery('<p>imagem - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + '</p>');
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			requestImages.append(label);
