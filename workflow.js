@@ -73,10 +73,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			// When the page is ready
 			jQuery(document).ready(function () {
+				var url = new URL(window.location.href);
+                var paramsUrl = new URLSearchParams(url.search);
+                var status = paramsUrl.get('status') ? paramsUrl.get('status') : 'verify';
+				jQuery('#requestTypeSelect').val(status);
+
 				// Get the modal
 				var modal = jQuery('#modal')[0];
 				self.modal = modal;
-				self.loadRequestList(modal, 'verify');
+				self.loadRequestList(modal, status);
 				// Search event
 				var inputSearch = jQuery("#searchTable");
 				inputSearch.on('keyup', function (event) {
@@ -346,7 +351,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				jQuery.each(requests[type], function (i, item) {
 					var request = item.data;
 					var newRowContent = jQuery("<tr></tr>");
-					var buttonOpenModal = jQuery("<td><a style='width: 100%;' class='btn'><i data-isicon=\"true\" class=\"icon-search \"></a></td>");
+					var buttonOpenModal = jQuery("<td><a style='width: 100%;' id='request_" + request['req_id'] + "'class='btn'><i data-isicon=\"true\" class=\"icon-search \"></a></td>");
 
 					jQuery.each(self.tableHeadins, function (key, value) {
 						// If field is null, don't show anything
@@ -374,6 +379,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					newRowContent.append(buttonOpenModal);
 					tableBody.append(newRowContent);
 				});
+
+                var url = new URL(window.location.href);
+                var paramsUrl = new URLSearchParams(url.search);
+                var requestId = paramsUrl.get('requestId');
+                if(requestId) {
+                    jQuery('#request_' + requestId).trigger('click');
+                }
 			});
 		},
 
