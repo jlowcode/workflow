@@ -703,7 +703,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					url: "",
 					data: recordData
 				}).done(function (retorno) {
-
 				});
 			});
 		},
