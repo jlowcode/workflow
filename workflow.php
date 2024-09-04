@@ -1313,10 +1313,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             die(Text::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
         }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> master
         if (!$hasPermission) {
             //define a mensagem de retorno
             if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
