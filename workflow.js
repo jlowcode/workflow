@@ -503,7 +503,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					setTimeout(() => { form.append(approveSection); }, 2000);
 					form.append(approveSection);
 					jQuery(approveButton).on('click', function () {
-						const requestType = formData[0]['req_request_type_id'];
+						const requestType = parseInt(formData[0]['req_request_type_id']);
 
 						var uploadFileInput = jQuery(form).find("#uploadFileApprove");
 						if (self.options.workflow_approval_by_votes == '1') {
@@ -876,7 +876,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			// Set a title to the container
 			var typeLabel = '';
-			switch (data['req_request_type_id']) {
+			switch (parseInt(data['req_request_type_id'])) {
 				case 1:
 					typeLabel = Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_ADD_TEXT');
 					break;
@@ -945,7 +945,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							
 							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"></div>');
 
-							if(data['req_request_type_id'] != 5) {
+							if(parseInt(data['req_request_type_id']) != 5) {
 								var btnLink = jQuery('<a target="_blank" href="' + baseUrl + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">' + Joomla.JText._('PLG_FORM_WORKFLOW_VIEW') + '</button></a>');
 								link.append(btnLink);
 							}
@@ -985,7 +985,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			form.append(requestInputsContainer);
 			form.append(formDataInputsContainer);
 
-			switch (data['req_request_type_id']) {
+			switch (parseInt(data['req_request_type_id'])) {
 				case 3:
 				case "delete_record":
 					this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
@@ -999,7 +999,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					break;
 
 				case 5:
-				case "edt_field":
+				case "edit_field":
 					self.buildFormEditFields(formData, formDataInputsContainer, form, data);
 					break;
 
@@ -1007,7 +1007,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					this.getElementsType(formData['listid']).done(function (elementsTypes) {
 						var elementTypesObj = JSON.decode(elementsTypes);
 
-						if (data['req_request_type_id'] == "add_record" || data['req_request_type_id'] == 1) {
+						if (data['req_request_type_id'] == "add_record" || parseInt(data['req_request_type_id']) == 1) {
 							self.buildFormAddRecords(elementTypesObj, formData, formDataInputsContainer, form);
 						} else {
 							self.getLastRecordFormData(data['req_record_id']).done(function (lastRecordFormData) {
