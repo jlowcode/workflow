@@ -1062,7 +1062,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     {
         jimport('joomla.access.access');
         // Get viewl level id
-        $reviewrs_group_id = $this->params->get('allow_review_request') == null ? $_POST["options"]["allow_review_request"] : $this->params->get('allow_review_request');
+        $reviewers_group_id = $this->params->get('allow_review_request') == null ? $_POST["options"]["allow_review_request"] : $this->params->get('allow_review_request');
         $approve_for_own_records = $this->params->get('approve_for_own_records') == null ? $_POST["options"]["approve_for_own_records"] : $this->params->get('approve_for_own_records');
         $workflow_owner_element = $this->params->get('workflow_owner_element') == null ? $_POST["options"]["workflow_owner_element"] : $this->params->get('workflow_owner_element');
 
@@ -1503,6 +1503,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function countRequests()
     {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
         $approveOwn = (int)$this->params->get('approve_for_own_records');
 
         $status = 'verify';
@@ -1520,7 +1522,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query->clear();
 
@@ -1553,8 +1554,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 //backend
                 $opt = array('list' => 'task=list.view', 'form' => 'task=list.form', 'details' => 'task=details.view');
             }
-            $_REQUEST['workflow']['list_link'] = "index.php?option=com_fabrik&{$opt['list']}&listid={$this->listId}";
+
+            $_REQUEST['workflow']['list_link'] = $this->getFriendlyUrl($this->listId, 'list');
             $_REQUEST['workflow']['requests_link'] =  $_REQUEST['workflow']['listLinkUrl'] . "?wfl_action=list_requests#eventsContainer";
+            $_REQUEST['workflow']['requests_form_link'] = $this->getFriendlyUrl($this->requestListFormId, 'form');
             $_REQUEST['workflow']['requests_form_link'] = "index.php?option=com_fabrik&{$opt['form']}&formid={$this->requestListFormId}&rowid=";
             $_REQUEST['workflow']['requests_details_link'] = "index.php?option=com_fabrik&{$opt['details']}&formid={$this->requestListFormId}&rowid=";
 
@@ -2401,10 +2404,40 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     {
         $listModel = $this->getModel()->getListModel();
         $_REQUEST['workflow']['showAddRequest'] = !$listModel->canAdd() && $this->canRequest();
-        $_REQUEST['workflow']['addRequestLink'] = $listModel->getAddRecordLink() . '?wfl_action=request';
-        $_REQUEST['workflow']['listLinkUrl'] = explode('?', $listModel->getTableAction())[0];
+        $_REQUEST['workflow']['addRequestLink'] = $this->getFriendlyUrl($listModel->getId(), 'list') . '?wfl_action=request';
+        $_REQUEST['workflow']['listLinkUrl'] = $this->getFriendlyUrl($listModel->getId(), 'list');
         $_REQUEST['workflow']['requestLabel'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_NEW_REQUEST');
         $_REQUEST['workflow']['eventsButton'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_EVENTS');
+    }
+
+    /**
+     * This method provide the friendly url
+     * 
+     * @param       Int            $id              Id of the record
+     * @param       String         $view            List, form or detail view 
+     * 
+     * @return      String
+     * 
+     * @since       v4.1
+     */
+    private function getFriendlyUrl($id, $view)
+    {
+        $app = Factory::getApplication();
+        $menu = $app->getMenu();
+
+        switch ($view) {
+            case 'list':
+                $search = 'listid';
+                break;
+            
+            case 'form':
+                $search = 'formid';
+                break;
+        }
+        $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=$view&$search=$id", true);
+        $alias = '/' . $menuLinked->alias;
+
+        return $alias;
     }
 
     /**
