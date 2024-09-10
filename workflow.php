@@ -1557,8 +1557,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
             $_REQUEST['workflow']['list_link'] = $this->getFriendlyUrl($this->listId, 'list');
             $_REQUEST['workflow']['requests_link'] =  $_REQUEST['workflow']['listLinkUrl'] . "?wfl_action=list_requests#eventsContainer";
-            $_REQUEST['workflow']['requests_form_link'] = $this->getFriendlyUrl($this->requestListFormId, 'form');
-            $_REQUEST['workflow']['requests_form_link'] = "index.php?option=com_fabrik&{$opt['form']}&formid={$this->requestListFormId}&rowid=";
+            $_REQUEST['workflow']['requests_form_link'] = $this->getFriendlyUrl($this->listId, 'form', $this->requestListFormId);
             $_REQUEST['workflow']['requests_details_link'] = "index.php?option=com_fabrik&{$opt['details']}&formid={$this->requestListFormId}&rowid=";
 
             return true;
@@ -2404,7 +2403,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     {
         $listModel = $this->getModel()->getListModel();
         $_REQUEST['workflow']['showAddRequest'] = !$listModel->canAdd() && $this->canRequest();
-        $_REQUEST['workflow']['addRequestLink'] = $this->getFriendlyUrl($listModel->getId(), 'list') . '?wfl_action=request';
+        $_REQUEST['workflow']['addRequestLink'] = $this->getFriendlyUrl($listModel->getId(), 'form', $listModel->getFormModel()->getId()) . '?wfl_action=request';
         $_REQUEST['workflow']['listLinkUrl'] = $this->getFriendlyUrl($listModel->getId(), 'list');
         $_REQUEST['workflow']['requestLabel'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_NEW_REQUEST');
         $_REQUEST['workflow']['eventsButton'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_EVENTS');
@@ -2415,27 +2414,20 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      * 
      * @param       Int            $id              Id of the record
      * @param       String         $view            List, form or detail view 
+     * @param       Int            $idForm          Id of the form 
      * 
      * @return      String
      * 
      * @since       v4.1
      */
-    private function getFriendlyUrl($id, $view)
+    private function getFriendlyUrl($id, $view, $idForm=0)
     {
         $app = Factory::getApplication();
         $menu = $app->getMenu();
 
-        switch ($view) {
-            case 'list':
-                $search = 'listid';
-                break;
-            
-            case 'form':
-                $search = 'formid';
-                break;
-        }
-        $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=$view&$search=$id", true);
+        $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=list&listid=$id", true);
         $alias = '/' . $menuLinked->alias;
+        $alias .= $view == 'form' ? "/form/$idForm" : '';
 
         return $alias;
     }
