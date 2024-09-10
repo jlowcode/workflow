@@ -126,12 +126,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             ->select('req_user_id')
             ->select('u_req.name as req_user_name')
             ->select('u_req.email as req_user_email')
-            ->select('req_created_date')
+            ->select('IF(req_created_date = "0000-00-00 00:00:00", "", DATE_FORMAT(req_created_date, "%d/%m/%Y")) AS req_created_date')
             ->select('req_owner_id')
             ->select('u_owner.name as req_owner_name')
             ->select('req_reviewer_id')
             ->select('u_rev.name as req_reviewer_name')
-            ->select('req_revision_date')
+            ->select('IF(req_revision_date = "0000-00-00 00:00:00", "", DATE_FORMAT(req_revision_date, "%d/%m/%Y")) AS req_revision_date')
             ->select('req_status')
             ->select('req_request_type_id')
             ->select('req_approval')
@@ -179,7 +179,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         // Verify if only wants count how many records and return it
         if (isset($_REQUEST['count']) && $_REQUEST['count'] == "1") {
             $db->setQuery($query);
-            $db->execute();
             $r = $db->loadObjectList();
             $dados = array();
             foreach ($r as $row) {
