@@ -229,17 +229,17 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			self.options.actualPage = actualPage;
 			var paginationElement = jQuery('#workflow-pagination');
 			paginationElement.empty();
-			var paginationUl = jQuery('<ul class="pagination-list"></ul>');
+			var paginationUl = jQuery('<ul class="pagination"></ul>');
 			var requestsCount = this.options.requestsCount;
 			var pageCount = requestsCount / 5;
 			const cursorPointer = "cursor: pointer;";
 			pageCount = Math.ceil(pageCount);
 
-			const startButtonPagination = jQuery('<a class="page-link" id="start-button" rel="noreferrer" target="_blank" type="button">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_START_LABEL') + '</a>');
-			const prevButtonPagination = jQuery('<a class="page-link" id="pagination-prev" rel="noreferrer" target="_blank" type="button">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_PREV_LABEL') + '</a>');
+			const startButtonPagination = jQuery('<a class="" id="start-button" rel="noreferrer" target="_blank" type="button"><<</a>');
+			const prevButtonPagination = jQuery('<a class="" id="pagination-prev" rel="noreferrer" target="_blank" type="button"><</a>');
 
-			const nextButtonPagination = jQuery('<a class="page-link" id="pagination-next" rel="noreferrer" target="_blank" type="button">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_NEXT_LABEL') + '</a>');
-			const endButtonPagination = jQuery('<a class="page-link" id="pagination-end" rel="noreferrer" target="_blank" type="button">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_END_LABEL') + '</a>');
+			const nextButtonPagination = jQuery('<a class="" id="pagination-next" rel="noreferrer" target="_blank" type="button">></a>');
+			const endButtonPagination = jQuery('<a class="" id="pagination-end" rel="noreferrer" target="_blank" type="button">>></a>');
 
 			if (actualPage == 1) {
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(startButtonPagination));
@@ -258,15 +258,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				});
 				startButtonPagination.attr("style", cursorPointer);
 				prevButtonPagination.attr("style", cursorPointer);
-				paginationUl.append(jQuery('<li></li>').append(startButtonPagination));
-				paginationUl.append(jQuery('<li></li>').append(prevButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(startButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(prevButtonPagination));
 			}
 
 			for (var i = 1; i <= pageCount; i++) {
-				const pageButton = jQuery('<a class="page-link" rel="noreferrer" target="_blank" type="button">' + i + '</a>');
+				const pageButton = jQuery('<a class="" rel="noreferrer" target="_blank" type="button">' + i + '</a>');
 
 				if (actualPage == i) {
-					paginationUl.append(jQuery('<li class="active"></li>').append(pageButton));
+					paginationUl.append(jQuery('<li class="page-item active"></li>').append(pageButton));
 				} else {
 					var teste = i;
 					// Event on click pagination numbers
@@ -279,7 +279,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						});
 					})(i);
 
-					paginationUl.append(jQuery('<li></li>').append(pageButton));
+					paginationUl.append(jQuery('<li class="page-item"></li>').append(pageButton));
 				}
 			}
 
@@ -302,11 +302,17 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				nextButtonPagination.attr("style", cursorPointer);
 				endButtonPagination.attr("style", cursorPointer);
-				paginationUl.append(jQuery('<li></li>').append(nextButtonPagination));
-				paginationUl.append(jQuery('<li></li>').append(endButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(nextButtonPagination));
+				paginationUl.append(jQuery('<li class="page-item"></li>').append(endButtonPagination));
 			}
 
-			paginationElement.append(paginationUl);
+			if(jQuery(paginationUl).find('li').length != 4) {
+				paginationElement.append(paginationUl);
+				jQuery('#eventsContainer').css('margin-bottom', '0px');
+			} else {
+				paginationElement.append('');
+				jQuery('#eventsContainer').css('margin-bottom', '30px');
+			}
 		},
 
 		loadRequestList: function (modal, type, page = 1, search = null, orderBy = 'req_created_date') {
