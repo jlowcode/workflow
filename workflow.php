@@ -721,6 +721,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_VIEW');
         Text::script('PLG_FORM_WORKFLOW_PARTIAL_SCORE');
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
+        Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
     }
 
     /**
@@ -939,6 +940,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
         $options->root_url = URI::root();
         $options->sendMail = $sendMail;
+		$options->images = $this->getImages();
         $options = json_encode($options);
         $jsFiles = Array();
         $jsFiles['Fabrik'] = 'media/com_fabrik/js/fabrik.js';
@@ -1664,6 +1666,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             return false;
         }
 
+		$this->setImages();
         $this->init();
         if ($this->isRequestList()) {
             return true;
@@ -3110,4 +3113,29 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
         }
     }
+
+    /**
+	 * Setter method to images variable
+	 *
+	 * @return  	Null
+	 * 
+	 * @since 		version 4.1
+	 */
+	public function setImages() 
+	{
+		$this->images['view'] = FabrikHelperHTML::image('view.png', 'list');
+		$this->images['danger'] = FabrikHelperHTML::image('danger.png', 'list');
+	}
+
+	/**
+	 * Getter method to images variable
+	 *
+	 * @return  	Object
+	 * 
+	 * @since 		version 4.1
+	 */
+	public function getImages() 
+	{
+		return $this->images;
+	}
 }

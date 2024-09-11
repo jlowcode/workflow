@@ -46,7 +46,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'req_vote_disapprove': Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL'),
 		},
 
-		tableHeadins: {
+		tableHeadings: {
 			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
 			'req_user_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
 			'req_created_date': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL'),
@@ -131,8 +131,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6])
 					report.setAttribute('data-rowid', 'xhr')
 					report.setAttribute('target', '_self')
-					report.setAttribute('title', 'Reportar/Excluir')
-					report.innerHTML = '<span><i class="fas fa-exclamation-triangle fa-sm" style="color: #8c8c8c;"></i></span> Reportar/Excluir';
+					report.setAttribute('title', Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST"))
+					report.innerHTML = '<span>' + self.options.images.danger + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST");
 					li.appendChild(report)
 					btnGroup[0].appendChild(li);
 					// REMOVE DELETAR PADRAO
@@ -191,13 +191,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			// Order by
 			var orderByDropdownItens = jQuery('#orderBySelect');
 
-			for (var chave in self.tableHeadins) {
+			for (var chave in self.tableHeadings) {
 				if (chave == 'req_created_date') {
-					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadins[chave] + ' - ASC' + '</option>');
-					orderByDropdownItens.append('<option selected="selected" value="' + chave + '_desc' + '">' + self.tableHeadins[chave] + ' - DESC' + '</option>');
+					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadings[chave] + ' - ASC' + '</option>');
+					orderByDropdownItens.append('<option selected="selected" value="' + chave + '_desc' + '">' + self.tableHeadings[chave] + ' - DESC' + '</option>');
 				} else {
-					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadins[chave] + ' - ASC' + '</option>');
-					orderByDropdownItens.append('<option value="' + chave + '_desc' + '">' + self.tableHeadins[chave] + ' - DESC' + '</option>');
+					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadings[chave] + ' - ASC' + '</option>');
+					orderByDropdownItens.append('<option value="' + chave + '_desc' + '">' + self.tableHeadings[chave] + ' - DESC' + '</option>');
 				}
 			}
 
@@ -345,9 +345,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				jQuery.each(requests[type], function (i, item) {
 					var request = item.data;
 					var newRowContent = jQuery("<tr></tr>");
-					var buttonOpenModal = jQuery("<td><a style='width: 100%;' id='request_" + request['req_id'] + "'class='btn'><i data-isicon=\"true\" class=\"icon-search \"></a></td>");
+					var buttonOpenModal = jQuery("<td><a style='width: 100%;' id='request_" + request['req_id'] + "'class='btn'>" + self.options.images.view +"</a></td>");
 
-					jQuery.each(self.tableHeadins, function (key, value) {
+					jQuery.each(self.tableHeadings, function (key, value) {
 						// If field is null, don't show anything
 						if (request[key]) {
 							if (key == 'req_status') {
