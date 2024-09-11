@@ -452,7 +452,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         if ($request["options"]["workflow_approval_by_votes"] == 1) {
             if ($requestData['req_status'] == 'approved' || $requestData['req_status'] == 'not-approved') {
-                $requestData['req_revision_date'] = date("Y-m-d H:i:s");
                 $requestData['req_approval'] = $requestData['req_status'] === 'approved' ? 1 : 0;
             }
             $requestData['req_reviewers_votes'] .= $usuario->id . ',';
@@ -465,6 +464,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $requestData['req_reviewer_id'] = $requestData['req_reviewer_id'] === '' ? "{$usuario->id}" : $requestData['req_reviewer_id'];
+        $requestData['req_revision_date'] = date("Y-m-d H:i:s");
 
         $obj = (object) $requestData;
         $results = $db->updateObject('#__fabrik_requests', $obj, 'req_id', false);
@@ -777,7 +777,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * This method pass the list of requests to the view, it is replacing this->processLog()
+     * This method pass the list of requests to the view.
      * 
      * @return      Null
      */
@@ -1079,84 +1079,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * This method creates a request in fabrik_workflow table, it is replacing this->processLog()
-     * 
-     * @param       Array           $formData           The formData array
-     * @param       Boolean         $delete             The user wants delete record?
-     * 
-     * @return      Boolean
-     */
-    public function createRequest($formData, $delete=false)
-    {
-        // Verifies if it is in request_list
-        if ($this->isRequestList()) {
-            return true;
-        }
-
-        // Verifies the request type
-        $this->setRequestType($formData, $delete);
-
-        // Saves log to database
-        $hasPermission = $this->hasPermission($formData);
-        // @TODO - Analisar se if é mesmo necessário
-        if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-            $owner_id = null;
-            $owner_element_id = $this->params->get('workflow_owner_element');
-            if (isset($owner_element_id) && !empty($owner_element_id)) {
-                //get the element name to catch the owner_id from formdata
-                $db = Factory::getContainer()->get('DatabaseDriver');
-                $query = $db->getQuery(true);
-                $query->select($db->qn('name'))
-                    ->from($db->qn('#__fabrik_elements'))
-                    ->where('id = ' . $owner_element_id);
-                $db->setQuery($query);
-                $db->execute();
-                $r = $db->loadObjectList();
-                $owner_element_name = $r[0]->name;
-                $owner_id = $formData[$this->listName . '___' . $owner_element_name];
-            }
-
-            if (isset($owner_id) && !empty($owner_id)) {
-                $formData["owner_id"] = $owner_id;
-            } else {
-                // sets owner_id
-                $formData["owner_id"] = $this->user->id;
-            }
-        } else if ($this->requestType == self::REQUEST_TYPE_EDIT_RECORD)  {
-           $db = Factory::getContainer()->get('DatabaseDriver');
-            $query = $db->getQuery(true);
-            $query->select($db->qn('req_owner_id'))
-                ->from($db->qn('#__fabrik_requests'))
-                ->where('req_record_id = ' . $formData['rowid']);
-            $db->setQuery($query);
-            $db->execute();
-            $r = $db->loadObjectList();
-
-            $formData["owner_id"] = $r[0]->req_owner_id;
-        }
-
-        if (!$this->persistRequest($formData, $hasPermission)) {
-            die(Text::_('PLG_FORM_WORKFLOW_PROCESS_LOG_FAIL'));
-        }
-
-        if (!$hasPermission) {
-            //define a mensagem de retorno
-            if ($this->requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
-            } else if ($this->requestType == self::REQUEST_TYPE_ADD_RECORD) {
-                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
-            } else {
-                Factory::getApplication()->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
-            }
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * This method saves a request in fabrik_workflow table, it is replacing this->saveFormDataToLog()
+     * This method saves a request in fabrik_workflow table.
      * 
      * @param       Array          $formData       The formData array
      * 
@@ -1445,40 +1368,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         } catch (Exception $e) {
             return false;
         }
-    }
-
-    /**
-     * This method updates the request to approved or not, and call the method to save the information to the target lists if is approved.
-     * It is replacing this->processRequest()
-     * 
-     * @param       Array          $fullFormData           The full formData array
-     * 
-     * @return      Boolean
-     */
-    public function updateRequest($fullFormData)
-    {
-        $formData = $this->extractFormData($fullFormData);
-        $rowid = $formData["rowid"];
-        if ($formData['req_approval'] === '1' || $formData['req_approval'] === '0') {
-            $status = $formData['req_approval'] === '1' ? 'approved' : 'not-approved';
-
-            //atualiza o status do request
-            $db = Factory::getContainer()->get('DatabaseDriver');
-            $query = $db->getQuery(true);
-            $query->set("{$this->fieldPrefix}status = " . $db->q($status));
-            $query->update('#__fabrik_requests')->where("{$this->fieldPrefix}id = " . $db->q($rowid));
-            $db->setQuery($query);
-            $db->execute();
-
-            if ($status == 'approved') {
-                $this->applyRequestChange($rowid);
-            }
-
-            //envia email com o resultado da operacao
-            $this->enviarEmailRequestApproval($formData, $status);
-        }
-
-        return true;
     }
 
     /**
@@ -2274,34 +2163,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         $_REQUEST['workflow']['showEventsButton'] = $showEventsButton;
-    }
-
-    /**
-     * Saves data to log/request table
-     * 
-     * @param       Array           $formData               The full formData array
-     * @param       Boolean         $hasPermission          User has permission or not?
-     * 
-     * @return      Boolean
-     */
-    protected function saveFormDataToLog($formData, $hasPermission)
-    {
-        $dados = $this->getFormDataToLog($formData);
-        $dados[$this->fieldPrefix . "status"] = ($hasPermission ? 'pre-approved' : 'verify');
-
-        $this->createOrUpdateLogTable();
-        $requestListName = $this->requestListName;
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-        $query->insert($requestListName);
-        foreach ($dados as $k => $v) {
-            $query->set("{$k} = " . $db->q($v));
-        }
-        $db->setQuery($query);
-        $db->execute();
-
-        return true;
     }
 
     /**
