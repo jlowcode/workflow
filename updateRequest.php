@@ -6,9 +6,11 @@ const REQUEST_TYPE_DELETE_RECORD = 3;
 
 // Identifica tipo de conteúdo como JSON
 header('Content-Type: application/json');
+
 // Importando obj necessários para acessar o database
 define('_JEXEC', 1);
 define('JPATH_BASE', '../../../');
+
 require_once JPATH_BASE . 'includes/defines.php';
 require_once JPATH_BASE . 'includes/framework.php';
 
@@ -20,15 +22,7 @@ $formData = json_decode($requestData['form_data']);
 
 processRequest($requestData, $formData);
 
-// var_dump($jsonRequestData);
-
-// echo json_encode(getListName(23, $db));
-
-// processRequest($array)
 echo json_encode(true);
-
-
-
 
 function processRequest($requestData, $formData) {
     // Recebe o obj para acessar o DB
@@ -44,10 +38,8 @@ function processRequest($requestData, $formData) {
         if($status == 'approved') {
             saveToMainList($formData, $requestData);
         }
-        
-        // //envia email com o resultado da operacao
-        // $this->enviarEmailRequestApproval($formData, $status);
     }
+
     return true;
 }
 
@@ -69,20 +61,10 @@ function saveToMainList($formData, $requestData) {
             ->select(array($db->quoteName('name'), $db->quoteName('plugin')))
             ->from($db->quoteName('#__fabrik_elements'))
             ->where($db->quoteName('group_id') . ' = ' . "($subQuery)" );
-
-//        SELECT `plugin` FROM h4rjm_fabrik_elements WHERE group_id = (SELECT h4rjm_fabrik_formgroup.group_id FROM h4rjm_fabrik_lists inner join h4rjm_fabrik_formgroup on h4rjm_fabrik_lists.form_id = h4rjm_fabrik_formgroup.form_id where h4rjm_fabrik_lists.id = 23)
-
         $db->setQuery($query);
         $db->execute();
 
         $results = $db->loadObjectList();
-//
-//        echo "<pre>";
-//        var_dump($results);
-//        echo "</pre>";
-//
-//
-//        die('Teste query');
 
         $listName = getListName($requestData["req_list_id"])->db_table_name;
         $record_id = $requestData["req_record_id"];
@@ -92,9 +74,6 @@ function saveToMainList($formData, $requestData) {
         } else {
             $columns = $values = $strValues = array();
             foreach ($formData as $k => $v) {
-                // if (stripos($k, 'req_') !== false) {
-                //     continue;
-                // }
                 if($k == 'id') {
                     continue;
                 }
@@ -135,8 +114,6 @@ function saveToMainList($formData, $requestData) {
                                 $db->execute();
                             }
 
-                        } else {
-//                            echo 'Table doesnt exists';
                         }
 
                     echo "$v é array";
@@ -156,17 +133,16 @@ function saveToMainList($formData, $requestData) {
                         ->where(array($db->quoteName('id') . " = {$record_id}"));
             }
         }
-//        die('Testeeee');
+
         $db->setQuery($query);
         $db->execute();
+
         return true;
     } catch(Exception $e) {
         JFactory::getApplication()->enqueueMessage($e->getMessage(), 'error');
         return false;
     }
 }
-
-
 
 function getListName($listId) {
     // Recebe o obj para acessar o DB
@@ -182,53 +158,3 @@ function getListName($listId) {
     return $results[0];
 
 }
-
-// function applyRequestChange($rowid) {
-//     try {
-//         $dbTable = str_replace($this->dbtable_request_sufixo, '', $this->listName);
-//         $pkey = 'id';
-//         if(!($rowData = $this->getRowData($rowid))) {
-//             throw new Exception('Request not found!');
-//         }
-//         $requestType = $rowData['req_request_type_id'];
-//         $record_id = $rowData["{$this->fieldPrefix}record_id"];
-        
-//         $db = JFactory::getDbo();
-//         $query = $db->getQuery(true);
-        
-//         if ($requestType == self::REQUEST_TYPE_DELETE_RECORD) {
-//             $query->delete($db->quoteName($dbTable))
-//                     ->where(array($db->quoteName($pkey) . " = '{$record_id}'"));
-//         } else {
-//             $columns = $values = $strValues = array();
-//             foreach ($rowData as $k => $v) {
-//                 if (stripos($k, $this->fieldPrefix) !== false) {
-//                     continue;
-//                 }
-//                 if($k == $pkey) {
-//                     continue;
-//                 }
-//                 $columns[] = $k;
-//                 $values[] = $db->quote($v);
-//                 $strValues[] = "{$db->quoteName($k)} = {$db->quote($v)}";
-//                 echo("k: $k - v: $v <br>");
-//             }
-//             die('applyRequestChange');
-//             if ($requestType == self::REQUEST_TYPE_ADD_RECORD) {
-//                 $query->insert($db->quoteName($dbTable))
-//                         ->columns($db->quoteName($columns))
-//                         ->values(implode(',', $values));
-//             } else {
-//                 $query->update($db->quoteName($dbTable))
-//                         ->set($strValues)
-//                         ->where(array($db->quoteName($pkey) . " = {$record_id}"));
-//             }
-//         }
-//         $db->setQuery($query);
-//         $db->execute();
-//         return true;
-//     } catch (Exception $e) {
-//         JFactory::getApplication()->enqueueMessage($e->getMessage(), 'error');
-//         return false;
-//     }
-// }
