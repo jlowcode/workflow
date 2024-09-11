@@ -7,17 +7,11 @@
 	<license>GNU/GPL http://www.gnu.org/copyleft/gpl.html</license>
 	<authorEmail>contact@jlowcode.org</authorEmail>
 	<authorUrl>www.jlowcode.org</authorUrl>
-	<version>4.1</version>
+	<version>4.1.1</version>
 	<help url="PLG_FORM_WORKFLOW_HELP_SERVER"/>
 	<description>PLG_FORM_WORKFLOW_DESCRIPTION</description>
 	<files>
 		<filename plugin="workflow">workflow.php</filename>
-		<filename>canApproveRequests.php</filename>
-		<filename>getRecord.php</filename>
-		<filename>getRequests.php</filename>
-		<filename>getRequestType.php</filename>
-		<filename>updateRequest.php</filename>
-		<filename>uploadFile.php</filename>
 		<filename>workflow-min.js</filename>
 		<filename>workflow.js</filename>
 		<filename>index.html</filename>

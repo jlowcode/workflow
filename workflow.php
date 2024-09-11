@@ -255,40 +255,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * This function gets the files uploaded. Called by AJAX
-     * 
-     * @return      Null
-     */
-    public function onGetFileUpload()
-    {
-        // Filter the request
-        $filter = JFilterInput::getInstance();
-        $request = $filter->clean($_REQUEST, 'array');
-
-        // Get the params from requests
-        $parent_table_name = $request['parent_table_name'];
-        $element_name = $request['element_name'];
-        $parent_id = $request['parent_id'];
-
-        // Get DB and query object
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-
-        // Get all images where parent_id is equal to $parent_id
-        $query
-            ->select($db->qn($element_name) . ' as value')
-            ->from($db->qn($parent_table_name . "_repeat_" . $element_name))
-            ->where($db->qn("parent_id") . ' = ' . "$parent_id");
-        $db->setQuery($query);
-        $db->execute();
-
-        $ids = $db->loadObjectList();
-
-        // Encode and return images paths
-        echo json_encode($ids);
-    }
-
-    /**
      * This method get all plugins of each element from the list
      * 
      * @param       String              $list_id            Id of the list
@@ -366,142 +332,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * 
-     * 
-     * @return      Null
-     */
-    public function onGetDatabaseJoinMultipleData()
-    {
-        $filter = JFilterInput::getInstance();
-        $request = $filter->clean($_REQUEST, 'array');
-
-        $response = new StdClass;
-
-        $parent_table_name = $request['parent_table_name'];
-        $element_name = $request['element_name'];
-        $parent_id = $request['parent_id'];
-        $join_val_column = $request['join_val_column'];
-        $join_key_column = $request['join_key_column'];
-        $join_db_name = $request['join_db_name'];
-        $request_elements_array = json_decode($request['request_elements_array']);
-
-        if (!is_array($request_elements_array)) {
-            $request_elements_array = array($request_elements_array);
-        }
-
-
-        // Recebe o obj para acessar o DB
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-
-        // Pega os IDs originais
-        $query
-            ->select($db->qn($element_name) . ' as value')
-            ->from($db->qn($parent_table_name . "_repeat_" . $element_name))
-            ->where($db->qn("parent_id") . ' = ' . "$parent_id");
-
-        $db->setQuery($query);
-        $db->execute();
-
-        $ids = $db->loadObjectList();
-
-        if (!empty($ids)) {
-            // Pega o raw dos ids originais
-            $query = $db->getQuery(true);
-
-            $whereClauses = array();
-
-            foreach ($ids as $id) {
-                $whereClauses[] = $db->qn($join_key_column) . ' = ' . $db->q($id->value);
-            }
-
-            $query
-                ->select(array($db->qn($join_val_column) . ' as value', 'id'))
-                ->from($db->qn($join_db_name))
-                ->where($whereClauses, 'OR');
-
-            $db->setQuery($query);
-            $db->execute();
-            $results = $db->loadObjectList();
-
-            $response->original = $results;
-        } else {
-            $response->original = array();
-        }
-
-        // get raw from the requested objects
-        $query = $db->getQuery(true);
-        $whereClauses = array();
-
-        foreach ($request_elements_array as $id) {
-            $whereClauses[] = $db->qn($join_key_column) . ' = ' . $db->q($id);
-        }
-        $query
-            ->select(array($db->qn($join_val_column) . ' as value', 'id'))
-            ->from($db->qn($join_db_name))
-            ->where($whereClauses, 'OR');
-
-        $db->setQuery($query);
-        $db->execute();
-        $results = $db->loadObjectList();
-
-        $response->request = $results;
-        echo json_encode($response);
-    }
-
-    /**
-     * 
-     * 
-     * @return      Null
-     */
-    public function onGetDatabaseJoinSingleData()
-    {
-        $filter = JFilterInput::getInstance();
-        $request = $filter->clean($_REQUEST, 'array');
-
-        $join_val_column = $request['join_val_column'];
-        $join_key_column = $request['join_key_column'];
-        $join_db_name = $request['join_db_name'];
-        $element_id = $request['element_id'];
-        $original_element_id = $request['original_element_id'];
-
-        // Recebe o obj para acessar o DB
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-
-        $query
-            ->select($db->qn($join_val_column) . ' as value')
-            ->from($db->qn($join_db_name))
-            ->where($db->qn($join_key_column) . ' = ' . "$element_id");
-
-        $db->setQuery($query);
-        $db->execute();
-
-        $results = $db->loadObjectList();
-
-        $return = new stdClass;
-        $return->new = $results;
-
-
-        if (!empty($original_element_id)) {
-            $query = $db->getQuery(true);
-
-            $query
-                ->select($db->qn($join_val_column) . ' as value')
-                ->from($db->qn($join_db_name))
-                ->where($db->qn($join_key_column) . ' = ' . "$original_element_id");
-
-            $db->setQuery($query);
-            $db->execute();
-            $results = $db->loadObjectList();
-            $return->original = $results;
-        }
-
-        echo json_encode($return);
-    }
-
-    /**
-     * 
+     * This method upload the file on save request
      * 
      * 
      * @return      Null
@@ -523,7 +354,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * 
+     * This method get the requests by id of the request
      * 
      * @return      Null
      */
@@ -555,18 +386,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             die(Text::_("PLG_FORM_WORKFLOW_ERROR_GETTING_REQUEST"));
         }
 
-        // Aplica a query no obj DB
         $db->setQuery($query);
-
-        // Salva resultado da query em results
         $results = $db->loadObjectList();
 
-        // Codifica $results para JSON
         echo json_encode($results);
     }
 
     /**
-     * 
+     * This method provide the new name and the old name of the user
      * 
      * @return      Null
      */
@@ -588,7 +415,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * Called by AJAX, this method updates the request record on the #__fabrik_requests table
+     * This method updates the request record on the #__fabrik_requests table. Called by AJAX.
      * 
      * @return      Null
      */
@@ -2914,7 +2741,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * 
+     * This method override delete action default
      * 
      * @return      Null
      */

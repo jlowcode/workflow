@@ -822,19 +822,23 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		uploadFile: function (uploadFileInput) {
+			var self = this;
+			var url = self.options.root_url + "index.php?option=com_fabrik&format=raw&task=plugin.pluginAjax&g=form&plugin=workflow&method=uploadFileToRequest";
+
 			if (uploadFileInput.val()) {
 				var file_data = jQuery(uploadFileInput[0]).prop('files')[0];
 				var form_data = new FormData();
 				form_data.append('file', file_data);
+
 				return jQuery.ajax({
-					url: 'http://localhost/PITT/fabrik/plugins/fabrik_form/workflow/uploadFile.php',   // point to server-side PHP script
-					dataType: 'text',                                                                       // what to expect back from the PHP script, if anything
+					url: url,
 					cache: false,
 					contentType: false,
 					processData: false,
 					data: form_data,
 					type: 'post',
 					success: function (php_script_response) {
+						
 					}
 				});
 			}
@@ -1529,67 +1533,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			return containerDiv;
 		},
 
-		getDatabaseJoinSingleElements: function (join_db_name, original_element_id,
-			element_id, join_val_column, join_key_column) {
-			return jQuery.ajax({
-				'url': '',
-				'method': 'get',
-				'data': {
-					'join_db_name': join_db_name,
-					'element_id': element_id,
-					'join_val_column': join_val_column,
-					'join_key_column': join_key_column,
-					'original_element_id': original_element_id,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetDatabaseJoinSingleData',
-					'g': 'form',
-				},
-			});
-		},
-
-		getDatabaseJoinMultipleElements: function (join_db_name, parent_table_name, element_name, parent_id, join_val_column, join_key_column, request_elements_array) {
-			return jQuery.ajax({
-				'url': '',
-				'method': 'get',
-				'data': {
-					'request_elements_array': request_elements_array,
-					'join_val_column': join_val_column,
-					'join_key_column': join_key_column,
-					'join_db_name': join_db_name,
-					'parent_table_name': parent_table_name,
-					'element_name': element_name,
-					'parent_id': parent_id,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetDatabaseJoinMultipleData',
-					'g': 'form',
-				},
-			});
-		},
-
-		getFileUploadOriginals: function (parent_table_name, element_name, parent_id) {
-			return jQuery.ajax({
-				'url': '',
-				'method': 'get',
-				'data': {
-					'parent_table_name': parent_table_name,
-					'element_name': element_name,
-					'parent_id': parent_id,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetFileUpload',
-					'g': 'form',
-				},
-			});
-		},
-
 		getElementsType: function (req_list_id) {
 			return jQuery.ajax({
 				'url': '',
@@ -1622,16 +1565,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			});
 		},
 
-		getRecord: function (req_list_id, req_record_id) {
-			return jQuery.ajax({
-				url: this.options.root_url + 'plugins/fabrik_form/workflow/getRecord.php',
-				data: {
-					'req_list_id': req_list_id,
-					'req_record_id': req_record_id
-				}
-			});
-		},
-
 		getElementsPlugin: function (req_list_id) {
 			return jQuery.ajax({
 				'url': '',
@@ -1645,13 +1578,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					'method': 'GetElementsPlugin',
 					'g': 'form',
 				}
-			});
-		},
-
-		getRequestType: function (req_request_type_id) {
-			return jQuery.ajax({
-				url: this.options.root_url + 'plugins/fabrik_form/workflow/getRequestType.php',
-				data: { 'req_request_type_id': req_request_type_id }
 			});
 		},
 
