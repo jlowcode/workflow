@@ -13,7 +13,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			'verify': Joomla.JText._('PLG_FORM_WORKFLOW_VERIFY'),
 			'approved': Joomla.JText._('PLG_FORM_WORKFLOW_APPROVED'),
 			'pre-approved': Joomla.JText._('PLG_FORM_WORKFLOW_PRE_APPROVED'),
-			'not-approved': Joomla.JText._('PLG_FORM_WORKFLOW_NOTE_APPROVED')
+			'not-approved': Joomla.JText._('PLG_FORM_WORKFLOW_NOT_APPROVED')
 		},
 
 		requestTypeText: {
@@ -71,18 +71,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			this.options = options;
 			this.options.actualPage = 1;
 
-			// When the page is ready
 			jQuery(document).ready(function () {
 				var url = new URL(window.location.href);
                 var paramsUrl = new URLSearchParams(url.search);
                 var status = paramsUrl.get('status') ? paramsUrl.get('status') : 'verify';
 				jQuery('#requestTypeSelect').val(status);
 
-				// Get the modal
 				var modal = jQuery('#modal')[0];
 				self.modal = modal;
 				self.loadRequestList(modal, status);
-				// Search event
+
 				var inputSearch = jQuery("#searchTable");
 				inputSearch.on('keyup', function (event) {
 					if (event.target.value === "") {
@@ -119,11 +117,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				var dataRow = document.getElementsByClassName('fabrik_row');
 				Array.from(dataRow).each(function (row) {
-					// BUTTON REPORT 
+					// Report button
 					var btnGroup = row.getElementsByClassName('dropdown-menu');
 					btnGroup[0].style.minWidth = '12em';
 					let li = document.createElement("li");
 					li.setAttribute('class', 'nav-link')
+
 					let report = document.createElement("a");
 					report.classList.add('btn-default-delete');
 					report.setAttribute('data-loadmethod', 'xhr')
@@ -132,12 +131,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					report.setAttribute('data-rowid', 'xhr')
 					report.setAttribute('target', '_self')
 					report.setAttribute('title', Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST"))
+
 					report.innerHTML = '<span>' + self.options.images.danger + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST");
 					li.appendChild(report)
 					btnGroup[0].appendChild(li);
-					// REMOVE DELETAR PADRAO
+
+					// Remove default delete button
 					jQuery('.dropdown-menu a.delete').parent().remove()
-					// ADICIONA TOOTIPS PARA CAMPOS VAZIOS
+
 					var fields = jQuery('.fabrik_element');
 					Object.keys(fields).forEach(function (key) {
 						if (fields[key].outerText == '') {
@@ -152,6 +153,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					const loadImg = jQuery('<div style=" display: flex; position: fixed; background: rgba(0,0,0,0.5);width: 100%;top: 0;height: 100vh;margin: auto;"><img style="margin: auto;" src="https://i.gifer.com/ZKZg.gif"></div>');
 					jQuery('body').append(loadImg);
 					var listRowIds = this.attributes['list-row-ids'].value
+
 					jQuery.ajax({
 						'url': '',
 						'method': 'get',
@@ -188,9 +190,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				self.loadRequestList(self.modal, selected, 1);
 			});
 
-			// Order by
 			var orderByDropdownItens = jQuery('#orderBySelect');
-
 			for (var chave in self.tableHeadings) {
 				if (chave == 'req_created_date') {
 					orderByDropdownItens.append('<option value="' + chave + '">' + self.tableHeadings[chave] + ' - ASC' + '</option>');
@@ -203,7 +203,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			orderByDropdownItens.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
-				// get the requests type selected - approved/pre-approved ect
 				var typeSelected = jQuery(requestTypeSelect).children("option:selected").val();
 				self.loadRequestList(self.modal, typeSelected, self.options.actualPage, null, selected);
 			});
@@ -227,6 +226,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		setPagination: function (actualPage = 1) {
 			var self = this;
 			self.options.actualPage = actualPage;
+
 			var paginationElement = jQuery('#workflow-pagination');
 			paginationElement.empty();
 			var paginationUl = jQuery('<ul class="pagination"></ul>');
@@ -245,19 +245,21 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(startButtonPagination));
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(prevButtonPagination));
 			} else {
-				// @TODO - PAGINATION Start prev
 				startButtonPagination.on('click', function () {
 					var selected = jQuery('#requestTypeSelect')[0].value
 					self.loadRequestList(self.modal, selected, 1);
 				});
+
 				prevButtonPagination.on('click', function () {
 					if (actualPage != 1) {
 						var selected = jQuery('#requestTypeSelect')[0].value
 						self.loadRequestList(self.modal, selected, actualPage - 1);
 					}
 				});
+
 				startButtonPagination.attr("style", cursorPointer);
 				prevButtonPagination.attr("style", cursorPointer);
+
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(startButtonPagination));
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(prevButtonPagination));
 			}
@@ -268,7 +270,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				if (actualPage == i) {
 					paginationUl.append(jQuery('<li class="page-item active"></li>').append(pageButton));
 				} else {
-					var teste = i;
 					// Event on click pagination numbers
 					(function (index) {
 						pageButton.attr("style", cursorPointer);
@@ -287,7 +288,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(nextButtonPagination));
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(endButtonPagination));
 			} else {
-				// @TODO - PAGINATION NEXT END
 				nextButtonPagination.on('click', function () {
 					if (actualPage != pageCount) {
 						var selected = jQuery('#requestTypeSelect')[0].value
@@ -302,6 +302,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				nextButtonPagination.attr("style", cursorPointer);
 				endButtonPagination.attr("style", cursorPointer);
+
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(nextButtonPagination));
 				paginationUl.append(jQuery('<li class="page-item"></li>').append(endButtonPagination));
 			}
@@ -316,19 +317,18 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		loadRequestList: function (modal, type, page = 1, search = null, orderBy = 'req_created_date') {
-			orderBy = jQuery('#orderBySelect').val();
 			var self = this;
+			orderBy = jQuery('#orderBySelect').val();
+
 			if (this.options.wfl_action == 'list_requests') {
 				this.getRequestsList(type, 5, start, search, 1).done(function (response) {
 					self.options.requestsCount = response;
 					self.setPagination(page);
 				});
 			}
-			var self = this;
+
 			var start;
-			var table = jQuery("#tblEntAttributes");
 			var tableBody = jQuery("#tblEntAttributes tbody");
-			const loadImg = jQuery('<img style="display:block; margin: auto;" src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/35771931234507.564a1d2403b3a.gif">');
 			tableBody.empty();
 			tableBody.empty();
 			var empty = jQuery("<tr><td  colspan='10'>" + Joomla.JText._('PLG_FORM_WORKFLOW_NO_RECORDS_FOUND') + "</td></tr>");
@@ -346,6 +346,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				if (requests.length !== 0) {
 					tableBody.empty();
 				}
+
 				self.options.requestsCount = requests['requestCount'];
 
 				jQuery.each(requests[type], function (i, item) {
@@ -368,7 +369,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						} else {
 							newRowContent.append("<td></td>");
 						}
-
 					});
 
 					buttonOpenModal.on('click', function () {
@@ -392,11 +392,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		getRequestsList: function (req_status, length = 5, start = 0, search = "", count = "0", orderBy = 'req_created_date') {
 			var sequence = "asc";
 			orderBy = jQuery('#orderBySelect').val();
-			// if is DESC ordered
+			
+			// If is DESC ordered
 			if (orderBy.indexOf("_desc") !== -1) {
 				orderBy = orderBy.replace("_desc", "");
 				sequence = "desc";
 			}
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
@@ -424,29 +426,32 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		canApproveRequests: function (form_data) {
-		form_data.req_reviewers_votes = form_data.req_reviewers_votes == null ? '' : form_data.req_reviewers_votes;
-		if (form_data.req_reviewers_votes.indexOf(this.options.user.id) == -1) {
-			var canApproveRequests = this.options.user.canApproveRequests;
-			if (form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1) {
-				// ALTERAÇÃO
-				if (form_data['req_request_type_name'] == "edit_field_value" || form_data['req_request_type_name'] == "delete_record") {
-					canApproveRequests = true;
-				} else {
+			form_data.req_reviewers_votes = form_data.req_reviewers_votes == null ? '' : form_data.req_reviewers_votes;
+			
+			if (form_data.req_reviewers_votes.indexOf(this.options.user.id) == -1) {
+				var canApproveRequests = this.options.user.canApproveRequests;
+				if (form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1) {
+					if (form_data['req_request_type_name'] == "edit_field_value" || form_data['req_request_type_name'] == "delete_record") {
+						canApproveRequests = true;
+					} else {
+						canApproveRequests = false;
+					}
+				} else if (form_data['req_user_id'] === this.options.user.id) {
 					canApproveRequests = false;
 				}
-			} else if (form_data['req_user_id'] === this.options.user.id) {
-				canApproveRequests = false;
-			}
 			} else {
 				canApproveRequests = false;
 			}
+
 			return canApproveRequests;
 		},
 
 		setForm: function (form, modal, formData, request_id) {
 			var self = this;
+
 			var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
 			jModalBody.empty();
+
 			var commentContainer = jQuery("<div class='mt-2'></div>");
 			var fileContainer = jQuery("<div class='mt-2'></div>");
 			var commentLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') + "</p>");
@@ -454,6 +459,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var approveSection = jQuery("<div class='mt-2 mb-4'></div>");
 			var uploadFileApproveLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL') + "</p>");
 			var uploadFileApprove = jQuery("<input type='file' name='uploadFileApprove' id='uploadFileApprove'>");
+
 			var yesno = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
 				"  <label class=\"btn btn-success\">\n" +
 				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonYes\" value=\"yes\" autocomplete=\"off\" checked> " + Joomla.JText._('JYES') + "\n" +
@@ -463,29 +469,30 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				"  </label>\n" +
 				"</div>");
 
-				var vote = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
-					"  <label class=\"btn btn-success\">\n" +
-					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_IN_FAVOR') + "\n" +
-					"  </label>\n" +
-					"  <label class=\"btn btn-danger\">\n" +
-					"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_AGAINST') + "\n" +
-					"  </label>\n" +
-					"</div>");
+			var vote = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
+				"  <label class=\"btn btn-success\">\n" +
+				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_IN_FAVOR') + "\n" +
+				"  </label>\n" +
+				"  <label class=\"btn btn-danger\">\n" +
+				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_AGAINST') + "\n" +
+				"  </label>\n" +
+				"</div>");
 	
-				switch (this.options.workflow_approval_by_votes) {
-					case '1':
-						var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
-						var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
-						var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>" + Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_VOTES') + ": <br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + parcialAprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_approve + ")<br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL') + parcialDesaprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
-						approvedCheckboxContainer.append(vote);
-						var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
-						break;
-					default:
-						var approvedCheckboxContainer = jQuery("<p class='mt-2'>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + " </p>");
-						approvedCheckboxContainer.append(yesno);
-						var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
-						break;
-				}
+			switch (this.options.workflow_approval_by_votes) {
+				case '1':
+					var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
+					var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
+					var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>" + Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_VOTES') + ": <br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + parcialAprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_approve + ")<br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL') + parcialDesaprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
+					approvedCheckboxContainer.append(vote);
+					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
+					break;
+
+				default:
+					var approvedCheckboxContainer = jQuery("<p class='mt-2'>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + " </p>");
+					approvedCheckboxContainer.append(yesno);
+					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
+					break;
+			}
 
 			commentContainer.append(commentLabel);
 			commentContainer.append(commentTextArea);
@@ -499,14 +506,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			approveSection.append(approvedCheckboxContainer);
 
 			jModalBody.append(form);
-			// @TODO - Verificar se pode aprovar
 			if (formData[0]['req_status'] == 'verify') {
 				if (self.canApproveRequests(formData[0])) {
-					var approveButton = jQuery('<button class="btn btn-primary" id="approveButton">' +
-						Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
+					var approveButton = jQuery('<button class="btn btn-primary" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
 
-					// @TODO RESOLVER DE OUTRA FORMA
 					setTimeout(() => { form.append(approveSection); }, 2000);
+
 					form.append(approveSection);
 					jQuery(approveButton).on('click', function () {
 						const requestType = parseInt(formData[0]['req_request_type_id']);
@@ -526,6 +531,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var recordData = JSON.decode(formData[0]['form_data']);
 							for (var chave in recordData) {
 								if (!recordData.hasOwnProperty(chave)) continue;
+								
 								if (chave.indexOf("_raw") !== -1) {
 									delete recordData[chave];
 								}
@@ -579,7 +585,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var approved = jQuery("input[name='yesnooptions']:checked").val() == "yes" ? true : false;
 
 							jModalBody.empty();
-							jModalBody.append(jQuery('<h3>Carregando... </h3>'));
+							jModalBody.append(jQuery('<h3>' + Joomla.JText._('PLG_FORM_WORKFLOW_LOADING') + '</h3>'));
 							if (approved) {
 								formData[0]['req_approval'] = '1';
 							} else {
@@ -594,6 +600,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							var recordData = JSON.decode(formData[0]['form_data']);
 							for (var chave in recordData) {
 								if (!recordData.hasOwnProperty(chave)) continue;
+
 								if (chave.indexOf("_raw") !== -1) {
 									delete recordData[chave];
 								}
@@ -698,6 +705,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				recordData[token] = "1";
 				recordData['review'] = true;
 				recordData['req_id'] = formData[0]['req_id'];
+
 				jQuery.ajax({
 					type: "POST",
 					url: "",
@@ -743,17 +751,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		compareRecords: function (lastRecord, newRecord) {
 			var self = this;
-			// iterates over new record finding correspondent on
-			// las record, store if doesn't exists or if is not the same value
+
+			// Iterates over new record finding correspondent on last record, store if doesn't exists or if is not the same value
 			const listName = this.options.listName;
 			var changedProperties = {};
 			for (var key in newRecord) {
-				// skip loop if the property is from prototype
+				// Skip loop if the property is from prototype
 				if (!newRecord.hasOwnProperty(key) || !(key.indexOf(listName + '_') !== -1)) continue;
-				// verify if the property exists on the last record
-				// if exists verify if has changed
+
+				// Verify if the property exists on the last record, if exists verify if has changed
 				if (lastRecord.hasOwnProperty(key)) {
-					// verificar se mudou o value
 					if (!self.isEqual(newRecord[key], lastRecord[key])) {
 						var obj = {};
 						obj['last'] = lastRecord[key];
@@ -771,7 +778,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			return changedProperties;
 		},
 
-		// Compares if two arrays/objects are equals
+		/**
+		 * Compares if two arrays/objects are equals
+		 * 
+		 */
 		isEqual: function (e1, e2) {
 			const e1Json = JSON.encode(e1);
 			const e2Json = JSON.encode(e2);
@@ -781,23 +791,25 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		renderFiles: function (id, fileList) {
-			// Creates the div
 			var div = jQuery('<div></div>');
+
 			if (id) {
 				var label = jQuery('<p>' + id + '</p>');
 				div.append(label);
 			}
+
 			for (var key in fileList) {
 				if (!fileList.hasOwnProperty(key)) continue;
 				var link = jQuery('<p><a target="_blank" href="' + this.options.root_url + fileList[key] + '">' + fileList[key] + ' </a></p>');
 				div.append(link);
 			}
+
 			return div;
 		},
 
 		renderFilesOriginalRequest: function (id, originalFileList, requestFileList) {
 			var self = this;
-			// Creates the div
+
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
 			const label = jQuery('<p>' + id + '</p>');
@@ -806,18 +818,23 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var requestImages = jQuery('<div></div>');
 			originalImages.append(originalLabel);
 			originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
+
 			originalFileList.forEach(function (element, index) {
 				const link = jQuery('<p style="overflow-wrap: break-word;"><a target="_blank" href="' + self.options.root_url + element.value + '">' + element.value + ' </a></p>');
 				originalImages.append(link);
 			});
+
 			requestImages.append(label);
 			requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
+
 			Object.values(requestFileList).forEach(function (element, index) {
 				const link = jQuery('<p style="overflow-wrap: break-word;"><a target="_blank" href="' + self.options.root_url + element + '">' + element + ' </a></p>');
 				requestImages.append(link);
 			});
+
 			containerDiv.append(originalImages);
 			containerDiv.append(requestImages);
+
 			return containerDiv;
 		},
 
@@ -866,10 +883,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			originalNewInputContainer.attr('style', 'display: flex;');
 			const inputContainer = self.createInput(key, newValue, key);
 			const inputOriginalContainer = self.createInput(key + originalLabel, originalValue, key + originalLabel);
+
 			inputContainer[0].style.paddingLeft = "5px";
 			inputOriginalContainer[0].style.paddingLeft = "5px";
 			inputContainer[0].style.flex = "1";
 			inputOriginalContainer[0].style.flex = "1";
+
 			originalNewInputContainer.append(inputOriginalContainer);
 			originalNewInputContainer.append(inputContainer);
 
@@ -880,11 +899,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var self = this;
 			var form = jQuery('<form></form>');
 
-			// Container to the Request Data, such as
-			// [req_user_id. req_created_data, ...]
+			// Container to the Request Data, such as [req_user_id. req_created_data, ...]
 			var requestInputsContainer = jQuery('<div></div>');
 
-			// Set a title to the container
 			var typeLabel = '';
 			switch (parseInt(data['req_request_type_id'])) {
 				case 1:
@@ -903,13 +920,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					typeLabel = Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_FIELD_TEXT');
 					break;
 			}
+
 			requestInputsContainer.append('<h2>' + typeLabel + '<h2><hr />');
 			requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL') + '<h2>');
 
 			// Iterates over data creating a input form for each entry and appending it to the container
 			for (var key in data) {
-				if (key == 'form_data')
-					continue;
+				if (key == 'form_data') continue;
+
 				if (data[key]) {
 					switch (key) {
 						case 'req_request_type_id':
@@ -929,6 +947,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							div.append(label);
 							var link = jQuery('<p><a target="_blank" href="' + this.options.root_url + data[key] + '">' + data[key] + ' </a></p>');
 							div.append(link);
+							
 							requestInputsContainer.append(div);
 							break;
 
@@ -950,8 +969,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							div.append(label);
 
 							var baseUrl = form[0].baseURI.split('?')[0]
-							baseUrl = baseUrl.indexOf("list") != -1 ? baseUrl.replace('list', 'details') + '/' + data[key] : baseUrl + '/details/' + data['req_list_id'] + '/' + data[key];
-
+							baseUrl = baseUrl.indexOf("/list/") != -1 ? baseUrl.replace('list', 'details') + '/' + data[key] : baseUrl + '/details/' + data['req_list_id'] + '/' + data[key];
 							
 							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"></div>');
 
@@ -979,9 +997,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 			}
 
-			// Parsing the json from form_data to an object
 			var formData = JSON.parse(data['form_data']);
 			const listName = self.options.listName;
+
 			// Container to the new/edited data of the request
 			var formDataInputsContainer = jQuery('<div></div>');
 			formDataInputsContainer.attr('class', 'formDataInputsContainer mt-2');
@@ -1028,7 +1046,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					break;
 			}
 
-			// Returns the form
 			return form;
 		},
 
@@ -1058,10 +1075,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				hasProperty = false;
 			} else {
 				for (var k in obj) {
-					// Se o formulário adicionado tem um log gravado anteriormente
 					if (obj.hasOwnProperty(k)) {
-						formDataInputsContainer.append(
-							self.buildEditRecordView(lastFormData, formData, elementTypesObj));
+						formDataInputsContainer.append(self.buildEditRecordView(lastFormData, formData, elementTypesObj));
 						hasProperty = true;
 						break;
 					}
@@ -1085,6 +1100,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			const recordId = data['req_record_id'];
 			const link = self.options.root_url + "component/fabrik/details/" + self.options.listId + "/" + recordId;
 			formDataInputsContainer.append("<a class='btn btn-outline-primary' href='" + link + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_CLICK_HERE') + "</a>");
+
 			form.append(formDataInputsContainer);
 		},
 
@@ -1098,6 +1114,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			self.getBuildFormEasyadmin(formData, data).done(function(body) {
 				formDataInputsContainer.append(body);
 				form.append(formDataInputsContainer);
+
 				try {
 					require(['/plugins/fabrik_list/easyadmin/easyadmin.js'], function (fabrikEasyAdmin) {
 						var easyadmin = new fabrikEasyAdmin(self.options.optsEasyadmin);
@@ -1115,7 +1132,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				} catch (e) {
 					console.warn(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_LOAD_EASYADMIN_FILE'), e);
 				}
-
 			})
 		},
 
@@ -1124,8 +1140,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	 	 * 
 		 */
 		buildFormEditFields: function (formData, formDataInputsContainer, form, data) {
-			var self = this;
-
 			jQuery.ajax({
 				'url': '',
 				'method': 'post',
@@ -1205,9 +1219,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			const listName = this.options.listName;
 			var repeatGroups = {};
 
+			// If has raw continue iteration and verify if is list element
 			for (var key in formData) {
-				// If has raw continue iteration
-				// Verify if is list element
 				if (key.indexOf(listName) !== -1) {
 					const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
 					if (key.indexOf("_raw") !== - 1) continue;
@@ -1224,7 +1237,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					if (isRepeatGroup !== -1) {
 						repeatGroups[key] = obj;
 					} else {
-						// Get value if owner id
 						if (elementsTypes[onlyElementKey] != undefined) {
 							if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
 								view.append(self.createInput(onlyElementKey, self.options.user.name, onlyElementKey));
@@ -1232,11 +1244,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								if ([listName + '_FILE_' + listName + '___' + onlyElementKey]) {
 									try{
 										var elementName = formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['name'];
+										
 										if (Array.isArray(elementName)) {
 											view.append(this.buildMultipleElementView(elementName, onlyElementKey));
 										} else {
 											view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
 										}
+
 										if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
 											view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path']));
 										} 
@@ -1275,30 +1289,27 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			const changedProperties = self.compareRecords(lastFormData, newFormData);
 
 			for (var key in changedProperties) {
-				if (!changedProperties.hasOwnProperty(key)) continue;
-
 				// if is not raw continue to next iteration
+				if (!changedProperties.hasOwnProperty(key)) continue;
 				if (key.indexOf("_raw") === -1 && changedProperties.hasOwnProperty(key + "_raw")) continue;
-				var obj = changedProperties[key];
 
+				var obj = changedProperties[key];
 				const onlyElementKey = key.replace(listName + "___", "").replace("_raw", "").replace("_value", "").replace("-auto-complete", "");
+
 				if (this.options.workflow_ignore_elements != null) {
 					if (this.options.workflow_ignore_elements.indexOf(onlyElementKey) !== -1) continue;
 				}
 
 				// if is id continue to next iteration
 				if (key.indexOf("_id") !== -1) continue;
-
 				if ((key.indexOf("_raw") !== -1 || key.indexOf("-auto-complete") !== -1) && (changedProperties.hasOwnProperty(listName + "___" + onlyElementKey + "_value"))) continue;
 
 				const isRepeatGroup = key.indexOf('repeat');
 				if (isRepeatGroup !== -1) {
 					repeatGroups[key] = obj;
 				} else {
-					// Get value if owner id
 					if (elementsTypes[onlyElementKey] != undefined) {
 						if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
-							//onGetUserValue
 							jQuery.ajax({
 								'url': '',
 								'method': 'get',
@@ -1325,7 +1336,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							} else {
 								var elementName = 'undefined';
 							}
-								if (changedProperties.hasOwnProperty(elementName)) {
+
+							if (changedProperties.hasOwnProperty(elementName)) {
 								if (changedProperties[elementName]['last'] != undefined) {
 									if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
 										view.append(this.buildMultipleElementView(changedProperties[elementName]['last']['name']));
@@ -1335,21 +1347,22 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 										}
 									} else {
 										view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
+										
 										if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
 											view.append(self.renderImgs('change', changedProperties[elementName]));
+										}
+									}
+								}
+							} else {
+								if (changedProperties.hasOwnProperty(elementName)) {
+									view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
+									if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
+										view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
 									}
 								}
 							}
-						} else {
-							if (changedProperties.hasOwnProperty(elementName)) {
-								view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
-								if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
-									view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
-								}
-							}
-						}
-					} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
-						view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
+						} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
+							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
 						} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
 							const container = jQuery("<div></div>");
 							const containerFlex = jQuery("<div></div>");
@@ -1357,11 +1370,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							containerFlex.attr('style', 'display: flex;');
 							var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
 							var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
+
 							if (!obj['last'] || obj['last'] == undefined) {
 								// originalElement.append("VAZIO");
 							} else {
 								originalElement.append(self.buildMultipleElementView(obj['last']));
 							}
+
 							newElement.append(self.buildMultipleElementView(obj['new']));
 							newElement[0].style.paddingLeft = "5px";
 							originalElement[0].style.paddingLeft = "5px";
@@ -1384,6 +1399,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				const containerFlex = jQuery("<div></div>");
 				containerFlex.append("");
 				containerFlex.attr('style', 'display: flex;');
+
 				var newElement = jQuery("<div></div>");
 				var originalElement = jQuery("<div></div>");
 				originalElement.append(self.buildRepeatGroupView(group['last']));
@@ -1392,6 +1408,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				originalElement[0].style.paddingLeft = "5px";
 				newElement[0].style.flex = "1";
 				originalElement[0].style.flex = "1";
+
 				containerFlex.append(originalElement);
 				containerFlex.append(newElement);
 				container.append(containerFlex);
@@ -1403,6 +1420,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		buildMultipleElementView: function (element, key = null) {
 			var div = jQuery("<div></div>");
+
 			if (key) {
 				div = jQuery("<div><p>" + key + "</p></div>");
 			}
@@ -1411,8 +1429,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			element.forEach(function (one) {
 				ul.append("<li>" + one + "</li>")
 			});
-			div.append(ul);
 
+			div.append(ul);
 			return div;
 		},
 
@@ -1421,6 +1439,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var div = jQuery("<div><p>" + key + "</p></div>");
 			var ul = jQuery("<ul></ul>");
 			var empty = 0;
+
 			element.forEach(function (one) {
 				if (one !== "") {
 					if (one !== Object(one)) {
@@ -1449,6 +1468,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		processRepeatGroups: function (repeatGroups) {
 			var groups = {};
+
 			for (const key in repeatGroups) {
 				const indice = key.indexOf("___");
 				const property = key.substr(0, indice);
@@ -1472,6 +1492,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					if (!files.hasOwnProperty(fileGroupKey)) continue;
 					const obj = files[fileGroupKey];
 					const ids = Object.getOwnPropertyNames(obj['id']);
+
 					ids.forEach(function (element, index) {
 						filesArray.push(element);
 					});
@@ -1482,21 +1503,22 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		renderImgs: function (option, files, path = null) {
-			var self = this;
+			var url_root = this.options.root_url;
 
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
+
 			const label = jQuery('<p>nova imagem</p>');
 			const originalLabel = jQuery('<p>imagem - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + '</p>');
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			requestImages.append(label);
 			requestImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
-			var url_root = this.options.root_url;
 
 			if (option == 'change') {
 				originalImages.append(originalLabel);
 				originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
+
 				if (Array.isArray(files['last']['name'])) {
 					files['last']['name'].forEach(function (element, index) {
 						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + element + '" width="500" height="600"></p>');
@@ -1506,7 +1528,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + files['last']['name'] + '" width="500" height="600"></p>');
 					originalImages.append(link);
 				}
+
 				containerDiv.append(originalImages);
+
 				if (Array.isArray(files['new']['name'])) {
 					files['new']['name'].forEach(function (element, index) {
 						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + element + '" width="500" height="600"></p>');
@@ -1516,6 +1540,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + files['new']['name'] + '" width="500" height="600"></p>');
 					requestImages.append(link);
 				}
+
 				containerDiv.append(requestImages);
 			} else if ('new') {
 				if (Array.isArray(files)) {
@@ -1527,6 +1552,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + files + '" width="500" height="600"></p>');
 					requestImages.append(link);
 				}
+
 				containerDiv.append(requestImages);
 			}
 
@@ -1595,7 +1621,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 			});
 		},
-
 	});
 
 	return FabrikWorkflow;
