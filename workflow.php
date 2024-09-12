@@ -234,11 +234,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         $req_record_id = $_REQUEST['req_record_id'];
+        $req_list_id = $_REQUEST['req_list_id'];
 
         $query = $db->getQuery(true);
         $query->select($db->qn("form_data"))
             ->from($db->qn("#__fabrik_requests"))
             ->where($db->qn("req_record_id") . ' = ' . "$req_record_id")
+            ->where($db->qn("req_list_id") . ' = ' . "$req_list_id")
             ->where("(`req_status` = 'approved' or `req_status` = 'pre-approved')")
             ->order('req_id desc');
         $db->setQuery($query);
@@ -307,27 +309,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             return $elements;
         } else {
             echo json_encode($elements);
-        }
-    }
-
-    /**
-     * This method upload the file on save request
-     * 
-     * @return      Null
-     */
-    public function onUploadFileToRequest()
-    {
-        $filter = JFilterInput::getInstance();
-        $request = $filter->clean($_REQUEST, 'array');
-
-        try {
-            if (0 < $_FILES['file']['error']) {
-                echo 'Error: ' . $_FILES['file']['error'] . '<br>';
-            } else {
-                move_uploaded_file($_FILES['file']['tmp_name'], 'uploads/' . $_FILES['file']['name']);
-            }
-        } catch (Exception $e) {
-            echo $e;
         }
     }
 

@@ -457,8 +457,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var commentLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') + "</p>");
 			var commentTextArea = jQuery("<textarea style='width: 100%;height: 5rem;' id='commentTextArea'></textarea>");
 			var approveSection = jQuery("<div class='mt-2 mb-4'></div>");
-			var uploadFileApproveLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_FILE_LABEL') + "</p>");
-			var uploadFileApprove = jQuery("<input type='file' name='uploadFileApprove' id='uploadFileApprove'>");
 
 			var yesno = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
 				"  <label class=\"btn btn-success\">\n" +
@@ -497,9 +495,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			commentContainer.append(commentLabel);
 			commentContainer.append(commentTextArea);
 
-			fileContainer.append(uploadFileApproveLabel);
-			fileContainer.append(uploadFileApprove);
-
 			approveSection.append(approveSectionTitle);
 			approveSection.append(commentContainer);
 			approveSection.append(fileContainer);
@@ -516,7 +511,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					jQuery(approveButton).on('click', function () {
 						const requestType = parseInt(formData[0]['req_request_type_id']);
 
-						var uploadFileInput = jQuery(form).find("#uploadFileApprove");
 						if (self.options.workflow_approval_by_votes == '1') {
 							var vote = jQuery("input[name='voteoptions']:checked").val();
 							if (vote == 'approve') {
@@ -625,50 +619,25 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								}
 							}
 
-							if (uploadFileInput.val()) {
-								self.uploadFile(uploadFileInput).done(function (response) {
-									formData[0]['req_file'] = response;
-									jQuery.ajax({
-										'url': '',
-										'method': 'post',
-										'data': {
-											'formData': formData,
-											'options': self.options,
-											'option': 'com_fabrik',
-											'format': 'raw',
-											'task': 'plugin.pluginAjax',
-											'plugin': 'workflow',
-											'method': 'ProcessRequest',
-											'g': 'form',
-										},
-										success: function (data) {
-											modal.style.display = "none";
-											alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
-											document.location.reload(true);
-										}
-									});
-								});
-							} else {
-								jQuery.ajax({
-									'url': '',
-									'method': 'post',
-									'data': {
-										'formData': formData,
-										'options': self.options,
-										'option': 'com_fabrik',
-										'format': 'raw',
-										'task': 'plugin.pluginAjax',
-										'plugin': 'workflow',
-										'method': 'ProcessRequest',
-										'g': 'form',
-									},
-									success: function (data) {
-										modal.style.display = "none";
-										alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
-										document.location.reload(true);
-									}
-								});
-							}
+							jQuery.ajax({
+								'url': '',
+								'method': 'post',
+								'data': {
+									'formData': formData,
+									'options': self.options,
+									'option': 'com_fabrik',
+									'format': 'raw',
+									'task': 'plugin.pluginAjax',
+									'plugin': 'workflow',
+									'method': 'ProcessRequest',
+									'g': 'form',
+								},
+								success: function (data) {
+									modal.style.display = "none";
+									alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
+									document.location.reload(true);
+								}
+							});
 						}
 					});
 
@@ -733,12 +702,13 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			});
 		},
 
-		getLastRecordFormData: function (req_record_id) {
+		getLastRecordFormData: function (req_record_id, req_list_id) {
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
 				'data': {
 					'req_record_id': req_record_id,
+					'req_list_id': req_list_id,
 					'option': 'com_fabrik',
 					'format': 'raw',
 					'task': 'plugin.pluginAjax',
@@ -836,29 +806,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			containerDiv.append(requestImages);
 
 			return containerDiv;
-		},
-
-		uploadFile: function (uploadFileInput) {
-			var self = this;
-			var url = self.options.root_url + "index.php?option=com_fabrik&format=raw&task=plugin.pluginAjax&g=form&plugin=workflow&method=uploadFileToRequest";
-
-			if (uploadFileInput.val()) {
-				var file_data = jQuery(uploadFileInput[0]).prop('files')[0];
-				var form_data = new FormData();
-				form_data.append('file', file_data);
-
-				return jQuery.ajax({
-					url: url,
-					cache: false,
-					contentType: false,
-					processData: false,
-					data: form_data,
-					type: 'post',
-					success: function (php_script_response) {
-						
-					}
-				});
-			}
 		},
 
 		createInput: function (labelText, value, id) {
@@ -1038,7 +985,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						if (data['req_request_type_id'] == "add_record" || parseInt(data['req_request_type_id']) == 1) {
 							self.buildFormAddRecords(elementTypesObj, formData, formDataInputsContainer, form);
 						} else {
-							self.getLastRecordFormData(data['req_record_id']).done(function (lastRecordFormData) {
+							self.getLastRecordFormData(data['req_record_id'], data['req_list_id']).done(function (lastRecordFormData) {
 								self.buildFormEditRecords(elementTypesObj, formData, formDataInputsContainer, lastRecordFormData);
 							});
 						}
