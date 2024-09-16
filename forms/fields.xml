@@ -73,6 +73,7 @@
                      label="PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_LABEL"
                      size="10"
                      repeat="true"
+                     default="2"
               />
 
               <field name="workflow_votes_to_disapprove"
@@ -81,6 +82,7 @@
                      label="PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL"
                      size="10"
                      repeat="true"
+                     default="2"
               />
         </fieldset>	
     </fields>
