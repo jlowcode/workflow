@@ -110,7 +110,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					self.getRequest(requestId).done(function (data) {
 						var objData = JSON.decode(data);
 
-						self.setForm(self.buildFormTest(objData[0]), modal, [objData[0]], requestId);
+						// Verificar
+						self.setForm(self.buildForm(objData[0]), modal, [objData[0]], requestId);
 						modal.show();
 					});
 				}
@@ -372,8 +373,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					});
 
 					buttonOpenModal.on('click', function () {
-						self.setForm(self.buildFormTest(request), modal, [request], request['req_id']);
-						modal.show();
+						self.buildForm(request, modal, request);
 					});
 
 					newRowContent.append(buttonOpenModal);
@@ -453,7 +453,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			jModalBody.empty();
 
 			var commentContainer = jQuery("<div class='mt-2'></div>");
-			var fileContainer = jQuery("<div class='mt-2'></div>");
 			var commentLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') + "</p>");
 			var commentTextArea = jQuery("<textarea style='width: 100%;height: 5rem;' id='commentTextArea'></textarea>");
 			var approveSection = jQuery("<div class='mt-2 mb-4'></div>");
@@ -480,7 +479,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				case '1':
 					var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
 					var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
-					var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>" + Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_VOTES') + ": <br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + parcialAprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_approve + ")<br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL') + parcialDesaprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
+					var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>" + Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_VOTES') + ": <br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + ' ' + parcialAprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + ' ' + this.options.workflow_votes_to_approve + ")<br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL') + ' ' + parcialDesaprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + ' ' + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
 					approvedCheckboxContainer.append(vote);
 					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
 					break;
@@ -497,7 +496,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			approveSection.append(approveSectionTitle);
 			approveSection.append(commentContainer);
-			approveSection.append(fileContainer);
 			approveSection.append(approvedCheckboxContainer);
 
 			jModalBody.append(form);
@@ -842,7 +840,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			return originalNewInputContainer;
 		},
 
-		buildFormTest: function (data) {
+		buildForm: function (data, modal, request) {
 			var self = this;
 			var form = jQuery('<form></form>');
 
@@ -871,129 +869,73 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			requestInputsContainer.append('<h2>' + typeLabel + '<h2><hr />');
 			requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL') + '<h2>');
 
-			// Iterates over data creating a input form for each entry and appending it to the container
-			for (var key in data) {
-				if (key == 'form_data') continue;
+			var url = self.options.root_url + "index.php?option=com_fabrik&format=raw&task=plugin.pluginAjax&g=form&plugin=workflow&method=buildForm";
+			jQuery.ajax({
+				url     : url,
+				method	: 'post',
+				data	: {
+					'data': data
+				} 
+			}).done(function (r) {
+				r = JSON.parse(r);
 
-				if (data[key]) {
-					switch (key) {
-						case 'req_request_type_id':
-						case 'req_id':
-						case 'req_revision_date':
-						case 'req_list_id':
-						case 'req_user_email':
-						case 'req_reviewers_votes':
-						case 'req_owner_id':
-						case 'req_user_id':
-							continue;
-							break;
-
-						case 'req_file':
-							var div = jQuery('<div></div>');
-							var label = jQuery('<p>' + self.elementsName[key] + '</p>');
-							div.append(label);
-							var link = jQuery('<p><a target="_blank" href="' + this.options.root_url + data[key] + '">' + data[key] + ' </a></p>');
-							div.append(link);
-							
-							requestInputsContainer.append(div);
-							break;
-
-						case 'req_status':
-							var d = this.statusName[data[key]];
-							const inputContainerA = self.createInput(self.elementsName[key], d, key);
-							requestInputsContainer.append(inputContainerA);
-							break;
-
-						case 'req_request_type_name':
-							var d = this.requestTypeText[data[key]];
-							const inputContainerB = self.createInput(self.elementsName[key], d, key);
-							requestInputsContainer.append(inputContainerB);
-							break;
-
-						case 'req_record_id':
-							var div = jQuery('<div></div>');
-							var label = jQuery('<label for="' + self.elementsName[key] + '">' + self.elementsName[key] + ' </label>')
-							div.append(label);
-
-							var baseUrl = form[0].baseURI.split('?')[0]
-							baseUrl = baseUrl.indexOf("/list/") != -1 ? baseUrl.replace('list', 'details') + '/' + data[key] : baseUrl + '/details/' + data['req_list_id'] + '/' + data[key];
-							
-							var link = jQuery('<div class="input-group mb-3"><input type="text" class="form-control" placeholder="" disabled="" value="' + data[key] + '"></div>');
-
-							if(parseInt(data['req_request_type_id']) != 5) {
-								var btnLink = jQuery('<a target="_blank" href="' + baseUrl + '"><button class="btn btn-primary h-100" type="button" id="' + self.elementsName[key] + '">' + Joomla.JText._('PLG_FORM_WORKFLOW_VIEW') + '</button></a>');
-								link.append(btnLink);
-							}
-
-							div.append(link);
-							requestInputsContainer.append(div);
-							break;
-
-						case 'req_vote_approve':
-						case 'req_vote_disapprove':
-							var d = data[key];
-							const inputContainerC = self.createInput(Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_SCORE') + self.elementsName[key], d, key);
-							requestInputsContainer.append(inputContainerC);
-							break;
-
-						default:
-							const inputContainer = self.createInput(self.elementsName[key], data[key], key);
-							requestInputsContainer.append(inputContainer);
-							break;
-					}
+				if(r['error']) {
+					console.warn(r['message']);
+					return;
 				}
-			}
 
-			var formData = JSON.parse(data['form_data']);
-			const listName = self.options.listName;
+				var formData = JSON.parse(data['form_data']);
 
-			// Container to the new/edited data of the request
-			var formDataInputsContainer = jQuery('<div></div>');
-			formDataInputsContainer.attr('class', 'formDataInputsContainer mt-2');
-			formDataInputsContainer.attr('style', 'dispay: flex;');
-			formDataInputsContainer.attr('style', 'flex-direction: column;');
-			formDataInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + '<h2>');
-			formDataInputsContainer.css("background-color", "#e3e3e3");
-			formDataInputsContainer.css("padding", "10px");
+				// Container to the new/edited data of the request
+				var formDataInputsContainer = jQuery('<div></div>');
+				formDataInputsContainer.attr('class', 'formDataInputsContainer mt-2');
+				formDataInputsContainer.attr('style', 'dispay: flex;');
+				formDataInputsContainer.attr('style', 'flex-direction: column;');
+				formDataInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + '<h2>');
+				formDataInputsContainer.css("background-color", "#e3e3e3");
+				formDataInputsContainer.css("padding", "10px");
 
-			// Append the request data to the form
-			form.append(requestInputsContainer);
-			form.append(formDataInputsContainer);
+				// Append the request data to the form
+				requestInputsContainer.append(r['fields']);
+				form.append(requestInputsContainer);
+				form.append(formDataInputsContainer);
 
-			switch (parseInt(data['req_request_type_id'])) {
-				case 3:
-				case "delete_record":
-					this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
-						self.buildFormDeleteRecords(data, formDataInputsContainer, form);
-					});
-					break;
+				switch (parseInt(data['req_request_type_id'])) {
+					case 3:
+					case "delete_record":
+						this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
+							self.buildFormDeleteRecords(data, formDataInputsContainer, form);
+						});
+						break;
 
-				case 4:
-				case "add_field":
-					self.buildFormAddFields(formData, formDataInputsContainer, form, data);
-					break;
+					case 4:
+					case "add_field":
+						self.buildFormAddFields(formData, formDataInputsContainer, form, data);
+						break;
 
-				case 5:
-				case "edit_field":
-					self.buildFormEditFields(formData, formDataInputsContainer, form, data);
-					break;
+					case 5:
+					case "edit_field":
+						self.buildFormEditFields(formData, formDataInputsContainer, form, data);
+						break;
 
-				default:
-					this.getElementsType(formData['listid']).done(function (elementsTypes) {
-						var elementTypesObj = JSON.decode(elementsTypes);
+					default:
+						self.getElementsType(formData['listid']).done(function (elementsTypes) {
+							var elementTypesObj = JSON.decode(elementsTypes);
 
-						if (data['req_request_type_id'] == "add_record" || parseInt(data['req_request_type_id']) == 1) {
-							self.buildFormAddRecords(elementTypesObj, formData, formDataInputsContainer, form);
-						} else {
-							self.getLastRecordFormData(data['req_record_id'], data['req_list_id']).done(function (lastRecordFormData) {
-								self.buildFormEditRecords(elementTypesObj, formData, formDataInputsContainer, lastRecordFormData);
-							});
-						}
-					});
-					break;
-			}
+							if (data['req_request_type_id'] == "add_record" || parseInt(data['req_request_type_id']) == 1) {
+								self.buildFormAddRecords(elementTypesObj, formData, formDataInputsContainer, form);
+							} else {
+								self.getLastRecordFormData(data['req_record_id'], data['req_list_id']).done(function (lastRecordFormData) {
+									self.buildFormEditRecords(elementTypesObj, formData, formDataInputsContainer, lastRecordFormData);
+								});
+							}
+						});
+						break;
+				}
 
-			return form;
+				self.setForm(form, modal, [request], request['req_id']);
+				modal.show();
+			});
 		},
 
 		/**

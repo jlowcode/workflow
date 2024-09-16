@@ -16,6 +16,7 @@ defined('_JEXEC') or die('Restricted access');
 require_once COM_FABRIK_FRONTEND . '/models/plugin-form.php';
 require_once COM_FABRIK_FRONTEND . '/models/list.php';
 require_once JPATH_COMPONENT . '/controller.php';
+require_once JPATH_PLUGINS . '/fabrik_element/field/field.php';
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -2372,6 +2373,187 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         
         echo json_encode($response);
     }
+
+    /**
+     * This method render the fields to modal form
+     * 
+     * @return      Null
+     * 
+     * @since       version 4.2
+     */
+    public function onBuildForm()
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $filter = JFilterInput::getInstance();
+        $app = Factory::getApplication();
+
+        $response = new stdClass();
+        $response->error = false;
+
+        $input = $app->input;
+        $request = $filter->clean($input->getString('data'), 'array');
+
+        try {
+            $configFields = $this->configFields(array_keys($request));
+            $elements = $this->setTextElements($configFields['text'], $request);
+            $response->fields = $this->setUpBodyElements($elements);
+        } catch (\Throwable $th) {
+            $response->error = true;
+            $response->message = Text::_("PLG_FORM_WORKFLOW_ERROR_BUILD_FORM");
+        }
+        
+        echo json_encode($response);
+    }
+
+    /**
+     * This method separate the fields by type
+     * 
+     * @param       Array       $data       Array with the fields
+     * 
+     * @return      Array
+     * 
+     * @since       v4.2
+     */
+    private function configFields($data) 
+    {
+        $configFields = Array();
+
+        foreach ($data as $field) {
+            switch ($field) {
+                case 'req_request_type_id':
+                case 'req_id':
+                case 'req_revision_date':
+                case 'req_list_id':
+                case 'req_user_email':
+                case 'req_reviewers_votes':
+                case 'req_owner_id':
+                case 'req_user_id':
+                case 'req_file':
+                case 'form_data':
+                    break;
+
+                default:
+                    $configFields['text'][] = $field;
+                    break;
+            }
+        }
+        
+        return $configFields;
+    }
+
+    /**
+	 * Setter method to text elements
+	 *
+	 * @param   	Array 		$elements			Reference to text elements name
+	 * @param		Array		$data		        Form data for each element
+	 *
+	 * @return  	Array
+	 * 
+	 * @since 		version 4.2
+	 */
+	private function setTextElements($elements, $data) 
+	{
+        foreach ($elements as $id) {
+            $value = $data[$id];
+            $dEl = new stdClass;
+
+            // Options to set up the element
+            $dEl->attributes = Array(
+                'type' => 'text',
+                'id' => $id,
+                'name' => $id,
+                'size' => 0,
+                'maxlength' => '255',
+                'class' => 'form-control fabrikinput inputbox text',
+                'value' => $value,
+                'disabled' => 'disabled'
+            );
+
+            $classField = new PlgFabrik_ElementField($this->subject);
+            $els[$id]['objField'] = $classField->getLayout('form');
+            $els[$id]['objLabel'] = FabrikHelperHTML::getLayout('fabrik-element-label', [COM_FABRIK_BASE . 'components/com_fabrik/layouts/element']);
+
+            $els[$id]['dataLabel'] = $this->getDataLabel(
+                $id, 
+                Text::_('PLG_FABRIK_LIST_EASY_ADMIN_ELEMENT_NAME_LABEL'), 
+                Text::_('PLG_FABRIK_LIST_EASY_ADMIN_ELEMENT_NAME_DESC'), 
+            );
+            $els[$id]['dataField'] = $dEl;
+        }
+
+        return $els;
+	}
+
+    /**
+	 * Getting the array of data to construct the elements label
+     * Copied by easyadmin plugin
+	 *
+	 * @param		String			$id					Identity of the element
+	 * @param		String			$label				Label of the element
+	 * @param		String			$tip				Tip of the element
+	 * @param   	Array 			$showOnTypes		When each element must show on each type of elements (Used in js)
+	 * @param		Boolean			$fixed				If the element is fixed always or must show and hide depending of the types above
+	 * @param		String			$modal				If the element is at list modal or element modal
+	 *
+	 * @return  	Array
+	 * 
+	 * @since 		version 4.2
+	 */
+	private function getDataLabel($id, $label, $tip, $showOnTypes='', $fixed=true, $modal='element') 
+	{
+		$class = $fixed ?  '' : "modal-$modal type-" . implode(' type-', $showOnTypes);
+
+		$data = Array(
+			'canView' => true,
+			'id' => $id,
+			'canUse' => true,
+			'label' => $label,
+			'hasLabel' => true,
+			'view' => 'form',
+			'tipText' => $tip,
+			'tipOpts' => (object) ['formTip' => true, 'position' => 'top-left', 'trigger' => 'hover', 'notice' => true],
+			'labelClass' =>  "form-label fabrikLabel {$class}",
+		);
+
+		return $data;
+	}
+
+    /**
+	 * Method that set up the elements
+	 * Copied by easyadmin plugin
+     * 
+	 * @param		Int			$return			Choose to string return (0) or array return (1)
+	 * 
+	 * @return  	String|Array
+	 * 
+	 * @since 		version 4.2
+	 */
+	private function setUpBodyElements($elements, $return=0) 
+	{
+		$layoutBody = $this->getLayout('modal-body');
+
+		$data = new stdClass();
+		$data->labelPosition = '0';
+
+		foreach ($elements as $nameElement => $element) {
+			$dEl = new stdClass();
+			$data->label = $element['objLabel']->render((object) $element['dataLabel']);
+			$data->element = isset($element['objField']) ? $element['objField']->render($element['dataField']) : '';
+			$data->cssElement = $element['cssElement'];
+
+			switch ($return) {
+				case 1:
+					$body[$nameElement] = $layoutBody->render($data);
+					break;
+				
+				default:
+					$body .= $layoutBody->render($data);
+					break;
+			}
+		}
+
+		return $body;
+	}
 
     /**
      * Install the plugin db tables
