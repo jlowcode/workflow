@@ -17,6 +17,7 @@ require_once COM_FABRIK_FRONTEND . '/models/plugin-form.php';
 require_once COM_FABRIK_FRONTEND . '/models/list.php';
 require_once JPATH_COMPONENT . '/controller.php';
 require_once JPATH_PLUGINS . '/fabrik_element/field/field.php';
+require_once JPATH_PLUGINS . '/fabrik_element/textarea/textarea.php';
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -24,6 +25,7 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\User\User;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Filesystem\Path;
+use Joomla\CMS\Layout\FileLayout;
 
 /**
  * Form workflow plugin
@@ -45,7 +47,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     protected $requestType;
     protected $easyadmin=false;
 
-    protected $requests_table_attrs = array(
+    protected $requests_table_attrs = Array(
         'req_id',
         'req_request_type_id',
         'req_user_id',
@@ -63,6 +65,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         'req_list_id',
         'form_data'
     );
+
+    protected $statusLista = Array();
+    protected $requestTypeText = Array();
 
     const REQUEST_TYPE_ADD_RECORD = 1;
     const REQUEST_TYPE_EDIT_RECORD = 2;
@@ -87,6 +92,21 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $this->subject = $subject;
         $this->configConstruct = $config;
 		parent::__construct($subject, $config);
+        
+        $this->statusLista = Array(
+            'verify' => Text::_('PLG_FORM_WORKFLOW_VERIFY'),
+            'approved' => Text::_('PLG_FORM_WORKFLOW_APPROVED'),
+            'not-approved' => Text::_('PLG_FORM_WORKFLOW_PRE_APPROVED'),
+            'pre-approved' => Text::_('PLG_FORM_WORKFLOW_NOT_APPROVED'),
+        );
+
+        $this->requestTypeText = Array(
+            'add_record' => Text::_('PLG_FORM_WORKFLOW_ADD_RECORD'),
+			'edit_field_value' => Text::_('PLG_FORM_WORKFLOW_EDIT_FIELD_VALUE'),
+			'delete_record' => Text::_('PLG_FORM_WORKFLOW_DELETE_RECORD'),
+			'add_field' => Text::_('PLG_FORM_WORKFLOW_ADD_FIELD'),
+			'edit_field' => Text::_('PLG_FORM_WORKFLOW_EDIT_FIELD')
+        );
     }
 
     /**
@@ -441,18 +461,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     public function loadTranslationsOnJS()
     {
         Text::script('PLG_FORM_WORKFLOW_REQ_ID_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_OWNER_NAME_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_REQUEST_TYPE_NAME_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_USER_NAME_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_CREATED_DATE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_STATUS_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_RECORD_ID_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_LIST_ID_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_REVIEWER_ID_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_COMMENT_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_COMMENT_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_FILE_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_APPROVAL_LABEL');
 
         Text::script('PLG_FORM_WORKFLOW_REQUEST_START_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_PREV_LABEL');
@@ -479,15 +499,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_NOT_APPROVED');
 
         Text::script('PLG_FORM_WORKFLOW_ADD_RECORD');
-        Text::script('PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD');
+        Text::script('PLG_FORM_WORKFLOW_EDIT_FIELD_VALUE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD');
         Text::script('PLG_FORM_WORKFLOW_ADD_FIELD');
         Text::script('PLG_FORM_WORKFLOW_EDIT_FIELD');
 
         Text::script('PLG_FORM_WORKFLOW_LOG');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_LABEL');
-        Text::script('PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_VOTE_APPROVE_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_REQ_VOTE_DISAPPROVE_LABEL');
         Text::script('PLG_FORM_WORKFLOW_ERROR_LOAD_EASYADMIN_FILE');
         Text::script('PLG_FORM_WORKFLOW_SUCCESS');
         Text::script('PLG_FORM_WORKFLOW_NO_RECORDS_FOUND');
@@ -538,6 +558,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->root_url = URI::root();
         $options->sendMail = $sendMail;
 		$options->images = $this->getImages();
+		$options->statusName = $this->statusLista;
+		$options->requestTypeText = $this->requestTypeText;
         $options = json_encode($options);
         
         $jsFiles = Array();
@@ -567,23 +589,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $_REQUEST['wfl_status'] = $req_status;
 
         $headings = array(
-            'req_request_type_name' => Text::_('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
-            'req_user_name' => Text::_('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
-            'req_created_date' => Text::_('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL'),
-            'req_owner_name' => Text::_('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
-            'req_reviewer_name' => Text::_('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL'),
+            'req_request_type_name' => Text::_('PLG_FORM_WORKFLOW_REQ_REQUEST_TYPE_NAME_LABEL'),
+            'req_user_name' => Text::_('PLG_FORM_WORKFLOW_REQ_USER_NAME_LABEL'),
+            'req_created_date' => Text::_('PLG_FORM_WORKFLOW_REQ_CREATED_DATE_LABEL'),
+            'req_owner_name' => Text::_('PLG_FORM_WORKFLOW_REQ_OWNER_NAME_LABEL'),
+            'req_reviewer_name' => Text::_('PLG_FORM_WORKFLOW_REQ_REVIEWER_ID_LABEL'),
             'req_revision_date' => Text::_('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL'),
-            'req_status' => Text::_('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL'),
-            'req_record_id' => Text::_('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL'),
-            'req_approval' => Text::_('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
+            'req_status' => Text::_('PLG_FORM_WORKFLOW_REQ_STATUS_LABEL'),
+            'req_record_id' => Text::_('PLG_FORM_WORKFLOW_REQ_RECORD_ID_LABEL'),
+            'req_approval' => Text::_('PLG_FORM_WORKFLOW_REQ_APPROVAL_LABEL'),
             'view' => Text::_('PLG_FORM_WORKFLOW_REQUEST_VIEW_LABEL')
-        );
-
-        $statusLista = array(
-            'verify' => 'Verify',
-            'approved' => 'Approved',
-            'not-approved' => 'Not Approved',
-            'pre-approved' => 'Pre-Approved',
         );
 
         $query = $db->getQuery(true);
@@ -642,7 +657,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         // Pass the variables to the view
-        $_REQUEST['workflow']['requests_tabs'] = $statusLista;
+        $_REQUEST['workflow']['requests_tabs'] = $this->statusLista;
         $_REQUEST['workflow']['requests_headings'] = $headings;
         $_REQUEST['workflow']['requests_colCount'] = count($headings);
         $_REQUEST['workflow']['requests_list'] = $dados;
@@ -2108,7 +2123,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 $request_type = Text::_("PLG_FORM_WORKFLOW_ADD_RECORD_EMAIL");
                 break;
             case '2':
-                $request_type = Text::_("PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD_EMAIL");
+                $request_type = Text::_("PLG_FORM_WORKFLOW_EDIT_FIELD_VALUE_EMAIL");
                 break;
             case '3':
                 $request_type = Text::_("PLG_FORM_WORKFLOW_DELETE_RECORD_EMAIL");
@@ -2392,11 +2407,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $input = $app->input;
         $request = $filter->clean($input->getString('data'), 'array');
+        $mod = $input->getString('mod');
+        $returnFields = $mod == 'formRequest' ? 1 : 0;
 
         try {
-            $configFields = $this->configFields(array_keys($request));
-            $elements = $this->setTextElements($configFields['text'], $request);
-            $response->fields = $this->setUpBodyElements($elements);
+            $configFields = $this->configFields($request, $mod);
+            $this->setTextElements($els, $configFields['text'], $request, $mod);
+            $this->setTextareaElements($els, $configFields['textarea'], $request, $mod);
+            $this->setYesnoElements($els, $configFields['yesno'], $request, $mod);
+            $response->fields = $this->setUpBodyElements($els, $returnFields);
         } catch (\Throwable $th) {
             $response->error = true;
             $response->message = Text::_("PLG_FORM_WORKFLOW_ERROR_BUILD_FORM");
@@ -2408,31 +2427,43 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     /**
      * This method separate the fields by type
      * 
-     * @param       Array       $data       Array with the fields
+     * @param       Array       $data       Array with the fields values
+     * @param       String      $mod        Which form we need to build?
      * 
      * @return      Array
      * 
      * @since       v4.2
      */
-    private function configFields($data) 
+    private function configFields($data, $mod) 
     {
+        $app = Factory::getApplication();
+        $model = $app->bootComponent('com_fabrik')->getMVCFactory()->createModel('List', 'FabrikFEModel');
+
+        $input = $app->input;
+        $keys = array_keys($data);
         $configFields = Array();
+        $ignore = Array();
+        
+        switch ($mod) {
+            case 'requestData':
+                $ignore = ['req_request_type_id', 'req_id', 'req_revision_date', 'req_list_id', 'req_user_email', 'req_reviewers_votes', 'req_owner_id', 'req_user_id', 'req_file', 'form_data', 'req_reviewer_name'];
+                break;
+            
+            case 'formRequest':
+                $configFields = Array(
+                    'textarea' => Array('commentTextArea'),
+                    'yesno' => Array('yesnooptions', 'voteoptions')
+                );
+                return $configFields;
+        }
 
-        foreach ($data as $field) {
-            switch ($field) {
-                case 'req_request_type_id':
-                case 'req_id':
-                case 'req_revision_date':
-                case 'req_list_id':
-                case 'req_user_email':
-                case 'req_reviewers_votes':
-                case 'req_owner_id':
-                case 'req_user_id':
-                case 'req_file':
-                case 'form_data':
-                    break;
+        foreach ($keys as $field) {
+            if(in_array($field, $ignore)) {
+                continue;
+            }
 
-                default:
+            switch ($mod) {
+                case 'requestData':
                     $configFields['text'][] = $field;
                     break;
             }
@@ -2444,18 +2475,33 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     /**
 	 * Setter method to text elements
 	 *
-	 * @param   	Array 		$elements			Reference to text elements name
-	 * @param		Array		$data		        Form data for each element
+	 * @param   	Array 		    $els	    		Reference to text elements name
+	 * @param   	Array 		    $elements			Text elements name
+	 * @param		Array		    $data		        Form data for each element
+     * @param       String          $mod                Which form we need to build?
 	 *
-	 * @return  	Array
+	 * @return  	Null
 	 * 
 	 * @since 		version 4.2
 	 */
-	private function setTextElements($elements, $data) 
+	private function setTextElements(&$els, $elements, $data, $mod) 
 	{
         foreach ($elements as $id) {
             $value = $data[$id];
+            $id = rtrim($id, '_raw');
             $dEl = new stdClass;
+
+            if(empty($value)) continue;
+
+            switch ($id) {
+                case 'req_status':
+                    $value = $this->statusLista[$value];
+                    break;
+
+                case 'req_request_type_name':
+                    $value = Text::_("PLG_FORM_WORKFLOW_" . strtoupper($value));
+                    break;
+            }
 
             // Options to set up the element
             $dEl->attributes = Array(
@@ -2474,14 +2520,166 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $els[$id]['objLabel'] = FabrikHelperHTML::getLayout('fabrik-element-label', [COM_FABRIK_BASE . 'components/com_fabrik/layouts/element']);
 
             $els[$id]['dataLabel'] = $this->getDataLabel(
-                $id, 
-                Text::_('PLG_FABRIK_LIST_EASY_ADMIN_ELEMENT_NAME_LABEL'), 
-                Text::_('PLG_FABRIK_LIST_EASY_ADMIN_ELEMENT_NAME_DESC'), 
+                $id,
+                Text::_('PLG_FORM_WORKFLOW_' . strtoupper($id) . '_LABEL'), 
+                Text::_('PLG_FORM_WORKFLOW_' . strtoupper($id) . '_DESC'), 
             );
             $els[$id]['dataField'] = $dEl;
         }
+	}
 
-        return $els;
+    /**
+	 * Setter method to textarea elements
+	 *
+	 * @param   	Array 		    $els	    		Reference to textarea elements name
+	 * @param   	Array 		    $elements			Textarea elements name
+	 * @param		Array		    $data		        Form data for each element
+     * @param       String          $mod                Which form we need to build?
+	 *
+	 * @return  	Null
+	 * 
+	 * @since 		version 4.2
+	 */
+	private function setTextareaElements(&$els, $elements, $data, $mod) 
+	{
+        foreach ($elements as $id) {
+            $value = $data[$id];
+            $dEl = new stdClass;
+
+            switch ($id) {
+                case 'commentTextArea':
+                    $value = $data['req_comment'];
+                    $label = Text::_("PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL");
+                    $desc = Text::_("PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL");
+                    break;
+            }
+
+            // Options to set up the element
+            $dEl->attributes = Array(
+                'id' => $id,
+                'name' => $id,
+                'size' => 0,
+                'maxlength' => '255',
+                'class' => 'inputbox col-sm-12',
+                'value' => $value,
+                'cols' => 60,
+                'rows' => 3
+            );
+
+            $classField = new PlgFabrik_ElementTextarea($this->subject);
+            $els[$id]['objField'] = $classField->getLayout('form');
+            $els[$id]['objLabel'] = FabrikHelperHTML::getLayout('fabrik-element-label', [COM_FABRIK_BASE . 'components/com_fabrik/layouts/element']);
+
+            $els[$id]['dataLabel'] = $this->getDataLabel(
+                $id, 
+                $label,
+                $desc,
+            );
+            $els[$id]['dataField'] = $dEl;
+        }
+	}
+
+    /**
+	 * Setter method to yesno elements
+	 *
+	 * @param   	Array 		    $els	    		Reference to yesno elements name
+	 * @param   	Array 		    $elements			Yesno elements name
+	 * @param		Array		    $data		        Form data for each element
+     * @param       String          $mod                Which form we need to build?
+	 *
+	 * @return  	Null
+	 * 
+	 * @since 		version 4.2
+	 */
+	private function setYesnoElements(&$els, $elements, $data, $mod) 
+	{
+        $app = Factory::getApplication();
+
+		$model = $app->bootComponent('com_fabrik')->getMVCFactory()->createModel('List', 'FabrikFEModel');
+        $model->setId($data['req_list_id']);
+
+        foreach ($elements as $id) {
+            $dEl = new stdClass;
+
+            switch ($id) {
+                case 'yesnooptions':
+                    $label = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
+                    $desc = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
+                    break;
+                
+                case 'voteoptions':
+                    $params = $model->getFormModel()->getParams();
+
+                    $parcialApproved = empty($data['req_vote_approve']) ? 0 : $data['req_vote_approve'];
+                    $parcialDisapproved = empty($data['req_vote_disapprove']) ? 0 : $data['req_vote_disapprove'];
+                    $votesNeededApprove = $params->get('workflow_votes_to_approve');
+                    $votesNeededDisapprove = $params->get('workflow_votes_to_disapprove');
+                    $desc = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
+                    $label = Text::_("PLG_FORM_WORKFLOW_PARTIAL_VOTES") 
+                        . '<br>' 
+                        . Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APPROVED") 
+                        . $parcialApproved 
+                        . ' (' . $votesNeededApprove . ' '
+                        . Text::_("PLG_FORM_WORKFLOW_NEEDED_VOTES") . ')'
+                        . '<br>' 
+                        . Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_DISAPPROVED") 
+                        . $parcialDisapproved
+                        . ' (' . $votesNeededDisapprove . ' '
+                        . Text::_("PLG_FORM_WORKFLOW_NEEDED_VOTES") . ')'
+                        . '<br><br>'
+                        . Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
+                    break;
+            }
+
+            // Options to set up the element
+            $opts = Array(
+                Text::_('JNO'), 
+                Text::_('JYES')
+            );
+
+            $els[$id]['objField'] = new FileLayout('joomla.form.field.radio.switcher');
+            $els[$id]['objLabel'] = FabrikHelperHTML::getLayout('fabrik-element-label', [COM_FABRIK_BASE . 'components/com_fabrik/layouts/element']);
+
+            $els[$id]['dataLabel'] = $this->getDataLabel(
+                $id, 
+                $label,
+                $desc,
+            );
+            $els[$id]['dataField'] = Array(
+                'value' => 0,
+                'options' => $this->optionsElements($opts),
+                'name' => $id,
+                'id' => $id,
+                'class' => 'fbtn-default fabrikinput',
+                'dataAttribute' => 'style="margin-bottom: 0px; padding: 0px"',
+            );
+        }
+	}
+
+   	/**
+	 * Method that set up the options(labels and values) to elements
+	 * Copied by easyadmin plugin
+     * 
+	 * @param		Array		$opts		Options with value and label
+	 * 
+	 * @return  	Array
+	 * 
+	 * @since 		version 4.2
+	 */
+	private function optionsElements($opts) 
+	{
+		$qtnTypes = count($opts);
+		$x = 0;
+
+		foreach ($opts as $value => $text) {
+			$options[$x] = new stdClass();
+			$options[$x]->value = $value;
+			$options[$x]->text = $text;
+			$options[$x]->disabled = false;
+			$x++;
+		}
+
+		return $options;
 	}
 
     /**
@@ -2589,7 +2787,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $db->setQuery($sql)->execute();
 
         $sqlType = "CREATE TABLE IF NOT EXISTS `workflow_request_type` (
-			`id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			`name` VARCHAR(20) DEFAULT NULL
         )";
 

@@ -9,60 +9,39 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 	var FabrikWorkflow = new Class({
 		Implements: [Events],
-		statusName: {
-			'verify': Joomla.JText._('PLG_FORM_WORKFLOW_VERIFY'),
-			'approved': Joomla.JText._('PLG_FORM_WORKFLOW_APPROVED'),
-			'pre-approved': Joomla.JText._('PLG_FORM_WORKFLOW_PRE_APPROVED'),
-			'not-approved': Joomla.JText._('PLG_FORM_WORKFLOW_NOT_APPROVED')
-		},
-
-		requestTypeText: {
-			'add_record': Joomla.JText._('PLG_FORM_WORKFLOW_ADD_RECORD'),
-			'edit_field_value': Joomla.JText._('PLG_FORM_WORKFLOW_EDIT_FIELD_RECORD'),
-			'delete_record': Joomla.JText._('PLG_FORM_WORKFLOW_DELETE_RECORD'),
-			'add_field': Joomla.JText._('PLG_FORM_WORKFLOW_ADD_FIELD'),
-			'edit_field': Joomla.JText._('PLG_FORM_WORKFLOW_EDIT_FIELD')
-		},
 
 		elementsName: {
 			'req_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_ID_LABEL'),
-			'req_owner_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
-			'req_owner_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
-			'req_request_type_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
-			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
-			'req_user_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
-			'req_user_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
-			'req_created_date': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL'),
-			'req_status': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL'),
-			'req_record_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL'),
+			'req_owner_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_NAME_LABEL'),
+			'req_owner_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_NAME_LABEL'),
+			'req_request_type_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_REQUEST_TYPE_NAME_LABEL'),
+			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_REQUEST_TYPE_NAME_LABEL'),
+			'req_user_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_USER_NAME_LABEL'),
+			'req_user_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_USER_NAME_LABEL'),
+			'req_created_date': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_CREATED_DATE_LABEL'),
+			'req_status': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_STATUS_LABEL'),
+			'req_record_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_RECORD_ID_LABEL'),
 			'req_list_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_LIST_ID_LABEL'),
-			'req_reviewer_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL'),
+			'req_reviewer_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_REVIEWER_ID_LABEL'),
 			'req_revision_date': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL'),
-			'req_comment': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_COMMENT_LABEL'),
+			'req_comment': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_COMMENT_LABEL'),
 			'req_file': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_FILE_LABEL'),
-			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
+			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_APPROVAL_LABEL'),
 			'req_user_email': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_LABEL'),
-			'req_vote_approve': Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_LABEL'),
-			'req_vote_disapprove': Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL'),
+			'req_vote_approve': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_VOTE_APPROVE_LABEL'),
+			'req_vote_disapprove': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_VOTE_DISAPPROVE_LABEL'),
 		},
 
 		tableHeadings: {
-			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_TYPE_ID_LABEL'),
-			'req_user_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_USER_ID_LABEL'),
-			'req_created_date': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_CREATED_DATE_LABEL'),
-			'req_owner_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_ID_LABEL'),
-			'req_reviewer_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_REVIEWER_ID_LABEL'),
+			'req_request_type_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_REQUEST_TYPE_NAME_LABEL'),
+			'req_user_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_USER_NAME_LABEL'),
+			'req_created_date': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_CREATED_DATE_LABEL'),
+			'req_owner_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_OWNER_NAME_LABEL'),
+			'req_reviewer_name': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_REVIEWER_ID_LABEL'),
 			'req_revision_date': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_REVISION_DATE_LABEL'),
-			'req_status': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_STATUS_LABEL'),
-			'req_record_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_RECORD_ID_LABEL'),
-			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_LABEL'),
-		},
-
-		requestsStatus: {
-			'verify': 'Verify',
-			'approved': 'Approved',
-			'pre-approved': 'Pre-Approved',
-			'not-approved': 'Not Approved'
+			'req_status': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_STATUS_LABEL'),
+			'req_record_id': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_RECORD_ID_LABEL'),
+			'req_approval': Joomla.JText._('PLG_FORM_WORKFLOW_REQ_APPROVAL_LABEL'),
 		},
 
 		initialize: function (options) {
@@ -177,11 +156,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			//Request type select
 			var requestTypeSelect = jQuery('#requestTypeSelect');
-			for (var chave in self.requestsStatus) {
+			for (var chave in self.options.statusName) {
 				if (chave == 'verify') {
-					requestTypeSelect.append('<option selected="selected" value="' + chave + '">' + self.requestsStatus[chave] + '</option>');
+					requestTypeSelect.append('<option selected="selected" value="' + chave + '">' + self.options.statusName[chave] + '</option>');
 				} else {
-					requestTypeSelect.append('<option value="' + chave + '">' + self.requestsStatus[chave] + '</option>');
+					requestTypeSelect.append('<option value="' + chave + '">' + self.options.statusName[chave] + '</option>');
 				}
 			}
 
@@ -359,10 +338,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						// If field is null, don't show anything
 						if (request[key]) {
 							if (key == 'req_status') {
-								var d = self.statusName[request[key]];
+								var d = self.options.statusName[request[key]];
 								newRowContent.append("<td>" + d + "</td>");
 							} else if (key == 'req_request_type_name') {
-								var d = self.requestTypeText[request[key]];
+								var d = self.options.requestTypeText[request[key]];
 								newRowContent.append("<td>" + d + "</td>");
 							} else {
 								newRowContent.append("<td>" + request[key] + "</td>");
@@ -449,146 +428,84 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		setForm: function (form, modal, formData, request_id) {
 			var self = this;
 
-			var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
-			jModalBody.empty();
+			var url = self.options.root_url + "index.php?option=com_fabrik&format=raw&task=plugin.pluginAjax&g=form&plugin=workflow&method=buildForm&mod=formRequest";
+			jQuery.ajax({
+				url     : url,
+				method	: 'post',
+				data	: {
+					'data': formData[0]
+				}
+			}).done(function (r) {
+				var r = JSON.parse(r);
+				var fields = r['fields'];
+				var approveSection = jQuery("<div></div>");
 
-			var commentContainer = jQuery("<div class='mt-2'></div>");
-			var commentLabel = jQuery("<p>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL') + "</p>");
-			var commentTextArea = jQuery("<textarea style='width: 100%;height: 5rem;' id='commentTextArea'></textarea>");
-			var approveSection = jQuery("<div class='mt-2 mb-4'></div>");
+				var jModalBody = jQuery(jQuery(modal).find('.modalBody')[0]);
+				jModalBody.empty();
 
-			var yesno = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
-				"  <label class=\"btn btn-success\">\n" +
-				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonYes\" value=\"yes\" autocomplete=\"off\" checked> " + Joomla.JText._('JYES') + "\n" +
-				"  </label>\n" +
-				"  <label class=\"btn btn-danger\">\n" +
-				"    <input type=\"radio\" name=\"yesnooptions\" id=\"approveButtonNo\" value=\"no\" autocomplete=\"off\"> " + Joomla.JText._('JNO') + " \n" +
-				"  </label>\n" +
-				"</div>");
+				if(r['error']) {
+					console.warn(r['message']);
+					return;
+				}
 
-			var vote = jQuery("<div class=\"btn-group btn-group-toggle\" data-toggle=\"buttons\">\n" +
-				"  <label class=\"btn btn-success\">\n" +
-				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonApprove\" value=\"approve\" autocomplete=\"off\" checked> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_IN_FAVOR') + "\n" +
-				"  </label>\n" +
-				"  <label class=\"btn btn-danger\">\n" +
-				"    <input type=\"radio\" name=\"voteoptions\" id=\"voteButtonDisapprove\" value=\"disapprove\" autocomplete=\"off\"> " + Joomla.JText._('PLG_FORM_WORKFLOW_VOTES_AGAINST') + "\n" +
-				"  </label>\n" +
-				"</div>");
+				switch (self.options.workflow_approval_by_votes) {
+					case '1':
+						var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
+						var approvedCheckboxContainer = fields['voteoptions'];
+						break;
+
+					default:
+						var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
+						var approvedCheckboxContainer = fields['yesnooptions'];
+						break;
+				}
+
+				approveSection.append(approveSectionTitle);
+				approveSection.append(fields['commentTextArea']);
+				approveSection.append(approvedCheckboxContainer);
+		
+				jModalBody.append(form);
+
+				if (formData[0]['req_status'] == 'verify') {
+					if (self.canApproveRequests(formData[0])) {
+						var approveButton = jQuery('<button class="btn btn-primary" style="margin-top: 20px;" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
 	
-			switch (this.options.workflow_approval_by_votes) {
-				case '1':
-					var parcialAprovar = formData[0]['req_vote_approve'] == null ? '0' : formData[0]['req_vote_approve'];
-					var parcialDesaprovar = formData[0]['req_vote_disapprove'] == null ? '0' : formData[0]['req_vote_disapprove'];
-					var approvedCheckboxContainer = jQuery("<p class='mt-2'> <span>" + Joomla.JText._('PLG_FORM_WORKFLOW_PARTIAL_VOTES') + ": <br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + ' ' + parcialAprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + ' ' + this.options.workflow_votes_to_approve + ")<br> " + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL') + ' ' + parcialDesaprovar + " (" + Joomla.JText._('PLG_FORM_WORKFLOW_NEEDED_VOTES') + ' ' + this.options.workflow_votes_to_disapprove + ")" + "</span><br>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + " </p>");
-					approvedCheckboxContainer.append(vote);
-					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_VOTE_APPROVAL_LABEL') + "</h2>");
-					break;
+						form.append(approveSection);
 
-				default:
-					var approvedCheckboxContainer = jQuery("<p class='mt-2'>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + " </p>");
-					approvedCheckboxContainer.append(yesno);
-					var approveSectionTitle = jQuery("<h2>" + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL') + "</h2>");
-					break;
-			}
-
-			commentContainer.append(commentLabel);
-			commentContainer.append(commentTextArea);
-
-			approveSection.append(approveSectionTitle);
-			approveSection.append(commentContainer);
-			approveSection.append(approvedCheckboxContainer);
-
-			jModalBody.append(form);
-			if (formData[0]['req_status'] == 'verify') {
-				if (self.canApproveRequests(formData[0])) {
-					var approveButton = jQuery('<button class="btn btn-primary" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
-
-					setTimeout(() => { form.append(approveSection); }, 2000);
-
-					form.append(approveSection);
-					jQuery(approveButton).on('click', function () {
-						const requestType = parseInt(formData[0]['req_request_type_id']);
-
-						if (self.options.workflow_approval_by_votes == '1') {
-							var vote = jQuery("input[name='voteoptions']:checked").val();
-							if (vote == 'approve') {
-								formData[0]['req_vote_approve'] += 1;
+						jQuery(approveButton).on('click', function () {
+							const requestType = parseInt(formData[0]['req_request_type_id']);
+	
+							if (self.options.workflow_approval_by_votes == '1') {
+								var vote = jQuery("input[name='voteoptions']:checked").val();
+								if (vote == '1') {
+									formData[0]['req_vote_approve'] += 1;
+								} else {
+									formData[0]['req_vote_disapprove'] += 1;
+								}
+	
+								var approvedOrdisapproved = 'verify';
+								approvedOrdisapproved = self.options.workflow_votes_to_approve == formData[0]['req_vote_approve'] ? 'approved' : approvedOrdisapproved;
+								approvedOrdisapproved = self.options.workflow_votes_to_disapprove == formData[0]['req_vote_disapprove'] ? 'not-approved' : approvedOrdisapproved;
+								formData[0]['req_status'] = approvedOrdisapproved;
+	
+								var approved = approvedOrdisapproved == "approved" ? true : false;
 							} else {
-								formData[0]['req_vote_disapprove'] += 1;
+								var approved = jQuery("input[name='yesnooptions']:checked").val() == "1" ? true : false;
+	
+								if (approved) {
+									formData[0]['req_approval'] = '1';
+								} else {
+									formData[0]['req_approval'] = '0';
+								}
 							}
 
 							jModalBody.empty();
 							jModalBody.append(jQuery('<h3>' + Joomla.JText._('PLG_FORM_WORKFLOW_LOADING') + '</h3>'));
-
-							var recordData = JSON.decode(formData[0]['form_data']);
-							for (var chave in recordData) {
-								if (!recordData.hasOwnProperty(chave)) continue;
-								
-								if (chave.indexOf("_raw") !== -1) {
-									delete recordData[chave];
-								}
-							}
-
-							var approvedOrdisapproved = 'verify';
-							approvedOrdisapproved = self.options.workflow_votes_to_approve == formData[0]['req_vote_approve'] ? 'approved' : approvedOrdisapproved;
-							approvedOrdisapproved = self.options.workflow_votes_to_disapprove == formData[0]['req_vote_disapprove'] ? 'not-approved' : approvedOrdisapproved;
-							formData[0]['req_status'] = approvedOrdisapproved;
-
-							var approved = approvedOrdisapproved == "approved" ? true : false;
-							if (approved) {
-								switch (requestType) {
-									case 1:
-									case 2:
-										self.createUpdateRecord(formData);
-										break;
-									case 3:
-										const rowId = formData[0].req_record_id;
-										const listId = formData[0].req_list_id;
-										self.deleteRecord(rowId, listId);
-										break;
-									
-									case 4:
-									case 5:
-										self.addEditFields(formData);
-										break;
-								}
-							}
-
-							jQuery.ajax({
-								'url': '',
-								'method': 'post',
-								'data': {
-									'formData': formData,
-									'options': self.options,
-									'option': 'com_fabrik',
-									'format': 'raw',
-									'task': 'plugin.pluginAjax',
-									'plugin': 'workflow',
-									'method': 'ProcessRequest',
-									'g': 'form',
-								},
-								success: function (data) {
-									modal.style.display = "none";
-									alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
-									document.location.reload(true);
-								}
-							});
-						} else {
-							var approved = jQuery("input[name='yesnooptions']:checked").val() == "yes" ? true : false;
-
-							jModalBody.empty();
-							jModalBody.append(jQuery('<h3>' + Joomla.JText._('PLG_FORM_WORKFLOW_LOADING') + '</h3>'));
-							if (approved) {
-								formData[0]['req_approval'] = '1';
-							} else {
-								formData[0]['req_approval'] = '0';
-							}
 
 							if (jQuery(form).find("#commentTextArea")[0]) {
 								formData[0]['req_comment'] = jQuery(form).find("#commentTextArea")[0].value;
 							}
 
-							// remove raws from the record data
 							var recordData = JSON.decode(formData[0]['form_data']);
 							for (var chave in recordData) {
 								if (!recordData.hasOwnProperty(chave)) continue;
@@ -636,12 +553,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 									document.location.reload(true);
 								}
 							});
-						}
-					});
-
-					jModalBody.append(approveButton);
+						});
+	
+						jModalBody.append(approveButton);
+					}
 				}
-			}
+			});			
 		},
 
 		deleteRecord: function (rowId, listId) {
@@ -869,7 +786,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			requestInputsContainer.append('<h2>' + typeLabel + '<h2><hr />');
 			requestInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL') + '<h2>');
 
-			var url = self.options.root_url + "index.php?option=com_fabrik&format=raw&task=plugin.pluginAjax&g=form&plugin=workflow&method=buildForm";
+			var url = self.options.root_url + "index.php?option=com_fabrik&format=raw&task=plugin.pluginAjax&g=form&plugin=workflow&method=buildForm&mod=requestData";
 			jQuery.ajax({
 				url     : url,
 				method	: 'post',
