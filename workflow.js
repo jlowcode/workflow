@@ -468,7 +468,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				if (formData[0]['req_status'] == 'verify') {
 					if (self.canApproveRequests(formData[0])) {
-						var approveButton = jQuery('<button class="btn btn-primary" style="margin-top: 20px;" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
+						var approveButton = jQuery('<button class="btn btn-workflow-modal" style="margin-top: 20px;" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
 	
 						form.append(approveSection);
 

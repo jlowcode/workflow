@@ -107,6 +107,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 			'add_field' => Text::_('PLG_FORM_WORKFLOW_ADD_FIELD'),
 			'edit_field' => Text::_('PLG_FORM_WORKFLOW_EDIT_FIELD')
         );
+
+        $this->customizedStyle();
     }
 
     /**
@@ -2751,6 +2753,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 		}
 
 		return $body;
+	}
+
+    /**
+	 * Adding css style
+	 *
+	 * @return  	Null
+	 * 
+	 * @since 		version 4.2
+	 */
+	private function customizedStyle()
+	{
+		$document = Factory::getDocument();
+		$css = '.dropdown-menu {z-index: 9999 !important;}';
+		$css .= '.select2-dropdown {z-index: 9999 !important;}';
+		$css .= '.btn-workflow-modal {min-height: 30px; width: 150px; border-radius: 12px; color: rgb(255, 255, 255); background-color: rgb(0, 62, 161);}';
+
+		$document->addStyleDeclaration($css);
 	}
 
     /**
