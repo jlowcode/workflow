@@ -872,14 +872,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		 */
 		buildFormEditRecords: function (elementTypesObj, formData, formDataInputsContainer, lastRecordFormData) {
 			var self = this;
+			var hasProperty = false;
 
 			var lastFormData = JSON.decode(lastRecordFormData);
-			const obj = self.compareRecords(lastFormData, formData);
-			var hasProperty = false;
 
 			if (jQuery.isEmptyObject(lastFormData)) {
 				hasProperty = false;
 			} else {
+				const obj = self.compareRecords(lastFormData, formData);
 				for (var k in obj) {
 					if (obj.hasOwnProperty(k)) {
 						formDataInputsContainer.append(self.buildEditRecordView(lastFormData, formData, elementTypesObj));

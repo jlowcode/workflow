@@ -1477,10 +1477,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function onBeforeProcess()
     {
-        $this->init();
-        $isReview = false;
+        $app   = Factory::getApplication();
+        $input = $app->getInput();
 
         $formModel = $this->getModel();
+        $this->init();
+        $isReview = false;
+        
+        // If metadata_extract ajax up we dont need create log
+        if($input->getBool('fabrik_ignorevalidation') && $input->getBool('metadata_extract')) {
+            return;
+        }
+
         $fullFormData = $formModel->fullFormData;
         $processedFormData = $this->processFormDataToSave($fullFormData);
         $hasPermission = $this->hasPermission($processedFormData);
@@ -1525,6 +1533,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     public function onAfterProcess()
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
+        $app   = Factory::getApplication();
+
+        $input = $app->getInput();
+
+        // If metadata_extract ajax up we dont need create log
+        if($input->getBool('fabrik_ignorevalidation') && $input->getBool('metadata_extract')) {
+            return;
+        }
 
         $formModel = $this->getModel();
         $listModel = $formModel->getListModel();
