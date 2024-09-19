@@ -679,9 +679,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
-        $reviewers_group_id = $this->params->get('allow_review_request') == null ? $_POST["options"]["allow_review_request"] : $this->params->get('allow_review_request');
-        $approve_for_own_records = $this->params->get('approve_for_own_records') == null ? $_POST["options"]["approve_for_own_records"] : $this->params->get('approve_for_own_records');
-        $workflow_owner_element = $this->params->get('workflow_owner_element') == null ? $_POST["options"]["workflow_owner_element"] : $this->params->get('workflow_owner_element');
+        $reviewers_group_id = $this->params->get('allow_review_request') == null ? $_REQUEST["options"]["allow_review_request"] : $this->params->get('allow_review_request');
+        $approve_for_own_records = $this->params->get('approve_for_own_records') == null ? $_REQUEST["options"]["approve_for_own_records"] : $this->params->get('approve_for_own_records');
+        $workflow_owner_element = $this->params->get('workflow_owner_element') == null ? $_REQUEST["options"]["workflow_owner_element"] : $this->params->get('workflow_owner_element');
 
         $query = $db->getQuery(true);
         $query->select($db->qn('rules'))
