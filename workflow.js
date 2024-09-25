@@ -151,9 +151,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						};
 					});
 				});
+
 				jQuery("a.btn-default-delete").on("click", function (e) {
-					const loadImg = jQuery('<div style=" display: flex; position: fixed; background: rgba(0,0,0,0.5);width: 100%;top: 0;height: 100vh;margin: auto;"><img style="margin: auto;" src="https://i.gifer.com/ZKZg.gif"></div>');
-					jQuery('body').append(loadImg);
+					showSpinner();
 					var listRowIds = this.attributes['list-row-ids'].value
 					jQuery.ajax({
 						'url': '',
@@ -169,6 +169,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						},
 						success: function (data) {
 							alert("Sucesso!");
+							hideSpinner();
 							location.reload();
 						}
 					});
