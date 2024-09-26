@@ -96,8 +96,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $this->statusLista = Array(
             'verify' => Text::_('PLG_FORM_WORKFLOW_VERIFY'),
             'approved' => Text::_('PLG_FORM_WORKFLOW_APPROVED'),
-            'not-approved' => Text::_('PLG_FORM_WORKFLOW_PRE_APPROVED'),
-            'pre-approved' => Text::_('PLG_FORM_WORKFLOW_NOT_APPROVED'),
+            'not-approved' => Text::_('PLG_FORM_WORKFLOW_NOT_APPROVED'),
+            'pre-approved' => Text::_('PLG_FORM_WORKFLOW_PRE_APPROVED'),
         );
 
         $this->requestTypeText = Array(
@@ -821,8 +821,17 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             
             // If the request type is edit field we must set the element owner as the register owner
             case self::REQUEST_TYPE_EDIT_FIELD:
-                $element = $listModel->getElements('id', true, false)[$formData['easyadmin_modal___valIdEl']];
-                $owner_id = $element->element->created_by;
+                if($formData['easyadmin_modal___history_type'] != $formData['easyadmin_modal___type']) {
+                    $query = $db->getQuery(true);
+                    $query->select($db->qn('created_by'))
+                        ->from($db->qn('#__fabrik_elements'))
+                        ->where($db->qn('id') . ' = ' . $db->q($formData['easyadmin_modal___valIdEl']));
+                    $db->setQuery($query);
+                    $owner_id = $db->loadResult();
+                } else {
+                    $element = $listModel->getElements('id', true, false)[$formData['easyadmin_modal___valIdEl']];
+                    $owner_id = $element->element->created_by;
+                }
                 break;
         }
 
@@ -2627,11 +2636,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 
                 case 'voteoptions':
                     $params = $model->getFormModel()->getParams();
+                    $id = 1;
 
                     $parcialApproved = empty($data['req_vote_approve']) ? 0 : $data['req_vote_approve'];
                     $parcialDisapproved = empty($data['req_vote_disapprove']) ? 0 : $data['req_vote_disapprove'];
-                    $votesNeededApprove = $params->get('workflow_votes_to_approve');
-                    $votesNeededDisapprove = $params->get('workflow_votes_to_disapprove');
+                    $votesNeededApprove = is_object($params->get('workflow_votes_to_approve')) ? $params->get('workflow_votes_to_approve')->$id : $params->get('workflow_votes_to_approve');
+                    $votesNeededDisapprove = is_object($params->get('workflow_votes_to_disapprove')) ? $params->get('workflow_votes_to_disapprove')->$id : $params->get('workflow_votes_to_disapprove');
                     $desc = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
                     $label = Text::_("PLG_FORM_WORKFLOW_PARTIAL_VOTES") 
                         . '<br>' 
