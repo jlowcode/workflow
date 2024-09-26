@@ -567,7 +567,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $jsFiles = Array();
         $jsFiles['Fabrik'] = 'media/com_fabrik/js/fabrik.js';
         $jsFiles['FabrikWorkflow'] = 'plugins/fabrik_form/workflow/workflow.js';
-        $script = "var workflow = new FabrikWorkflow($options);";
+        $script = "window.workflowInstance = new FabrikWorkflow($options);";
 
         FabrikHelperHTML::script($jsFiles, $script);
     }
@@ -676,6 +676,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     public function getReviewers($row=null)
     {
         jimport('joomla.access.access');
+        // Get viewl level id
+        $reviewrs_group_id = $this->params->get('allow_review_request') == null ? $_POST["options"]["allow_review_request"] : $this->params->get('allow_review_request');
+        $approve_for_own_records = $this->params->get('approve_for_own_records') == null ? $_POST["options"]["approve_for_own_records"] : $this->params->get('approve_for_own_records');
+        $workflow_owner_element = $this->params->get('workflow_owner_element') == null ? $_POST["options"]["workflow_owner_element"] : $this->params->get('workflow_owner_element');
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
@@ -701,7 +705,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         if ($approve_for_own_records == 1) {
             $owner_element_id = $workflow_owner_element;
-
             if (isset($owner_element_id) && !empty($owner_element_id)) {
                 $db = Factory::getContainer()->get('DatabaseDriver');
                 $query = $db->getQuery(true);
@@ -849,8 +852,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         if ($this->params->get('workflow_send_mail') == '1'){
             $this->enviarEmailRequest($logData);
         }
-
-        $this->saveNotification($logData);
+        $this->saveNotification($logData, $hasPermission);
         if (!$hasPermission) {
             switch ($this->requestType) {
                 case self::REQUEST_TYPE_DELETE_RECORD:
@@ -914,7 +916,74 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             return false;
         }
 
+        // @TODO - CATCH ID TO SEND MAIL
+
         return true;
+    }
+
+    public function saveNotification($formData)
+    {
+        $reviewrs_id = $this->getReviewers();
+        JLoader::register('FieldsHelper', JPATH_ADMINISTRATOR . '/components/com_fields/helpers/fields.php');
+
+        foreach ($reviewrs_id as $id) {
+            $field_id = 1;
+            JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
+            $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
+            $values = json_decode($fieldModel->getFieldValue($field_id, $id), true);
+            $is_vote = $this->getParams()->get('workflow_approval_by_vote');
+            if ($is_vote == 1){
+                if ($formData['req_vote_approve'] != '' || $formData['req_vote_disapprove'] != ''){
+                    $is_vote = 1;
+                }
+            }
+                if (($formData['req_status'] == "verify") && (!isset($values['requisicoes']) || count($values['requisicoes']) == 0)) {
+                    $this->newNotification($formData, $field_id, $id, 0);
+                } else {
+                    foreach ($values['requisicoes'] as $k => $v) {
+                        $validador = true;
+                        if ($v['lista'] == $formData["req_list_id"]) {
+                            $validador = false;
+                            // parei aqui
+                            // retirar apenas do usuario atual se for votacao
+                            if (($formData['req_status'] == "verify") && ($is_vote == 0)) {
+                                $values['requisicoes'][$k]['qtd']  = $v['qtd'] + 1;
+                            } else if ($formData['req_status'] != "pre-approved"){
+                                $values['requisicoes'][$k]['qtd'] = $v['qtd'] - 1;
+                                if ($values['requisicoes'][$k]['qtd'] == 0) {
+                                    unset($values['requisicoes'][$k]);
+                                }
+                            }
+                            $value = json_encode($values);
+                            JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
+                            $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
+                            $fieldModel->setFieldValue($field_id, $id, $value);
+                            break 1;
+                        } 
+                    }
+                    if ($validador && ($formData['req_status'] == "verify")) {
+                        //$this->newNotification($formData, $field_id, $id, $k+1);
+                        $values['requisicoes'][$k + 1]['lista'] = intval($formData["req_list_id"]);
+                        $values['requisicoes'][$k + 1]['qtd'] = 1;
+                        $value = json_encode($values);
+                        JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
+                        $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
+                        $fieldModel->setFieldValue($field_id, $id, $value);
+                    }
+                }
+        }
+        return true;
+    }
+
+    public function newNotification($formData, $field_id, $user_id, $k)
+    {
+        $value = new StdClass;
+        $value->requisicoes[$k]['lista'] = intval($formData["req_list_id"]);
+        $value->requisicoes[$k]['qtd'] = 1;
+        $value = json_encode($value);
+        JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
+        $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
+        $fieldModel->setFieldValue($field_id, $user_id, $value);
     }
 
     /**
@@ -2807,6 +2876,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
+        // VERIFICAR AUTO_INCREMENT PRIMARY KEY 
+        /* Create the tables */
         $sql = "CREATE TABLE IF NOT EXISTS `#__fabrik_requests` (
 			`req_id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			`req_request_type_id` INT(11),
