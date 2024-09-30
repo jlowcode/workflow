@@ -53,12 +53,22 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			jQuery(document).ready(function () {
 				var url = new URL(window.location.href);
                 var paramsUrl = new URLSearchParams(url.search);
-                var status = paramsUrl.get('status') ? paramsUrl.get('status') : 'verify';
+                var status = paramsUrl.get('wfl_status') ? paramsUrl.get('wfl_status') : 'verify';
+				var order = paramsUrl.get('wfl_order') ? paramsUrl.get('wfl_order') : 'req_created_date';
+
+				if(order.endsWith('-')) {
+					order = 'req_created_date';
+					url.searchParams.set('wfl_order', 'req_created_date');
+					window.history.replaceState(null, '', url);
+				}
+
 				jQuery('#requestTypeSelect').val(status);
+				jQuery('#orderBySelect').val(order);
+				self.watchOrder();
 
 				var modal = jQuery('#modal')[0];
 				self.modal = modal;
-				self.loadRequestList(modal, status);
+				self.loadRequestList(modal, status, 1, null, order);
 
 				var inputSearch = jQuery("#searchTable");
 				inputSearch.on('keyup', function (event) {
@@ -166,7 +176,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			requestTypeSelect.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
-				jQuery("#orderBySelect ").val('req_created_date').change();
+				jQuery("#orderBySelect").val('req_created_date').change();
 				self.loadRequestList(self.modal, selected, 1);
 			});
 
@@ -1363,6 +1373,142 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			}
 
 			return containerDiv;
+		},
+
+		/**
+         * Watch order buttons
+		 * Copied and modified from media/com_fabrik/js/dist/list.js file
+		 * 
+         */
+		watchOrder: function () {
+			var self = this;
+			var orderValue = false, i, icon, otherIcon, src;
+			var hs = jQuery('#tblEntAttributes').find('.fabrikorder-wfl, .fabrikorder-asc-wfl, .fabrikorder-desc-wfl');
+
+			hs.off('click');
+			hs.on('click', function (e) {
+				var img = 'ordernone.png',
+					orderDir = '',
+					order = '',
+					newOrderClass = '',
+					bsClassAdd = '',
+					bsClassRemove = '',
+					h = jQuery(this),
+					td = h.closest('.fabrik_ordercell');
+
+				if (h.prop('tagName') !== 'A') {
+					h = td.find('a');
+				}
+
+				/**
+				 * Figure out what we need to change the icon from / to.  We don't know in advance for
+				 * bootstrapped templates what icons will be used, so the fabrik-order-header layout
+				 * will have set data-sort-foo properties of each of the three states.  Another wrinkle
+				 * is that we can't just set the new icon class blindly, because there
+				 * may be other classes
+				 * on the icon.  For instancee BS3 using Font Awesome will have "fa fa-sort-foo".
+				 * So we have
+				 * to specifically remove the current class and add the new one.
+				 */
+				switch (h.attr('class')) {
+					case 'fabrikorder-asc-wfl':
+						newOrderClass = 'fabrikorder-desc-wfl';
+						bsClassAdd = h.data('data-sort-desc-icon');
+						bsClassRemove = h.data('data-sort-asc-icon');
+						orderDir = 'desc';
+						order = '_desc';
+						img = 'orderdesc.png';
+						break;
+					case 'fabrikorder-desc-wfl':
+						newOrderClass = 'fabrikorder-wfl';
+						bsClassAdd = h.data('data-sort-icon');
+						bsClassRemove = h.data('data-sort-desc-icon');
+						orderDir = '-';
+						order = '_-';
+						img = 'ordernone.png';
+						break;
+					case 'fabrikorder-wfl':
+						newOrderClass = 'fabrikorder-asc-wfl';
+						bsClassAdd = h.data('data-sort-asc-icon');
+						bsClassRemove = h.data('data-sort-icon');
+						orderDir = 'asc';
+						order = '';
+						img = 'orderasc.png';
+						break;
+				}
+
+				td.attr('class').split(' ').each(function (c) {
+					if (c.contains('_order')) {
+						orderValue = c.replace('_order', '').replace(/^\s+/g, '').replace(/\s+$/g, '');
+					}
+				});
+
+				if (!orderValue) {
+					console.warn(Joomla.JText._("PLG_FORM_WORKFLOW_ERROR_ORDERING"));
+					return;
+				}
+
+				h.attr('class', newOrderClass);
+				if (Fabrik.bootstrapped) {
+					icon = h.find('*[data-isicon]');
+				} else  {
+					i = h.find('img');
+					icon = h.firstElementChild;
+				}
+
+				// Swap images - if list doing ajax nav then we need to do this
+				if (self.options.singleOrdering || true) {
+					jQuery('#tblEntAttributes').find('.fabrikorder, .fabrikorder-asc, .fabrikorder-desc')
+						.each(function (otherH) {
+							if (Fabrik.bootstrapped) {
+								otherIcon = otherH.firstElementChild;
+								switch (otherH.className) {
+									case 'fabrikorder-asc':
+										otherIcon.removeClass(otherH.data('sort-asc-icon'));
+										otherIcon.addClass(otherH.data('sort-icon'));
+										break;
+									case 'fabrikorder-desc':
+										otherIcon.removeClass(otherH.data('sort-desc-icon'));
+										otherIcon.addClass(otherH.data('sort-icon'));
+										break;
+									case 'fabrikorder':
+										break;
+								}
+							} else {
+								i = otherH.find('img');
+								if (i.length > 0) {
+									src = i.attr('src');
+									src = src.replace('ordernone.png', '')
+										.replace('orderasc.png', '').replace('orderdesc.png', '');
+									src += 'ordernone.png';
+									i.attr('src', src);
+								}
+							}
+						});
+				}
+
+				if (Fabrik.bootstrapped) {
+					icon.removeClass(bsClassRemove);
+					icon.addClass(bsClassAdd);
+				} else {
+					if (i) {
+						src = i.attr('src');
+						src = src.replace('ordernone.png', '').replace('orderasc.png', '')
+							.replace('orderdesc.png', '');
+						i.attr('src', src);
+					}
+				}
+
+				var status = jQuery('#requestTypeSelect').val();
+				var url = new URL(window.location.href);
+                url.searchParams.set('wfl_order', orderValue + order);
+                url.searchParams.set('wfl_status', status);
+				window.history.replaceState(null, '', url);
+				location.reload();
+
+				e.preventDefault();
+			});
+
 		},
 
 		getElementsType: function (req_list_id) {
