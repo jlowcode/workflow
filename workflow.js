@@ -480,7 +480,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					if (self.canApproveRequests(formData[0])) {
 						var approveButton = jQuery('<button class="btn btn-workflow-modal" style="margin-top: 20px;" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
 	
-						form.append(approveSection);
+						setTimeout(() => {  form.append(approveSection); }, 2000);
 
 						jQuery(approveButton).on('click', function () {
 							const requestType = parseInt(formData[0]['req_request_type_id']);
