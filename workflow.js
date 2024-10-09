@@ -1324,8 +1324,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
 
-			const label = jQuery('<p>nova imagem</p>');
-			const originalLabel = jQuery('<p>imagem - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + '</p>');
+			const label = jQuery('<p>' + Joomla.JText._('PLG_FORM_WORKFLOW_ACTUAL_IMAGE_DATA') + '</p>');
+			const originalLabel = jQuery('<p>' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_IMAGE_DATA') + '</p>');
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			requestImages.append(label);

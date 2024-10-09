@@ -521,6 +521,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_VOTES_AGAINST');
         Text::script('PLG_FORM_WORKFLOW_LOADING');
         Text::script('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
+        Text::script('PLG_FORM_WORKFLOW_ORIGINAL_IMAGE_DATA');
+        Text::script('PLG_FORM_WORKFLOW_ACTUAL_IMAGE_DATA');
         Text::script('PLG_FORM_WORKFLOW_VIEW');
         Text::script('PLG_FORM_WORKFLOW_PARTIAL_SCORE');
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
@@ -973,6 +975,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     }
                 }
         }
+
         return true;
     }
 
