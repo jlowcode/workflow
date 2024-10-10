@@ -758,7 +758,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var input = jQuery('<input id="' + id + '" type="text" disabled/>');
 
 			jQuery(label).html(labelText);
-			jQuery(input).val(value);
+			value != false ? jQuery(input).val(value) : null;
 
 			div.append(label);
 			div.append(input);
@@ -1173,19 +1173,19 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							}
 
 							if (changedProperties.hasOwnProperty(elementName)) {
-								if (changedProperties[elementName]['last'] != undefined) {
-									if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
-										view.append(this.buildMultipleElementView(changedProperties[elementName]['last']['name']));
-										view.append(this.buildMultipleElementView(changedProperties[elementName]['new']['name']));
-										if (changedProperties[elementName]['new']['type'][0].split("/")[0]) {
-											view.append(self.renderImgs('change', changedProperties[elementName]));
-										}
-									} else {
-										view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
-										
-										if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
-											view.append(self.renderImgs('change', changedProperties[elementName]));
-										}
+								var last = changedProperties[elementName]['last'] == undefined ? false : changedProperties[elementName]['last']['name'];
+
+								if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
+									view.append(this.buildMultipleElementView(last));
+									view.append(this.buildMultipleElementView(changedProperties[elementName]['new']['name']));
+									if (changedProperties[elementName]['new']['type'][0].split("/")[0]) {
+										view.append(self.renderImgs('change', changedProperties[elementName]));
+									}
+								} else {
+									view.append(this.createInputsBeforeAfter(onlyElementKey, last, changedProperties[elementName]['new']['name']));
+									
+									if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
+										view.append(self.renderImgs('change', changedProperties[elementName]));
 									}
 								}
 							} else {
@@ -1354,7 +1354,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				originalImages.append(originalLabel);
 				originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
 
-				if (Array.isArray(files['last']['name'])) {
+				if(files['last'] == undefined) {
+					originalImages.append('<p></p>');
+					originalImages.css('width', '100%');
+				} else if (Array.isArray(files['last']['name'])) {
 					files['last']['name'].forEach(function (element, index) {
 						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + element + '" width="500" height="600"></p>');
 						originalImages.append(link);
