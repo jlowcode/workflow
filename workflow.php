@@ -18,6 +18,7 @@ require_once COM_FABRIK_FRONTEND . '/models/list.php';
 require_once JPATH_COMPONENT . '/controller.php';
 require_once JPATH_PLUGINS . '/fabrik_element/field/field.php';
 require_once JPATH_PLUGINS . '/fabrik_element/textarea/textarea.php';
+require_once JPATH_PLUGINS . '/fabrik_element/dropdown/dropdown.php';
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -528,6 +529,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
+        Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
     }
 
     /**
@@ -2429,7 +2431,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $configFields = $this->configFields($request, $mod);
             $this->setTextElements($els, $configFields['text'], $request, $mod);
             $this->setTextareaElements($els, $configFields['textarea'], $request, $mod);
-            $this->setYesnoElements($els, $configFields['yesno'], $request, $mod);
+            $this->setDropdownElements($els, $configFields['dropdown'], $request, $mod);
             $response->fields = $this->setUpBodyElements($els, $returnFields);
         } catch (\Throwable $th) {
             $response->error = true;
@@ -2467,7 +2469,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             case 'formRequest':
                 $configFields = Array(
                     'textarea' => Array('commentTextArea'),
-                    'yesno' => Array('yesnooptions', 'voteoptions')
+                    'dropdown' => Array('yesnooptions', 'voteoptions')
                 );
                 return $configFields;
         }
@@ -2595,10 +2597,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	}
 
     /**
-	 * Setter method to yesno elements
+	 * Setter method to dropdown elements
 	 *
-	 * @param   	Array 		    $els	    		Reference to yesno elements name
-	 * @param   	Array 		    $elements			Yesno elements name
+	 * @param   	Array 		    $els	    		Reference to dropdown elements name
+	 * @param   	Array 		    $elements			Dropdown elements name
 	 * @param		Array		    $data		        Form data for each element
      * @param       String          $mod                Which form we need to build?
 	 *
@@ -2606,7 +2608,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	 * 
 	 * @since 		version 4.2
 	 */
-	private function setYesnoElements(&$els, $elements, $data, $mod) 
+	private function setDropdownElements(&$els, $elements, $data, $mod) 
 	{
         $app = Factory::getApplication();
 
@@ -2618,23 +2620,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
             switch ($id) {
                 case 'yesnooptions':
-                    $label = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
+                    $label = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL")  . ' <b style="color: red">*</b>';
                     $desc = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
                     break;
                 
                 case 'voteoptions':
                     $params = $model->getFormModel()->getParams();
-                    $id = 1;
+                    $index = 1;
 
                     $parcialApproved = empty($data['req_vote_approve']) ? 0 : $data['req_vote_approve'];
                     $parcialDisapproved = empty($data['req_vote_disapprove']) ? 0 : $data['req_vote_disapprove'];
-                    $votesNeededApprove = is_object($params->get('workflow_votes_to_approve')) ? $params->get('workflow_votes_to_approve')->$id : $params->get('workflow_votes_to_approve');
-                    $votesNeededDisapprove = is_object($params->get('workflow_votes_to_disapprove')) ? $params->get('workflow_votes_to_disapprove')->$id : $params->get('workflow_votes_to_disapprove');
+                    $votesNeededApprove = is_object($params->get('workflow_votes_to_approve')) ? $params->get('workflow_votes_to_approve')->$index : $params->get('workflow_votes_to_approve');
+                    $votesNeededDisapprove = is_object($params->get('workflow_votes_to_disapprove')) ? $params->get('workflow_votes_to_disapprove')->$index : $params->get('workflow_votes_to_disapprove');
                     $desc = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
-                    $label = Text::_("PLG_FORM_WORKFLOW_PARTIAL_VOTES") 
-                        . '<br>' 
-                        . Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APPROVED") 
-                        . $parcialApproved 
+                    $label = Text::_("PLG_FORM_WORKFLOW_PARTIAL_VOTES")
+                        . '<br>'
+                        . Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APPROVED")
+                        . $parcialApproved
                         . ' (' . $votesNeededApprove . ' '
                         . Text::_("PLG_FORM_WORKFLOW_NEEDED_VOTES") . ')'
                         . '<br>' 
@@ -2643,32 +2645,34 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         . ' (' . $votesNeededDisapprove . ' '
                         . Text::_("PLG_FORM_WORKFLOW_NEEDED_VOTES") . ')'
                         . '<br><br>'
-                        . Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
+                        . Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL') . ' <b style="color: red">*</b>';
                     break;
             }
 
             // Options to set up the element
             $opts = Array(
-                Text::_('JNO'), 
-                Text::_('JYES')
+                '' => Text::_('COM_FABRIK_PLEASE_SELECT'),
+                '0' => Text::_('JNO'),
+                '1' => Text::_('JYES'),
             );
+            $dEl->options = $this->optionsElements($opts);
+            $dEl->name = $id;
+            $dEl->id = $id;
+            $dEl->selected = Array('');
+            $dEl->multiple = '0';
+            $dEl->attribs = 'class="fabrikinput form-select input-medium"';
+            $dEl->multisize = '';
 
-            $els[$id]['objField'] = new FileLayout('joomla.form.field.radio.switcher');
+            $classDropdown = new PlgFabrik_ElementDropdown($this->subject);
+            $els[$id]['objField'] = $classDropdown->getLayout('form');
             $els[$id]['objLabel'] = FabrikHelperHTML::getLayout('fabrik-element-label', [COM_FABRIK_BASE . 'components/com_fabrik/layouts/element']);
-
             $els[$id]['dataLabel'] = $this->getDataLabel(
                 $id, 
                 $label,
                 $desc,
             );
-            $els[$id]['dataField'] = Array(
-                'value' => 0,
-                'options' => $this->optionsElements($opts),
-                'name' => $id,
-                'id' => $id,
-                'class' => 'fbtn-default fabrikinput',
-                'dataAttribute' => 'style="margin-bottom: 0px; padding: 0px"',
-            );
+            $els[$id]['dataField'] = $dEl;
+		    //$els[$id]['cssElement'] = 'border: #ccc solid 2px;';
         }
 	}
 

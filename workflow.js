@@ -473,24 +473,34 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				approveSection.append(approveSectionTitle);
 				approveSection.append(fields['commentTextArea']);
 				approveSection.append(approvedCheckboxContainer);
-		
+
 				jModalBody.append(form);
 
 				if (formData[0]['req_status'] == 'verify') {
 					if (self.canApproveRequests(formData[0])) {
 						var approveButton = jQuery('<button class="btn btn-workflow-modal" style="margin-top: 20px;" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
 	
-						setTimeout(() => {  form.append(approveSection); }, 2000);
+						setTimeout(() => {form.append(approveSection); }, 500);
 
 						jQuery(approveButton).on('click', function () {
 							const requestType = parseInt(formData[0]['req_request_type_id']);
 	
 							if (self.options.workflow_approval_by_votes == '1') {
-								var vote = jQuery("input[name='voteoptions']:checked").val();
-								if (vote == '1') {
-									formData[0]['req_vote_approve'] += 1;
-								} else {
-									formData[0]['req_vote_disapprove'] += 1;
+								var vote = jQuery("#voteoptions").val();
+
+								switch (vote) {
+									case '':
+										alert(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY'));
+										return;
+										break;
+									
+									case '0':
+										formData[0]['req_vote_disapprove'] += 1;
+										break;
+
+									case '1':
+										formData[0]['req_vote_approve'] += 1;
+										break;
 								}
 	
 								var approvedOrdisapproved = 'verify';
@@ -500,12 +510,21 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	
 								var approved = approvedOrdisapproved == "approved" ? true : false;
 							} else {
-								var approved = jQuery("input[name='yesnooptions']:checked").val() == "1" ? true : false;
-	
-								if (approved) {
-									formData[0]['req_approval'] = '1';
-								} else {
-									formData[0]['req_approval'] = '0';
+								var approved = jQuery('#yesnooptions').val();
+								
+								switch (approved) {
+									case '':
+										alert(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY'));
+										return;
+										break;
+									
+									case '0':
+										formData[0]['req_approval'] = '0';
+										break;
+
+									case '1':
+										formData[0]['req_approval'] = '1';
+										break;
 								}
 							}
 
