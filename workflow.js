@@ -373,7 +373,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                 var paramsUrl = new URLSearchParams(url.search);
                 var requestId = paramsUrl.get('requestId');
                 if(requestId) {
-                    jQuery('#request_' + requestId).trigger('click');
+					var request = jQuery('#request_' + requestId);
+
+					if(request.length) {
+						request.trigger('click');
+						return;
+					} else {
+						self.loadRequestList(modal, type, ++page, search, orderBy); 
+					}
                 }
 			});
 		},
