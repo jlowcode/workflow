@@ -2130,10 +2130,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $request_type = $request["req_request_type_id"];
         $request_status = $request['req_approval'] === '1' ? Text::_("PLG_FORM_WORKFLOW_APPROVED_F") : Text::_("PLG_FORM_WORKFLOW_NOT_APPROVED_F");
 
+        $url = "index.php?option=com_fabrik&view=list&listid=$list_id";
         $menu = $app->getMenu();
-        $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=list&listid=$list_id", true);
+        $menuLinked = $menu->getItems('link', $url, true);
         $alias = $menuLinked->alias;
-        $link = URI::root() . $alias;
+        $link = URI::base() . (isset($alias) ? $alias : $url);
 
         switch ($request_type) {
             case '1':
