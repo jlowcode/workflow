@@ -316,15 +316,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             foreach ($results as $result) {
                 $property = $result->name;
                 $elements->$property['plugin'] = $result->plugin;
-                if ($result->plugin == "databasejoin") {
-                    $params = json_decode($result->params);
-                    $elements->$property['join_db_name'] = $params->join_db_name;
-                    $elements->$property['database_join_display_type'] = $params->database_join_display_type;
-                    $elements->$property['join_val_column'] = $params->join_val_column;
-                    $elements->$property['join_key_column'] = $params->join_key_column;
-                } else if ($result->plugin == "tags") {
-                    $params = json_decode($result->params);
-                    $elements->$property['tags_dbname'] = $params->tags_dbname;
+                $params = json_decode($result->params);
+
+                switch ($result->plugin) {
+                    case 'databasejoin':
+                        $elements->$property['join_db_name'] = $params->join_db_name;
+                        $elements->$property['database_join_display_type'] = $params->database_join_display_type;
+                        $elements->$property['join_val_column'] = $params->join_val_column;
+                        $elements->$property['join_key_column'] = $params->join_key_column;
+                        break;
+                    
+                    case 'tags':
+                        $elements->$property['tags_dbname'] = $params->tags_dbname;
+                        break;
+                    
+                    case 'fileupload':
+                        $elements->$property['ajax_upload'] = $params->ajax_upload;
+                        break;
                 }
             }
         }

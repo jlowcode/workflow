@@ -625,6 +625,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				recordData[token] = "1";
 				recordData['review'] = true;
 				recordData['req_id'] = formData[0]['req_id'];
+				recordData['fabrik_ajax'] = '1';
 
 				jQuery.ajax({
 					type: "POST",
@@ -1079,37 +1080,60 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					if (isRepeatGroup !== -1) {
 						repeatGroups[key] = obj;
 					} else {
-						if (elementsTypes[onlyElementKey] != undefined) {
-							if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
-								view.append(self.createInput(onlyElementKey, self.options.user.name, onlyElementKey));
-							} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
-								if ([listName + '_FILE_' + listName + '___' + onlyElementKey]) {
-									try{
-										var elementName = formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['name'];
-										
-										if (Array.isArray(elementName)) {
-											view.append(this.buildMultipleElementView(elementName, onlyElementKey));
-										} else {
-											view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
-										}
+						if (elementsTypes[onlyElementKey] == undefined) continue;
 
-										if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
-											view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path']));
-										} 
-									} catch {
+                        var plugin = elementsTypes[onlyElementKey]['plugin'];
+                        switch (plugin) {
+                            case 'user':
+                                if(obj['last'] == undefined) continue;
 
-									}
-								}
-							} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
-								view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
-							} else {
-								if (Array.isArray(obj)) {
-									view.append(this.buildMultipleElementView(obj, onlyElementKey));
-								} else {
-									view.append(this.createInput(onlyElementKey, formData[key], onlyElementKey));
-								}
-							}
-						}
+                                view.append(self.createInput(onlyElementKey, self.options.user.name, onlyElementKey));
+                                break;
+                            
+                            case 'fileupload':
+                                try{
+                                    var isAjax = elementsTypes[onlyElementKey]['ajax_upload'];
+                                    if(isAjax == '1') {
+                                        var values = formData[listName + '___' + onlyElementKey]['id'];
+                                        var elementName = [];
+                                        var path = '';
+
+                                        Object.keys(values).forEach(element => {
+                                            var arr = element.split('/');
+                                            var name = arr.pop();
+                                            path = arr.join('/') + '/';
+                                            elementName.push(name);
+                                        });
+
+                                        view.append(this.buildMultipleElementView(elementName, onlyElementKey));
+                                        view.append(self.renderImgs('new', elementName, path));
+                                    } else {
+                                        var fileKey = listName + '_FILE_' + listName + '___' + onlyElementKey;
+                                        var elementName = formData[fileKey]['name'];
+                                        var dataFile = formData[fileKey]['type'];
+
+                                        view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
+
+                                        if (dataFile[0].split('/')[0] == 'image' || dataFile.split('/')[0]) {
+                                            view.append(self.renderImgs('new', elementName, formData[fileKey]['path']));
+                                        } 
+                                    }
+                                } catch {}
+
+                                break;
+
+                            case 'date':
+                                view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
+                                break;
+                            
+                            default:
+                                if (Array.isArray(obj)) {
+                                    view.append(this.buildMultipleElementView(obj, onlyElementKey));
+                                } else {
+                                    view.append(this.createInput(onlyElementKey, formData[key], onlyElementKey));
+                                }
+                                break;
+                        }
 					}
 				}
 			}
@@ -1150,88 +1174,144 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				if (isRepeatGroup !== -1) {
 					repeatGroups[key] = obj;
 				} else {
-					if (elementsTypes[onlyElementKey] != undefined) {
-						if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
-							jQuery.ajax({
-								'url': '',
-								'method': 'get',
-								'data': {
-									'last_user_id': obj['last'][0],
-									'new_user_id': obj['new'][0],
-									'option': 'com_fabrik',
-									'format': 'raw',
-									'task': 'plugin.pluginAjax',
-									'plugin': 'workflow',
-									'method': 'GetUserValueBeforeAfter',
-									'g': 'form',
-								},
-								success: function (data) {
-									const res = JSON.decode(data);
-									view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
-								}
-							});
-						} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
-							if (changedProperties[listName + '_FILE_' + key]) {
-								var elementName = listName + '_FILE_' + key;
-							} else if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]) {
-								var elementName = listName + '_FILE_' + listName + '___' + onlyElementKey;
-							} else {
-								var elementName = 'undefined';
-							}
+					if (elementsTypes[onlyElementKey] == undefined) continue;
+                    
+                    var plugin = elementsTypes[onlyElementKey]['plugin'];
+                    switch (plugin) {
+                        case 'user':
+                            if(obj['last'] != undefined) continue;
 
-							if (changedProperties.hasOwnProperty(elementName)) {
-								var last = changedProperties[elementName]['last'] == undefined ? false : changedProperties[elementName]['last']['name'];
+                            jQuery.ajax({
+                                'url': '',
+                                'method': 'get',
+                                'data': {
+                                    'last_user_id': obj['last'][0],
+                                    'new_user_id': obj['new'][0],
+                                    'option': 'com_fabrik',
+                                    'format': 'raw',
+                                    'task': 'plugin.pluginAjax',
+                                    'plugin': 'workflow',
+                                    'method': 'GetUserValueBeforeAfter',
+                                    'g': 'form',
+                                },
+                                success: function (data) {
+                                    const res = JSON.decode(data);
+                                    view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
+                                }
+                            });
+                            break;
 
-								if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
-									view.append(this.buildMultipleElementView(last));
-									view.append(this.buildMultipleElementView(changedProperties[elementName]['new']['name']));
-									if (changedProperties[elementName]['new']['type'][0].split("/")[0]) {
-										view.append(self.renderImgs('change', changedProperties[elementName]));
-									}
-								} else {
-									view.append(this.createInputsBeforeAfter(onlyElementKey, last, changedProperties[elementName]['new']['name']));
-									
-									if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
-										view.append(self.renderImgs('change', changedProperties[elementName]));
-									}
-								}
-							} else {
-								if (changedProperties.hasOwnProperty(elementName)) {
-									view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
-									if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
-										view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
-									}
-								}
-							}
-						} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
-							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
-						} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
-							const container = jQuery("<div></div>");
-							const containerFlex = jQuery("<div></div>");
-							containerFlex.append("");
-							containerFlex.attr('style', 'display: flex;');
-							var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-							var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
+                        case 'fileupload':
+                            var isAjax = elementsTypes[onlyElementKey]['ajax_upload'];
 
-							if (!obj['last'] || obj['last'] == undefined) {
-								// originalElement.append("VAZIO");
-							} else {
-								originalElement.append(self.buildMultipleElementView(obj['last']));
-							}
+                            if (changedProperties[listName + '_FILE_' + key]) {
+                                var elementName = listName + '_FILE_' + key;
+                            } else if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]) {
+                                var elementName = listName + '_FILE_' + listName + '___' + onlyElementKey;
+                            } else if(elementsTypes[onlyElementKey]['ajax_upload'] == '1') {
+                                var elementName = listName + '___' + onlyElementKey;
+                            } else {
+                                var elementName = 'undefined';
+                            }
+    
+                            if (!changedProperties.hasOwnProperty(elementName)) continue;
+    
+                            if(isAjax == '1') {
+                                const container = jQuery("<div></div>");
+                                const containerFlex = jQuery("<div></div>");
+                                containerFlex.append("");
+                                containerFlex.attr('style', 'display: flex;');
+                                var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+                                var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
 
-							newElement.append(self.buildMultipleElementView(obj['new']));
-							newElement[0].style.paddingLeft = "5px";
-							originalElement[0].style.paddingLeft = "5px";
-							newElement[0].style.flex = "1";
-							originalElement[0].style.flex = "1";
-							containerFlex.append(originalElement);
-							containerFlex.append(newElement);
-							container.append(containerFlex);
-							view.append(container);
-						} else {
-							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
-						}
-					}
+                                var lastValues = changedProperties[elementName]['last'];
+                                var newValues = changedProperties[elementName]['new']['id'];
+                                var path = [];
+                                var last = [];
+                                var newRecords = [];
+                                var changed = [];
+    
+                                last['name'] = [];
+                                newRecords['name'] = [];
+                                changed['last'] = [];
+                                changed['new'] = [];
+    
+                                lastValues.forEach(element => {
+                                    var arr = element.split('/');
+                                    var name = arr.pop();
+                                    last['name'].push(name);
+                                });
+    
+                                Object.keys(newValues).reverse().forEach(element => {
+                                    var arr = element.split('/');
+                                    var name = arr.pop();
+                                    path = arr.join('/') + '/';
+                                    newRecords['name'].push(name);
+                                });
+    
+                                last['path'] = path;
+                                newRecords['path'] = path;
+                                changed['last'] = last;
+                                changed['new'] = newRecords;
+
+                                originalElement.append(this.buildMultipleElementView(last['name']));
+                                newElement.append(this.buildMultipleElementView(newRecords['name']));
+        
+                                newElement[0].style.paddingLeft = "5px";
+                                originalElement[0].style.paddingLeft = "5px";
+                                newElement[0].style.flex = "1";
+                                originalElement[0].style.flex = "1";
+                                containerFlex.append(originalElement);
+                                containerFlex.append(newElement);
+                                container.append(containerFlex);
+
+                                view.append(container);
+                                view.append(self.renderImgs('change', changed));
+                            } else {
+                                var last = changedProperties[elementName]['last'] == undefined ? false : changedProperties[elementName]['last']['name'];
+    
+                                view.append(this.createInputsBeforeAfter(onlyElementKey, last, changedProperties[elementName]['new']['name']));
+                                
+                                if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
+                                    view.append(self.renderImgs('change', changedProperties[elementName]));
+                                }
+                            }
+
+                            break;
+
+                        case 'date':
+                            view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
+                            break;
+
+                        default:
+                            if (Array.isArray(obj['new']) || Array.isArray('last')) {
+                                const container = jQuery("<div></div>");
+                                const containerFlex = jQuery("<div></div>");
+                                containerFlex.append("");
+                                containerFlex.attr('style', 'display: flex;');
+                                var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+                                var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
+        
+                                if (!obj['last'] || obj['last'] == undefined) {
+                                    // originalElement.append("VAZIO");
+                                } else {
+                                    originalElement.append(self.buildMultipleElementView(obj['last']));
+                                }
+        
+                                newElement.append(self.buildMultipleElementView(obj['new']));
+                                newElement[0].style.paddingLeft = "5px";
+                                originalElement[0].style.paddingLeft = "5px";
+                                newElement[0].style.flex = "1";
+                                originalElement[0].style.flex = "1";
+                                containerFlex.append(originalElement);
+                                containerFlex.append(newElement);
+                                container.append(containerFlex);
+                                view.append(container);
+                            } else {
+                                view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
+                            }
+                            break;
+                    }
 				}
 			}
 
@@ -1366,8 +1446,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					originalImages.css('width', '100%');
 				} else if (Array.isArray(files['last']['name'])) {
 					files['last']['name'].forEach(function (element, index) {
-						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + element + '" width="500" height="600"></p>');
-						originalImages.append(link);
+                        var isImageFile = (element) => {
+                            var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico', 'heic'];
+                            var extension = element.split('.').pop().toLowerCase();
+                            return validExtensions.includes(extension);
+                        };
+                        
+                        if(isImageFile) {
+                            var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + element + '" width="500" height="600"></p>');
+                            originalImages.append(link);
+                        }
 					});
 				} else {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + files['last']['name'] + '" width="500" height="600"></p>');
@@ -1378,8 +1466,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				if (Array.isArray(files['new']['name'])) {
 					files['new']['name'].forEach(function (element, index) {
-						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + element + '" width="500" height="600"></p>');
-						requestImages.append(link);
+                        var isImageFile = (element) => {
+                            var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico', 'heic'];
+                            var extension = element.split('.').pop().toLowerCase();
+                            return validExtensions.includes(extension);
+                        };
+                        
+                        if(isImageFile) {
+                            var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + element + '" width="500" height="600"></p>');
+                            requestImages.append(link);
+                        }
 					});
 				} else {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + files['new']['name'] + '" width="500" height="600"></p>');
@@ -1390,8 +1486,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			} else if ('new') {
 				if (Array.isArray(files)) {
 					files.forEach(function (element, index) {
-						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
-						requestImages.append(link);
+                        var isImageFile = (element) => {
+                            var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico', 'heic'];
+                            var extension = element.split('.').pop().toLowerCase();
+                            return validExtensions.includes(extension);
+                        };
+
+                        if(isImageFile) {
+                            var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
+                            requestImages.append(link);
+                        }
 					});
 				} else {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + files + '" width="500" height="600"></p>');
