@@ -867,17 +867,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
         $this->saveNotification($logData, $hasPermission);
         if (!$hasPermission) {
+            /**
+             * Set form id in registry to not show default message success in getSuccessMsg() function
+             * The message when the user has no permission must be a warning (yellow)
+             */
+            $this->getModel()->getParams()->set('suppress_msgs', '1');
+
             switch ($this->requestType) {
                 case self::REQUEST_TYPE_DELETE_RECORD:
-                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
+                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'warning');
                     break;
 
                 case self::REQUEST_TYPE_DELETE_RECORD:
-                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
+                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'warning');
                     break;
 
                 default:
-                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
+                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'warning');
                     break;
             }
 
