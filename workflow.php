@@ -871,7 +871,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
              * Set form id in registry to not show default message success in getSuccessMsg() function
              * The message when the user has no permission must be a warning (yellow)
              */
-            $this->getModel()->getParams()->set('suppress_msgs', '1');
+            $formModel = isset($formModel) ? $formModel : $this->getModel();
+            $formModel->getParams()->set('suppress_msgs', '1');
 
             switch ($this->requestType) {
                 case self::REQUEST_TYPE_DELETE_RECORD:
