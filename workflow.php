@@ -1859,10 +1859,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $menu = $app->getMenu();
 
         $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=list&listid=$id", true);
-        $alias = '/' . $menuLinked->alias;
-        $alias .= $view == 'form' ? "/form/$idForm" : '';
+        $route = '/' . $menuLinked->route;
+        $route .= $view == 'form' ? "/form/$idForm" : '';
 
-        return $alias;
+        return $route;
     }
 
     /**
@@ -2141,8 +2141,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $url = "index.php?option=com_fabrik&view=list&listid=$list_id";
         $menu = $app->getMenu();
         $menuLinked = $menu->getItems('link', $url, true);
-        $alias = $menuLinked->alias;
-        $link = URI::base() . (isset($alias) ? $alias : $url);
+        $route = $menuLinked->route;
+        $link = URI::base() . (isset($route) ? $route : $url);
 
         switch ($request_type) {
             case '1':
