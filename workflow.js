@@ -551,7 +551,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								}
 							}
 
-							if (approved) {
+							if (approved == '1') {
 								switch (requestType) {
 									case 1:
 									case 2:
@@ -857,7 +857,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				switch (parseInt(data['req_request_type_id'])) {
 					case 3:
 					case "delete_record":
-						this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
+						self.getElementsType(data['req_list_id']).done(function (elementsTypes) {
 							self.buildFormDeleteRecords(data, formDataInputsContainer, form);
 						});
 						break;
@@ -942,7 +942,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			const recordId = data['req_record_id'];
 			const link = self.options.root_url + "component/fabrik/details/" + self.options.listId + "/" + recordId;
-			formDataInputsContainer.append("<a class='btn btn-outline-primary' href='" + link + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_CLICK_HERE') + "</a>");
+			formDataInputsContainer.append("<a class='btn btn-outline-primary' style='background-color: rgb(0, 62, 161); color: #fff !important' href='" + link + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_CLICK_HERE') + "</a>");
 
 			form.append(formDataInputsContainer);
 		},
