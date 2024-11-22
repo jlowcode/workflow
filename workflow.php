@@ -538,6 +538,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
         Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
+        Text::script('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE');
     }
 
     /**
@@ -2272,6 +2273,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $fabrikModel->setId($listId);
         $ok = $fabrikModel->deleteRows($rowId);
+        $this->setStatusNotApproved($app->input->getInt('rowId'), $listId);
     }
 
     /**
@@ -2333,7 +2335,34 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $this->listId = $optionsJs['listId'];
             $this->createLog($formData, $hasPermission);
             $listModel->deleteRows($rowId);
+            $this->setStatusNotApproved($formData['rowid'], $this->listId);
         }
+    }
+
+    /**
+     * This method change the status to not approved when a deletion request related is approved or executed
+     * 
+     * @param       Int             $rowId          Register id
+     * @param       Int             $listId         List id
+     * 
+     * @return      Null
+     * 
+     * @since       v4.2.1
+     */
+    private function setStatusNotApproved($rowId, $listId) 
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true);
+
+        $query->update(self::REQUESTS_TABLE_NAME)
+            ->set($db->qn('req_status') . ' = ' . $db->q('not-approved'))
+            ->where($db->qn('req_request_type_id') . ' IN (' . implode(',', $db->q(['2', '3'])) . ')')
+            ->where($db->qn('req_record_id') . ' = ' . $db->q((int) $rowId))
+            ->where($db->qn('req_status') . ' = ' . $db->q('verify'))
+            ->where($db->qn('req_list_id') . ' = ' . $db->q($listId));
+
+        $db->setQuery($query);
+        $db->execute();
     }
 
     /**
