@@ -1754,13 +1754,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         switch ($this->requestType) {
             case self::REQUEST_TYPE_ADD_RECORD:
-            case self::REQUEST_TYPE_ADD_FIELD:
                 if (!$canAdd) {
                     return false;
                 }
                 break;
             case self::REQUEST_TYPE_EDIT_RECORD:
             case self::REQUEST_TYPE_EDIT_FIELD:
+            case self::REQUEST_TYPE_ADD_FIELD:
                 if (!$canEdit) {
                     return false;
                 }
