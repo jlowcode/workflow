@@ -423,11 +423,12 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 		canApproveRequests: function (form_data) {
 			form_data.req_reviewers_votes = form_data.req_reviewers_votes == null ? '' : form_data.req_reviewers_votes;
-			
+			var types = ['edit_field_value', 'delete_record', 'edit_field'];
+
 			if (form_data.req_reviewers_votes.indexOf(this.options.user.id) == -1) {
 				var canApproveRequests = this.options.user.canApproveRequests;
 				if (form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1) {
-					if (form_data['req_request_type_name'] == "edit_field_value" || form_data['req_request_type_name'] == "delete_record") {
+					if (types.indexOf(form_data['req_request_type_name']) > 0) {
 						canApproveRequests = true;
 					} else {
 						canApproveRequests = false;
