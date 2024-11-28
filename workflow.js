@@ -53,12 +53,22 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			jQuery(document).ready(function () {
 				var url = new URL(window.location.href);
                 var paramsUrl = new URLSearchParams(url.search);
-                var status = paramsUrl.get('status') ? paramsUrl.get('status') : 'verify';
+                var status = paramsUrl.get('wfl_status') ? paramsUrl.get('wfl_status') : 'verify';
+				var order = paramsUrl.get('wfl_order') ? paramsUrl.get('wfl_order') : 'req_created_date';
+
+				if(order.endsWith('-')) {
+					order = 'req_created_date';
+					url.searchParams.set('wfl_order', 'req_created_date');
+					window.history.replaceState(null, '', url);
+				}
+
 				jQuery('#requestTypeSelect').val(status);
+				jQuery('#orderBySelect').val(order);
+				self.watchOrder();
 
 				var modal = jQuery('#modal')[0];
 				self.modal = modal;
-				self.loadRequestList(modal, status);
+				self.loadRequestList(modal, status, 1, null, order);
 
 				var inputSearch = jQuery("#searchTable");
 				inputSearch.on('keyup', function (event) {
@@ -166,7 +176,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			requestTypeSelect.change(function () {
 				var selected = jQuery(this).children("option:selected").val();
-				jQuery("#orderBySelect ").val('req_created_date').change();
+				jQuery("#orderBySelect").val('req_created_date').change();
 				self.loadRequestList(self.modal, selected, 1);
 			});
 
@@ -363,7 +373,14 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                 var paramsUrl = new URLSearchParams(url.search);
                 var requestId = paramsUrl.get('requestId');
                 if(requestId) {
-                    jQuery('#request_' + requestId).trigger('click');
+					var request = jQuery('#request_' + requestId);
+
+					if(request.length) {
+						request.trigger('click');
+						return;
+					} else {
+						self.loadRequestList(modal, type, ++page, search, orderBy); 
+					}
                 }
 			});
 		},
@@ -463,24 +480,34 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				approveSection.append(approveSectionTitle);
 				approveSection.append(fields['commentTextArea']);
 				approveSection.append(approvedCheckboxContainer);
-		
+
 				jModalBody.append(form);
 
 				if (formData[0]['req_status'] == 'verify') {
 					if (self.canApproveRequests(formData[0])) {
 						var approveButton = jQuery('<button class="btn btn-workflow-modal" style="margin-top: 20px;" id="approveButton">' + Joomla.JText._('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_SAVE_LABEL') + '</button>');
-	
-						form.append(approveSection);
+
+						setTimeout(() => {form.append(approveSection); }, 1000);
 
 						jQuery(approveButton).on('click', function () {
 							const requestType = parseInt(formData[0]['req_request_type_id']);
 	
 							if (self.options.workflow_approval_by_votes == '1') {
-								var vote = jQuery("input[name='voteoptions']:checked").val();
-								if (vote == '1') {
-									formData[0]['req_vote_approve'] += 1;
-								} else {
-									formData[0]['req_vote_disapprove'] += 1;
+								var vote = jQuery("#voteoptions").val();
+
+								switch (vote) {
+									case '':
+										alert(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY'));
+										return;
+										break;
+									
+									case '0':
+										formData[0]['req_vote_disapprove'] += 1;
+										break;
+
+									case '1':
+										formData[0]['req_vote_approve'] += 1;
+										break;
 								}
 	
 								var approvedOrdisapproved = 'verify';
@@ -490,12 +517,21 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	
 								var approved = approvedOrdisapproved == "approved" ? true : false;
 							} else {
-								var approved = jQuery("input[name='yesnooptions']:checked").val() == "1" ? true : false;
-	
-								if (approved) {
-									formData[0]['req_approval'] = '1';
-								} else {
-									formData[0]['req_approval'] = '0';
+								var approved = jQuery('#yesnooptions').val();
+								
+								switch (approved) {
+									case '':
+										alert(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY'));
+										return;
+										break;
+									
+									case '0':
+										formData[0]['req_approval'] = '0';
+										break;
+
+									case '1':
+										formData[0]['req_approval'] = '1';
+										break;
 								}
 							}
 
@@ -515,7 +551,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								}
 							}
 
-							if (approved) {
+							if (approved == '1') {
 								switch (requestType) {
 									case 1:
 									case 2:
@@ -554,7 +590,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								}
 							});
 						});
-	
+
 						jModalBody.append(approveButton);
 					}
 				}
@@ -589,6 +625,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				recordData[token] = "1";
 				recordData['review'] = true;
 				recordData['req_id'] = formData[0]['req_id'];
+				recordData['fabrik_ajax'] = '1';
 
 				jQuery.ajax({
 					type: "POST",
@@ -729,7 +766,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var input = jQuery('<input id="' + id + '" type="text" disabled/>');
 
 			jQuery(label).html(labelText);
-			jQuery(input).val(value);
+			value != false ? jQuery(input).val(value) : null;
 
 			div.append(label);
 			div.append(input);
@@ -820,7 +857,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				switch (parseInt(data['req_request_type_id'])) {
 					case 3:
 					case "delete_record":
-						this.getElementsType(data['req_list_id']).done(function (elementsTypes) {
+						self.getElementsType(data['req_list_id']).done(function (elementsTypes) {
 							self.buildFormDeleteRecords(data, formDataInputsContainer, form);
 						});
 						break;
@@ -905,7 +942,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 			const recordId = data['req_record_id'];
 			const link = self.options.root_url + "component/fabrik/details/" + self.options.listId + "/" + recordId;
-			formDataInputsContainer.append("<a class='btn btn-outline-primary' href='" + link + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_CLICK_HERE') + "</a>");
+			formDataInputsContainer.append("<a class='btn btn-outline-primary' style='background-color: rgb(0, 62, 161); color: #fff !important' href='" + link + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_CLICK_HERE') + "</a>");
 
 			form.append(formDataInputsContainer);
 		},
@@ -1043,37 +1080,60 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					if (isRepeatGroup !== -1) {
 						repeatGroups[key] = obj;
 					} else {
-						if (elementsTypes[onlyElementKey] != undefined) {
-							if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
-								view.append(self.createInput(onlyElementKey, self.options.user.name, onlyElementKey));
-							} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
-								if ([listName + '_FILE_' + listName + '___' + onlyElementKey]) {
-									try{
-										var elementName = formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['name'];
-										
-										if (Array.isArray(elementName)) {
-											view.append(this.buildMultipleElementView(elementName, onlyElementKey));
-										} else {
-											view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
-										}
+						if (elementsTypes[onlyElementKey] == undefined) continue;
 
-										if (formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'][0].split('/')[0] == 'image' || formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['type'].split('/')[0]) {
-											view.append(self.renderImgs('new', elementName, formData[listName + '_FILE_' + listName + '___' + onlyElementKey]['path']));
-										} 
-									} catch {
+                        var plugin = elementsTypes[onlyElementKey]['plugin'];
+                        switch (plugin) {
+                            case 'user':
+                                if(obj['last'] == undefined) continue;
 
-									}
-								}
-							} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
-								view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
-							} else {
-								if (Array.isArray(obj)) {
-									view.append(this.buildMultipleElementView(obj, onlyElementKey));
-								} else {
-									view.append(this.createInput(onlyElementKey, formData[key], onlyElementKey));
-								}
-							}
-						}
+                                view.append(self.createInput(onlyElementKey, self.options.user.name, onlyElementKey));
+                                break;
+                            
+                            case 'fileupload':
+                                try{
+                                    var isAjax = elementsTypes[onlyElementKey]['ajax_upload'];
+                                    if(isAjax == '1') {
+                                        var values = formData[listName + '___' + onlyElementKey]['id'];
+                                        var elementName = [];
+                                        var path = '';
+
+                                        Object.keys(values).forEach(element => {
+                                            var arr = element.split('/');
+                                            var name = arr.pop();
+                                            path = arr.join('/') + '/';
+                                            elementName.push(name);
+                                        });
+
+                                        view.append(this.buildMultipleElementView(elementName, onlyElementKey));
+                                        view.append(self.renderImgs('new', elementName, path));
+                                    } else {
+                                        var fileKey = listName + '_FILE_' + listName + '___' + onlyElementKey;
+                                        var elementName = formData[fileKey]['name'];
+                                        var dataFile = formData[fileKey]['type'];
+
+                                        view.append(this.createInput(onlyElementKey, elementName, onlyElementKey));
+
+                                        if (dataFile[0].split('/')[0] == 'image' || dataFile.split('/')[0]) {
+                                            view.append(self.renderImgs('new', elementName, formData[fileKey]['path']));
+                                        } 
+                                    }
+                                } catch {}
+
+                                break;
+
+                            case 'date':
+                                view.append(this.createInput(onlyElementKey, obj['date'], onlyElementKey));
+                                break;
+                            
+                            default:
+                                if (Array.isArray(obj)) {
+                                    view.append(this.buildMultipleElementView(obj, onlyElementKey));
+                                } else {
+                                    view.append(this.createInput(onlyElementKey, formData[key], onlyElementKey));
+                                }
+                                break;
+                        }
 					}
 				}
 			}
@@ -1114,88 +1174,144 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				if (isRepeatGroup !== -1) {
 					repeatGroups[key] = obj;
 				} else {
-					if (elementsTypes[onlyElementKey] != undefined) {
-						if (elementsTypes[onlyElementKey]['plugin'] == "user" && obj['last'] != undefined) {
-							jQuery.ajax({
-								'url': '',
-								'method': 'get',
-								'data': {
-									'last_user_id': obj['last'][0],
-									'new_user_id': obj['new'][0],
-									'option': 'com_fabrik',
-									'format': 'raw',
-									'task': 'plugin.pluginAjax',
-									'plugin': 'workflow',
-									'method': 'GetUserValueBeforeAfter',
-									'g': 'form',
-								},
-								success: function (data) {
-									const res = JSON.decode(data);
-									view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
-								}
-							});
-						} else if (elementsTypes[onlyElementKey]['plugin'] == 'fileupload') {
-							if (changedProperties[listName + '_FILE_' + key]) {
-								var elementName = listName + '_FILE_' + key;
-							} else if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]) {
-								var elementName = listName + '_FILE_' + listName + '___' + onlyElementKey;
-							} else {
-								var elementName = 'undefined';
-							}
+					if (elementsTypes[onlyElementKey] == undefined) continue;
+                    
+                    var plugin = elementsTypes[onlyElementKey]['plugin'];
+                    switch (plugin) {
+                        case 'user':
+                            if(obj['last'] != undefined) continue;
 
-							if (changedProperties.hasOwnProperty(elementName)) {
-								if (changedProperties[elementName]['last'] != undefined) {
-									if (Array.isArray(obj['new']) || Array.isArray(obj['last'])) {
-										view.append(this.buildMultipleElementView(changedProperties[elementName]['last']['name']));
-										view.append(this.buildMultipleElementView(changedProperties[elementName]['new']['name']));
-										if (changedProperties[elementName]['new']['type'][0].split("/")[0]) {
-											view.append(self.renderImgs('change', changedProperties[elementName]));
-										}
-									} else {
-										view.append(this.createInputsBeforeAfter(onlyElementKey, changedProperties[elementName]['last']['name'], changedProperties[elementName]['new']['name']));
-										
-										if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
-											view.append(self.renderImgs('change', changedProperties[elementName]));
-										}
-									}
-								}
-							} else {
-								if (changedProperties.hasOwnProperty(elementName)) {
-									view.append(this.createInput(onlyElementKey, changedProperties[elementName]['new']['name'], onlyElementKey));
-									if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'][0].split('/')[0] == 'image' || changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]['new']['type'].split('/')[0] == 'image') {
-										view.append(self.renderImgs('new', changedProperties[elementName]['new']['name'], changedProperties[elementName]['new']['path']));
-									}
-								}
-							}
-						} else if (elementsTypes[onlyElementKey]['plugin'] == 'date') {
-							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
-						} else if (Array.isArray(obj['new']) || Array.isArray('last')) {
-							const container = jQuery("<div></div>");
-							const containerFlex = jQuery("<div></div>");
-							containerFlex.append("");
-							containerFlex.attr('style', 'display: flex;');
-							var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
-							var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
+                            jQuery.ajax({
+                                'url': '',
+                                'method': 'get',
+                                'data': {
+                                    'last_user_id': obj['last'][0],
+                                    'new_user_id': obj['new'][0],
+                                    'option': 'com_fabrik',
+                                    'format': 'raw',
+                                    'task': 'plugin.pluginAjax',
+                                    'plugin': 'workflow',
+                                    'method': 'GetUserValueBeforeAfter',
+                                    'g': 'form',
+                                },
+                                success: function (data) {
+                                    const res = JSON.decode(data);
+                                    view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
+                                }
+                            });
+                            break;
 
-							if (!obj['last'] || obj['last'] == undefined) {
-								// originalElement.append("VAZIO");
-							} else {
-								originalElement.append(self.buildMultipleElementView(obj['last']));
-							}
+                        case 'fileupload':
+                            var isAjax = elementsTypes[onlyElementKey]['ajax_upload'];
 
-							newElement.append(self.buildMultipleElementView(obj['new']));
-							newElement[0].style.paddingLeft = "5px";
-							originalElement[0].style.paddingLeft = "5px";
-							newElement[0].style.flex = "1";
-							originalElement[0].style.flex = "1";
-							containerFlex.append(originalElement);
-							containerFlex.append(newElement);
-							container.append(containerFlex);
-							view.append(container);
-						} else {
-							view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
-						}
-					}
+                            if (changedProperties[listName + '_FILE_' + key]) {
+                                var elementName = listName + '_FILE_' + key;
+                            } else if (changedProperties[listName + '_FILE_' + listName + '___' + onlyElementKey]) {
+                                var elementName = listName + '_FILE_' + listName + '___' + onlyElementKey;
+                            } else if(elementsTypes[onlyElementKey]['ajax_upload'] == '1') {
+                                var elementName = listName + '___' + onlyElementKey;
+                            } else {
+                                var elementName = 'undefined';
+                            }
+    
+                            if (!changedProperties.hasOwnProperty(elementName)) continue;
+    
+                            if(isAjax == '1') {
+                                const container = jQuery("<div></div>");
+                                const containerFlex = jQuery("<div></div>");
+                                containerFlex.append("");
+                                containerFlex.attr('style', 'display: flex;');
+                                var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+                                var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
+
+                                var lastValues = changedProperties[elementName]['last'];
+                                var newValues = changedProperties[elementName]['new']['id'];
+                                var path = [];
+                                var last = [];
+                                var newRecords = [];
+                                var changed = [];
+    
+                                last['name'] = [];
+                                newRecords['name'] = [];
+                                changed['last'] = [];
+                                changed['new'] = [];
+    
+                                lastValues.forEach(element => {
+                                    var arr = element.split('/');
+                                    var name = arr.pop();
+                                    last['name'].push(name);
+                                });
+    
+                                Object.keys(newValues).reverse().forEach(element => {
+                                    var arr = element.split('/');
+                                    var name = arr.pop();
+                                    path = arr.join('/') + '/';
+                                    newRecords['name'].push(name);
+                                });
+    
+                                last['path'] = path;
+                                newRecords['path'] = path;
+                                changed['last'] = last;
+                                changed['new'] = newRecords;
+
+                                originalElement.append(this.buildMultipleElementView(last['name']));
+                                newElement.append(this.buildMultipleElementView(newRecords['name']));
+        
+                                newElement[0].style.paddingLeft = "5px";
+                                originalElement[0].style.paddingLeft = "5px";
+                                newElement[0].style.flex = "1";
+                                originalElement[0].style.flex = "1";
+                                containerFlex.append(originalElement);
+                                containerFlex.append(newElement);
+                                container.append(containerFlex);
+
+                                view.append(container);
+                                view.append(self.renderImgs('change', changed));
+                            } else {
+                                var last = changedProperties[elementName]['last'] == undefined ? false : changedProperties[elementName]['last']['name'];
+    
+                                view.append(this.createInputsBeforeAfter(onlyElementKey, last, changedProperties[elementName]['new']['name']));
+                                
+                                if (changedProperties[elementName]['new']['type'].split("/")[0] == 'image') {
+                                    view.append(self.renderImgs('change', changedProperties[elementName]));
+                                }
+                            }
+
+                            break;
+
+                        case 'date':
+                            view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']['date']));
+                            break;
+
+                        default:
+                            if (Array.isArray(obj['new']) || Array.isArray('last')) {
+                                const container = jQuery("<div></div>");
+                                const containerFlex = jQuery("<div></div>");
+                                containerFlex.append("");
+                                containerFlex.attr('style', 'display: flex;');
+                                var newElement = jQuery("<div><p>" + onlyElementKey + "</p></div>");
+                                var originalElement = jQuery("<div><p>" + onlyElementKey + " - " + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + "</p></div>");
+        
+                                if (!obj['last'] || obj['last'] == undefined) {
+                                    // originalElement.append("VAZIO");
+                                } else {
+                                    originalElement.append(self.buildMultipleElementView(obj['last']));
+                                }
+        
+                                newElement.append(self.buildMultipleElementView(obj['new']));
+                                newElement[0].style.paddingLeft = "5px";
+                                originalElement[0].style.paddingLeft = "5px";
+                                newElement[0].style.flex = "1";
+                                originalElement[0].style.flex = "1";
+                                containerFlex.append(originalElement);
+                                containerFlex.append(newElement);
+                                container.append(containerFlex);
+                                view.append(container);
+                            } else {
+                                view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
+                            }
+                            break;
+                    }
 				}
 			}
 
@@ -1314,8 +1430,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			var containerDiv = jQuery('<div></div>');
 			containerDiv.attr('style', 'display: flex;');
 
-			const label = jQuery('<p>nova imagem</p>');
-			const originalLabel = jQuery('<p>imagem - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA') + '</p>');
+			const label = jQuery('<p>' + Joomla.JText._('PLG_FORM_WORKFLOW_ACTUAL_IMAGE_DATA') + '</p>');
+			const originalLabel = jQuery('<p>' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_IMAGE_DATA') + '</p>');
 			var originalImages = jQuery('<div></div>');
 			var requestImages = jQuery('<div></div>');
 			requestImages.append(label);
@@ -1325,10 +1441,21 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				originalImages.append(originalLabel);
 				originalImages.attr('style', 'max-width: 50%; border-color: #e0e0e5; border-width: 1px; border-radius: 10px; border-style: solid; margin: 4px; padding: 8px;');
 
-				if (Array.isArray(files['last']['name'])) {
+				if(files['last'] == undefined) {
+					originalImages.append('<p></p>');
+					originalImages.css('width', '100%');
+				} else if (Array.isArray(files['last']['name'])) {
 					files['last']['name'].forEach(function (element, index) {
-						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + element + '" width="500" height="600"></p>');
-						originalImages.append(link);
+                        var isImageFile = (element) => {
+                            var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico', 'heic'];
+                            var extension = element.split('.').pop().toLowerCase();
+                            return validExtensions.includes(extension);
+                        };
+                        
+                        if(isImageFile) {
+                            var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + element + '" width="500" height="600"></p>');
+                            originalImages.append(link);
+                        }
 					});
 				} else {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['last']['path'] + files['last']['name'] + '" width="500" height="600"></p>');
@@ -1339,8 +1466,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				if (Array.isArray(files['new']['name'])) {
 					files['new']['name'].forEach(function (element, index) {
-						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + element + '" width="500" height="600"></p>');
-						requestImages.append(link);
+                        var isImageFile = (element) => {
+                            var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico', 'heic'];
+                            var extension = element.split('.').pop().toLowerCase();
+                            return validExtensions.includes(extension);
+                        };
+                        
+                        if(isImageFile) {
+                            var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + element + '" width="500" height="600"></p>');
+                            requestImages.append(link);
+                        }
 					});
 				} else {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + files['new']['path'] + files['new']['name'] + '" width="500" height="600"></p>');
@@ -1351,8 +1486,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			} else if ('new') {
 				if (Array.isArray(files)) {
 					files.forEach(function (element, index) {
-						var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
-						requestImages.append(link);
+                        var isImageFile = (element) => {
+                            var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico', 'heic'];
+                            var extension = element.split('.').pop().toLowerCase();
+                            return validExtensions.includes(extension);
+                        };
+
+                        if(isImageFile) {
+                            var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + element + '" width="500" height="600"></p>');
+                            requestImages.append(link);
+                        }
 					});
 				} else {
 					var link = jQuery('<p style="overflow-wrap: break-word;"><img src="' + url_root + path + files + '" width="500" height="600"></p>');
@@ -1363,6 +1506,142 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			}
 
 			return containerDiv;
+		},
+
+		/**
+         * Watch order buttons
+		 * Copied and modified from media/com_fabrik/js/dist/list.js file
+		 * 
+         */
+		watchOrder: function () {
+			var self = this;
+			var orderValue = false, i, icon, otherIcon, src;
+			var hs = jQuery('#tblEntAttributes').find('.fabrikorder-wfl, .fabrikorder-asc-wfl, .fabrikorder-desc-wfl');
+
+			hs.off('click');
+			hs.on('click', function (e) {
+				var img = 'ordernone.png',
+					orderDir = '',
+					order = '',
+					newOrderClass = '',
+					bsClassAdd = '',
+					bsClassRemove = '',
+					h = jQuery(this),
+					td = h.closest('.fabrik_ordercell');
+
+				if (h.prop('tagName') !== 'A') {
+					h = td.find('a');
+				}
+
+				/**
+				 * Figure out what we need to change the icon from / to.  We don't know in advance for
+				 * bootstrapped templates what icons will be used, so the fabrik-order-header layout
+				 * will have set data-sort-foo properties of each of the three states.  Another wrinkle
+				 * is that we can't just set the new icon class blindly, because there
+				 * may be other classes
+				 * on the icon.  For instancee BS3 using Font Awesome will have "fa fa-sort-foo".
+				 * So we have
+				 * to specifically remove the current class and add the new one.
+				 */
+				switch (h.attr('class')) {
+					case 'fabrikorder-asc-wfl':
+						newOrderClass = 'fabrikorder-desc-wfl';
+						bsClassAdd = h.data('data-sort-desc-icon');
+						bsClassRemove = h.data('data-sort-asc-icon');
+						orderDir = 'desc';
+						order = '_desc';
+						img = 'orderdesc.png';
+						break;
+					case 'fabrikorder-desc-wfl':
+						newOrderClass = 'fabrikorder-wfl';
+						bsClassAdd = h.data('data-sort-icon');
+						bsClassRemove = h.data('data-sort-desc-icon');
+						orderDir = '-';
+						order = '_-';
+						img = 'ordernone.png';
+						break;
+					case 'fabrikorder-wfl':
+						newOrderClass = 'fabrikorder-asc-wfl';
+						bsClassAdd = h.data('data-sort-asc-icon');
+						bsClassRemove = h.data('data-sort-icon');
+						orderDir = 'asc';
+						order = '';
+						img = 'orderasc.png';
+						break;
+				}
+
+				td.attr('class').split(' ').each(function (c) {
+					if (c.contains('_order')) {
+						orderValue = c.replace('_order', '').replace(/^\s+/g, '').replace(/\s+$/g, '');
+					}
+				});
+
+				if (!orderValue) {
+					console.warn(Joomla.JText._("PLG_FORM_WORKFLOW_ERROR_ORDERING"));
+					return;
+				}
+
+				h.attr('class', newOrderClass);
+				if (Fabrik.bootstrapped) {
+					icon = h.find('*[data-isicon]');
+				} else  {
+					i = h.find('img');
+					icon = h.firstElementChild;
+				}
+
+				// Swap images - if list doing ajax nav then we need to do this
+				if (self.options.singleOrdering || true) {
+					jQuery('#tblEntAttributes').find('.fabrikorder, .fabrikorder-asc, .fabrikorder-desc')
+						.each(function (otherH) {
+							if (Fabrik.bootstrapped) {
+								otherIcon = otherH.firstElementChild;
+								switch (otherH.className) {
+									case 'fabrikorder-asc':
+										otherIcon.removeClass(otherH.data('sort-asc-icon'));
+										otherIcon.addClass(otherH.data('sort-icon'));
+										break;
+									case 'fabrikorder-desc':
+										otherIcon.removeClass(otherH.data('sort-desc-icon'));
+										otherIcon.addClass(otherH.data('sort-icon'));
+										break;
+									case 'fabrikorder':
+										break;
+								}
+							} else {
+								i = otherH.find('img');
+								if (i.length > 0) {
+									src = i.attr('src');
+									src = src.replace('ordernone.png', '')
+										.replace('orderasc.png', '').replace('orderdesc.png', '');
+									src += 'ordernone.png';
+									i.attr('src', src);
+								}
+							}
+						});
+				}
+
+				if (Fabrik.bootstrapped) {
+					icon.removeClass(bsClassRemove);
+					icon.addClass(bsClassAdd);
+				} else {
+					if (i) {
+						src = i.attr('src');
+						src = src.replace('ordernone.png', '').replace('orderasc.png', '')
+							.replace('orderdesc.png', '');
+						i.attr('src', src);
+					}
+				}
+
+				var status = jQuery('#requestTypeSelect').val();
+				var url = new URL(window.location.href);
+                url.searchParams.set('wfl_order', orderValue + order);
+                url.searchParams.set('wfl_status', status);
+				window.history.replaceState(null, '', url);
+				location.reload();
+
+				e.preventDefault();
+			});
+
 		},
 
 		getElementsType: function (req_list_id) {

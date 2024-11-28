@@ -18,6 +18,7 @@ require_once COM_FABRIK_FRONTEND . '/models/list.php';
 require_once JPATH_COMPONENT . '/controller.php';
 require_once JPATH_PLUGINS . '/fabrik_element/field/field.php';
 require_once JPATH_PLUGINS . '/fabrik_element/textarea/textarea.php';
+require_once JPATH_PLUGINS . '/fabrik_element/dropdown/dropdown.php';
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -315,15 +316,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             foreach ($results as $result) {
                 $property = $result->name;
                 $elements->$property['plugin'] = $result->plugin;
-                if ($result->plugin == "databasejoin") {
-                    $params = json_decode($result->params);
-                    $elements->$property['join_db_name'] = $params->join_db_name;
-                    $elements->$property['database_join_display_type'] = $params->database_join_display_type;
-                    $elements->$property['join_val_column'] = $params->join_val_column;
-                    $elements->$property['join_key_column'] = $params->join_key_column;
-                } else if ($result->plugin == "tags") {
-                    $params = json_decode($result->params);
-                    $elements->$property['tags_dbname'] = $params->tags_dbname;
+                $params = json_decode($result->params);
+
+                switch ($result->plugin) {
+                    case 'databasejoin':
+                        $elements->$property['join_db_name'] = $params->join_db_name;
+                        $elements->$property['database_join_display_type'] = $params->database_join_display_type;
+                        $elements->$property['join_val_column'] = $params->join_val_column;
+                        $elements->$property['join_key_column'] = $params->join_key_column;
+                        break;
+                    
+                    case 'tags':
+                        $elements->$property['tags_dbname'] = $params->tags_dbname;
+                        break;
+                    
+                    case 'fileupload':
+                        $elements->$property['ajax_upload'] = $params->ajax_upload;
+                        break;
                 }
             }
         }
@@ -521,10 +530,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_VOTES_AGAINST');
         Text::script('PLG_FORM_WORKFLOW_LOADING');
         Text::script('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
+        Text::script('PLG_FORM_WORKFLOW_ORIGINAL_IMAGE_DATA');
+        Text::script('PLG_FORM_WORKFLOW_ACTUAL_IMAGE_DATA');
         Text::script('PLG_FORM_WORKFLOW_VIEW');
         Text::script('PLG_FORM_WORKFLOW_PARTIAL_SCORE');
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
+        Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
+        Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
+        Text::script('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE');
     }
 
     /**
@@ -854,17 +868,24 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
         $this->saveNotification($logData, $hasPermission);
         if (!$hasPermission) {
+            /**
+             * Set form id in registry to not show default message success in getSuccessMsg() function
+             * The message when the user has no permission must be a warning (yellow)
+             */
+            $formModel = isset($formModel) ? $formModel : $this->getModel();
+            $formModel->getParams()->set('suppress_msgs', '1');
+
             switch ($this->requestType) {
                 case self::REQUEST_TYPE_DELETE_RECORD:
-                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'message');
+                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_DELETE_SUCESS_MESSAGE'), 'warning');
                     break;
 
                 case self::REQUEST_TYPE_DELETE_RECORD:
-                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'message');
+                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_CREATE_SUCESS_MESSAGE'), 'warning');
                     break;
 
                 default:
-                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'message');
+                    $app->enqueueMessage(Text::_('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE'), 'warning');
                     break;
             }
 
@@ -972,6 +993,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     }
                 }
         }
+
         return true;
     }
 
@@ -1845,10 +1867,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $menu = $app->getMenu();
 
         $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=list&listid=$id", true);
-        $alias = '/' . $menuLinked->alias;
-        $alias .= $view == 'form' ? "/form/$idForm" : '';
+        $route = '/' . $menuLinked->route;
+        $route .= $view == 'form' ? "/form/$idForm" : '';
 
-        return $alias;
+        return $route;
     }
 
     /**
@@ -2124,10 +2146,11 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $request_type = $request["req_request_type_id"];
         $request_status = $request['req_approval'] === '1' ? Text::_("PLG_FORM_WORKFLOW_APPROVED_F") : Text::_("PLG_FORM_WORKFLOW_NOT_APPROVED_F");
 
+        $url = "index.php?option=com_fabrik&view=list&listid=$list_id";
         $menu = $app->getMenu();
-        $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=list&listid=$list_id", true);
-        $alias = $menuLinked->alias;
-        $link = URI::root() . $alias;
+        $menuLinked = $menu->getItems('link', $url, true);
+        $route = $menuLinked->route;
+        $link = URI::base() . (isset($route) ? $route : $url);
 
         switch ($request_type) {
             case '1':
@@ -2250,6 +2273,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $fabrikModel->setId($listId);
         $ok = $fabrikModel->deleteRows($rowId);
+        $this->setStatusNotApproved($app->input->getInt('rowId'), $listId);
     }
 
     /**
@@ -2311,7 +2335,34 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $this->listId = $optionsJs['listId'];
             $this->createLog($formData, $hasPermission);
             $listModel->deleteRows($rowId);
+            $this->setStatusNotApproved($formData['rowid'], $this->listId);
         }
+    }
+
+    /**
+     * This method change the status to not approved when a deletion request related is approved or executed
+     * 
+     * @param       Int             $rowId          Register id
+     * @param       Int             $listId         List id
+     * 
+     * @return      Null
+     * 
+     * @since       v4.2.1
+     */
+    private function setStatusNotApproved($rowId, $listId) 
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true);
+
+        $query->update(self::REQUESTS_TABLE_NAME)
+            ->set($db->qn('req_status') . ' = ' . $db->q('not-approved'))
+            ->where($db->qn('req_request_type_id') . ' IN (' . implode(',', $db->q(['2', '3'])) . ')')
+            ->where($db->qn('req_record_id') . ' = ' . $db->q((int) $rowId))
+            ->where($db->qn('req_status') . ' = ' . $db->q('verify'))
+            ->where($db->qn('req_list_id') . ' = ' . $db->q($listId));
+
+        $db->setQuery($query);
+        $db->execute();
     }
 
     /**
@@ -2425,7 +2476,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $configFields = $this->configFields($request, $mod);
             $this->setTextElements($els, $configFields['text'], $request, $mod);
             $this->setTextareaElements($els, $configFields['textarea'], $request, $mod);
-            $this->setYesnoElements($els, $configFields['yesno'], $request, $mod);
+            $this->setDropdownElements($els, $configFields['dropdown'], $request, $mod);
             $response->fields = $this->setUpBodyElements($els, $returnFields);
         } catch (\Throwable $th) {
             $response->error = true;
@@ -2463,7 +2514,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             case 'formRequest':
                 $configFields = Array(
                     'textarea' => Array('commentTextArea'),
-                    'yesno' => Array('yesnooptions', 'voteoptions')
+                    'dropdown' => Array('yesnooptions', 'voteoptions')
                 );
                 return $configFields;
         }
@@ -2591,10 +2642,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	}
 
     /**
-	 * Setter method to yesno elements
+	 * Setter method to dropdown elements
 	 *
-	 * @param   	Array 		    $els	    		Reference to yesno elements name
-	 * @param   	Array 		    $elements			Yesno elements name
+	 * @param   	Array 		    $els	    		Reference to dropdown elements name
+	 * @param   	Array 		    $elements			Dropdown elements name
 	 * @param		Array		    $data		        Form data for each element
      * @param       String          $mod                Which form we need to build?
 	 *
@@ -2602,7 +2653,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	 * 
 	 * @since 		version 4.2
 	 */
-	private function setYesnoElements(&$els, $elements, $data, $mod) 
+	private function setDropdownElements(&$els, $elements, $data, $mod) 
 	{
         $app = Factory::getApplication();
 
@@ -2614,23 +2665,23 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
             switch ($id) {
                 case 'yesnooptions':
-                    $label = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
+                    $label = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL")  . ' <b style="color: red">*</b>';
                     $desc = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
                     break;
                 
                 case 'voteoptions':
                     $params = $model->getFormModel()->getParams();
-                    $id = 1;
+                    $index = 1;
 
                     $parcialApproved = empty($data['req_vote_approve']) ? 0 : $data['req_vote_approve'];
                     $parcialDisapproved = empty($data['req_vote_disapprove']) ? 0 : $data['req_vote_disapprove'];
-                    $votesNeededApprove = is_object($params->get('workflow_votes_to_approve')) ? $params->get('workflow_votes_to_approve')->$id : $params->get('workflow_votes_to_approve');
-                    $votesNeededDisapprove = is_object($params->get('workflow_votes_to_disapprove')) ? $params->get('workflow_votes_to_disapprove')->$id : $params->get('workflow_votes_to_disapprove');
+                    $votesNeededApprove = is_object($params->get('workflow_votes_to_approve')) ? $params->get('workflow_votes_to_approve')->$index : $params->get('workflow_votes_to_approve');
+                    $votesNeededDisapprove = is_object($params->get('workflow_votes_to_disapprove')) ? $params->get('workflow_votes_to_disapprove')->$index : $params->get('workflow_votes_to_disapprove');
                     $desc = Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL");
-                    $label = Text::_("PLG_FORM_WORKFLOW_PARTIAL_VOTES") 
-                        . '<br>' 
-                        . Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APPROVED") 
-                        . $parcialApproved 
+                    $label = Text::_("PLG_FORM_WORKFLOW_PARTIAL_VOTES")
+                        . '<br>'
+                        . Text::_("PLG_FORM_WORKFLOW_LABEL_REQUEST_APPROVED")
+                        . $parcialApproved
                         . ' (' . $votesNeededApprove . ' '
                         . Text::_("PLG_FORM_WORKFLOW_NEEDED_VOTES") . ')'
                         . '<br>' 
@@ -2639,32 +2690,34 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                         . ' (' . $votesNeededDisapprove . ' '
                         . Text::_("PLG_FORM_WORKFLOW_NEEDED_VOTES") . ')'
                         . '<br><br>'
-                        . Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL');
+                        . Text::_('PLG_FORM_WORKFLOW_LABEL_REQUEST_APROVAL') . ' <b style="color: red">*</b>';
                     break;
             }
 
             // Options to set up the element
             $opts = Array(
-                Text::_('JNO'), 
-                Text::_('JYES')
+                '' => Text::_('COM_FABRIK_PLEASE_SELECT'),
+                '0' => Text::_('JNO'),
+                '1' => Text::_('JYES'),
             );
+            $dEl->options = $this->optionsElements($opts);
+            $dEl->name = $id;
+            $dEl->id = $id;
+            $dEl->selected = Array('');
+            $dEl->multiple = '0';
+            $dEl->attribs = 'class="fabrikinput form-select input-medium"';
+            $dEl->multisize = '';
 
-            $els[$id]['objField'] = new FileLayout('joomla.form.field.radio.switcher');
+            $classDropdown = new PlgFabrik_ElementDropdown($this->subject);
+            $els[$id]['objField'] = $classDropdown->getLayout('form');
             $els[$id]['objLabel'] = FabrikHelperHTML::getLayout('fabrik-element-label', [COM_FABRIK_BASE . 'components/com_fabrik/layouts/element']);
-
             $els[$id]['dataLabel'] = $this->getDataLabel(
                 $id, 
                 $label,
                 $desc,
             );
-            $els[$id]['dataField'] = Array(
-                'value' => 0,
-                'options' => $this->optionsElements($opts),
-                'name' => $id,
-                'id' => $id,
-                'class' => 'fbtn-default fabrikinput',
-                'dataAttribute' => 'style="margin-bottom: 0px; padding: 0px"',
-            );
+            $els[$id]['dataField'] = $dEl;
+		    //$els[$id]['cssElement'] = 'border: #ccc solid 2px;';
         }
 	}
 
