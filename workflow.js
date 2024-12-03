@@ -428,7 +428,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			if (form_data.req_reviewers_votes.indexOf(this.options.user.id) == -1) {
 				var canApproveRequests = this.options.user.canApproveRequests;
 				if (form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1) {
-					if (types.indexOf(form_data['req_request_type_name']) > 0) {
+					if (types.indexOf(form_data['req_request_type_name']) > -1) {
 						canApproveRequests = true;
 					} else {
 						canApproveRequests = false;
