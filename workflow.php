@@ -333,6 +333,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     case 'fileupload':
                         $elements->$property['ajax_upload'] = $params->ajax_upload;
                         break;
+                    
+                    case 'textarea':
+                        $elements->$property['rich_text'] = $params->use_wysiwyg;
+                        break;
                 }
             }
         }

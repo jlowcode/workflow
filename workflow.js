@@ -111,23 +111,23 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					var btnGroup = row.getElementsByClassName('dropdown-menu');
 					btnGroup[0].style.minWidth = '12em';
 					let li = document.createElement("li");
-					li.setAttribute('class', 'nav-link')
+					li.setAttribute('class', 'nav-link');
 
 					let report = document.createElement("a");
 					report.classList.add('btn-default-delete');
-					report.setAttribute('data-loadmethod', 'xhr')
-					report.setAttribute('data-list', row.offsetParent.id)
-					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6])
-					report.setAttribute('data-rowid', 'xhr')
-					report.setAttribute('target', '_self')
-					report.setAttribute('title', Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST"))
+					report.setAttribute('data-loadmethod', 'xhr');
+					report.setAttribute('data-list', row.offsetParent.id);
+					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6]);
+					report.setAttribute('data-rowid', 'xhr');
+					report.setAttribute('target', '_self');
+					report.setAttribute('title', Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST"));
 
 					report.innerHTML = '<span>' + self.options.images.danger + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST");
-					li.appendChild(report)
+					li.appendChild(report);
 					btnGroup[0].appendChild(li);
 
 					// Remove default delete button
-					jQuery('.dropdown-menu a.delete').parent().remove()
+					jQuery('.dropdown-menu a.delete').parent().remove();
 
 					var fields = jQuery('.fabrik_element');
 					Object.keys(fields).forEach(function (key) {
@@ -775,14 +775,34 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			return div;
 		},
 
-		createInputsBeforeAfter: function (key, originalValue = null, newValue) {
+		createInputRichText: function (labelText, value, id) 
+		{
+			var div = jQuery('<div></div>');
+			var label = jQuery('<label for="' + id + '"></label><br>')
+			var span = jQuery('<div style="text-indent: 20px; margin-top: 0px;" id="' + id + '" type="text" disabled>' + value + '</div>');
+
+			jQuery(label).html(labelText);
+
+			div.append(label);
+			div.append(span);
+
+			return div;
+		},
+
+		createInputsBeforeAfter: function (key, originalValue, newValue, richText) {
 			var self = this;
 			var originalLabel = ' - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
 
 			const originalNewInputContainer = jQuery("<div></div>");
 			originalNewInputContainer.attr('style', 'display: flex;');
-			const inputContainer = self.createInput(key, newValue, key);
-			const inputOriginalContainer = self.createInput(key + originalLabel, originalValue, key + originalLabel);
+
+			if(richText) {
+				var inputContainer = self.createInputRichText(key, newValue, key);
+				var inputOriginalContainer = self.createInputRichText(key + originalLabel, originalValue, key + originalLabel);
+			} else {
+				var inputContainer = self.createInput(key, newValue, key);
+				var inputOriginalContainer = self.createInput(key + originalLabel, originalValue, key + originalLabel);
+			}
 
 			inputContainer[0].style.paddingLeft = "5px";
 			inputOriginalContainer[0].style.paddingLeft = "5px";
@@ -1309,7 +1329,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                                 container.append(containerFlex);
                                 view.append(container);
                             } else {
-                                view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
+                                var rich_text = elementsTypes[onlyElementKey].rich_text;
+                                view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new'], rich_text));
                             }
                             break;
                     }
