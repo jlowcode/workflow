@@ -861,12 +861,27 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				var formData = JSON.parse(data['form_data']);
 
+				switch (request['req_request_type_id']) {
+					case '1':
+						var title = Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL');
+						break;
+
+					case '2':
+					case '3':
+						var title = "<a href='" + r["link"] + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + request["req_record_id"] + '</a>';
+						break;
+
+					case '4':
+					case '5':
+						var title = Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_FIELD_LABEL') + formData['easyadmin_modal___name'];
+						break;
+				}
 				// Container to the new/edited data of the request
 				var formDataInputsContainer = jQuery('<div></div>');
 				formDataInputsContainer.attr('class', 'formDataInputsContainer mt-2');
 				formDataInputsContainer.attr('style', 'dispay: flex;');
 				formDataInputsContainer.attr('style', 'flex-direction: column;');
-				formDataInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + '<h2>');
+				formDataInputsContainer.append('<h2>' + title + '<h2>');
 				formDataInputsContainer.css("background-color", "#e3e3e3");
 				formDataInputsContainer.css("padding", "10px");
 

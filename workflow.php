@@ -501,6 +501,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_FIELD_TEXT');
 
         Text::script('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_RECORD_FIELD_LABEL');
         Text::script('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL');
@@ -1857,22 +1858,27 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     /**
      * This method provide the friendly url
      * 
-     * @param       Int            $id              Id of the record
-     * @param       String         $view            List, form or detail view 
-     * @param       Int            $idForm          Id of the form 
+     * @param       Int            $id                  Id of the record
+     * @param       String         $view                List, form or detail view 
+     * @param       Int            $idForm              Form id
+     * @param       Int            $idRegister          Register id
      * 
      * @return      String
      * 
      * @since       v4.1
      */
-    private function getFriendlyUrl($id, $view, $idForm=0)
+    private function getFriendlyUrl($id, $view, $idForm=0, $idRegister=0)
     {
         $app = Factory::getApplication();
         $menu = $app->getMenu();
 
         $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=list&listid=$id", true);
         $route = '/' . $menuLinked->route;
-        $route .= $view == 'form' ? "/form/$idForm" : '';
+
+        if($view != 'list') {
+            $route .= $view == 'form' ? "/form/$idForm" : "/details/$idForm";
+            $route .= $idRegister != 0 ? "/$idRegister" : "";
+        }
 
         return $route;
     }
@@ -2467,14 +2473,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $db = Factory::getContainer()->get('DatabaseDriver');
         $filter = JFilterInput::getInstance();
         $app = Factory::getApplication();
+        $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
 
         $response = new stdClass();
         $response->error = false;
-
+        
         $input = $app->input;
         $request = $filter->clean($input->getString('data'), 'array');
         $mod = $input->getString('mod');
         $returnFields = $mod == 'formRequest' ? 1 : 0;
+
+        $listModel->setId($request['req_list_id']);
+        $idForm = $listModel->getFormModel()->getId();
 
         try {
             $configFields = $this->configFields($request, $mod);
@@ -2486,7 +2496,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $response->error = true;
             $response->message = Text::_("PLG_FORM_WORKFLOW_ERROR_BUILD_FORM");
         }
-        
+
+        $response->link = $this->getFriendlyUrl($request['req_list_id'], 'details', $idForm ,$request['req_record_id']);
         echo json_encode($response);
     }
 
