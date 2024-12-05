@@ -72,7 +72,6 @@
                      description="PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_DESC"
                      label="PLG_FORM_WORKFLOW_VOTES_TO_APPROVE_LABEL"
                      size="10"
-                     repeat="true"
                      default="2"
               />
 
@@ -81,7 +80,6 @@
                      description="PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_DESC"
                      label="PLG_FORM_WORKFLOW_VOTES_TO_DISAPPROVE_LABEL"
                      size="10"
-                     repeat="true"
                      default="2"
               />
         </fieldset>	
