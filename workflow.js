@@ -145,7 +145,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 					jQuery.ajax({
 						'url': '',
-						'method': 'get',
+						'method': 'post',
 						'data': {
 							'options': self.options,
 							'listRowIds': listRowIds,
@@ -154,6 +154,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							'plugin': 'workflow',
 							'method': 'onReportAbuse',
 							'g': 'form',
+							'format': 'raw',
 						},
 						success: function (data) {
 							alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
