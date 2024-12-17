@@ -1542,6 +1542,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $groups = $this->user->getAuthorisedViewLevels();
         $canAdd = in_array($params->get('allow_add'), $groups);
 
+		if($this->user->authorise('core.admin')) return true;
+
         return $canAdd;
     }
 
@@ -1757,6 +1759,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $canAdd = true;
         }
 
+		if($this->user->authorise('core.admin')) return true;
+        
         switch ($this->requestType) {
             case self::REQUEST_TYPE_ADD_RECORD:
                 if (!$canAdd) {
@@ -1792,6 +1796,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $listModel = $this->getModel()->getListModel();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         
+		if($this->user->authorise('core.admin')) return true;
+
         return in_array($listModel->getParams()->get('allow_request_record'), $groups);
     }
 
@@ -1830,9 +1836,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $app = Factory::getApplication();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
 
-        if ($this->user->authorise('core.admin')) {
-            return true;
-        } else if (in_array($this->getParams()->get('allow_review_request'), $groups)) {
+        if ($this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups)) {
             return true;
         }
 
