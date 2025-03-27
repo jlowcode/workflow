@@ -2213,6 +2213,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     private function enviarEmail($emailTo, $subject, $message)
     {
+        // Return now because we need treat the slowness quickly
+        return;
+
         jimport('joomla.mail.helper');
 
         $emailFrom = $this->config->get('mailfrom');
