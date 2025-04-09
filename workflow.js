@@ -106,8 +106,10 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 
 				var dataRow = document.getElementsByClassName('fabrik_row');
-				Array.from(dataRow).each(function (row) {
+                Array.from(dataRow).each(function (row) {
 					// Report button
+                    var titleDelAction = self.options.user.hasPermission ? Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST") : Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_RECORD_LIST");
+
 					var btnGroup = row.getElementsByClassName('dropdown-menu');
 					btnGroup[0].style.minWidth = '12em';
 					let li = document.createElement("li");
@@ -120,9 +122,9 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6]);
 					report.setAttribute('data-rowid', 'xhr');
 					report.setAttribute('target', '_self');
-					report.setAttribute('title', Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST"));
+					report.setAttribute('title', titleDelAction);
 
-					report.innerHTML = '<span>' + self.options.images.danger + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST");
+					report.innerHTML = '<span>' + (self.options.user.hasPermission ? self.options.images.trash : self.options.images.danger) + '</span> ' + titleDelAction;
 					li.appendChild(report);
 					btnGroup[0].appendChild(li);
 

@@ -46,7 +46,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     protected $dbtable_request_sufixo;
     protected $fieldPrefix;
     protected $requestType;
-    protected $easyadmin=false;
+    public $easyadmin = false;
 
     protected $requests_table_attrs = Array(
         'req_id',
@@ -541,6 +541,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_PARTIAL_SCORE');
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
+        Text::script('PLG_FORM_WORKFLOW_REPORT_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
         Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
         Text::script('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE');
@@ -581,6 +582,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 		$options->images = $this->getImages();
 		$options->statusName = $this->statusLista;
 		$options->requestTypeText = $this->requestTypeText;
+
+        // We need provide to js file if user has permission or not
+        $this->easyadmin = true;
+        $options->user->hasPermission = $this->hasPermission(['easyadmin_modal___listid' => $this->listId]);
+        $this->easyadmin = false;
+
         $options = json_encode($options);
         
         $jsFiles = Array();
@@ -1701,7 +1708,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      * 
      * @return      Boolean
      */
-    protected function hasPermission($formData, $delete=false, $listModel=false, $optionsJs=false)
+    public function hasPermission($formData, $delete=false, $listModel=false, $optionsJs=false)
     {
         if (!isset($this->requestType)) {
             $this->setRequestType($formData, $delete);
@@ -2931,6 +2938,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	{
 		$this->images['view'] = FabrikHelperHTML::image('view.png', 'list');
 		$this->images['danger'] = FabrikHelperHTML::image('danger.png', 'list');
+		$this->images['trash'] = FabrikHelperHTML::image('trash.png', 'list');
 	}
 
 	/**
