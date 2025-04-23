@@ -15,7 +15,7 @@ defined('_JEXEC') or die('Restricted access');
 // Require the abstract plugin class
 require_once COM_FABRIK_FRONTEND . '/models/plugin-form.php';
 require_once COM_FABRIK_FRONTEND . '/models/list.php';
-require_once JPATH_COMPONENT . '/controller.php';
+require_once COM_FABRIK_FRONTEND . '/controller.php';
 require_once JPATH_PLUGINS . '/fabrik_element/field/field.php';
 require_once JPATH_PLUGINS . '/fabrik_element/textarea/textarea.php';
 require_once JPATH_PLUGINS . '/fabrik_element/dropdown/dropdown.php';
@@ -412,6 +412,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function onProcessRequest()
     {
+        // We need remove it to update the notifications
+        $_SESSION['notifications'] = null;
+        $_SESSION['notificationsCount'] = null;
+
         $db = Factory::getContainer()->get('DatabaseDriver');
         $usuario = &Factory::getApplication()->getIdentity();
 
@@ -458,7 +462,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $obj = (object) $requestData;
         $results = $db->updateObject('#__fabrik_requests', $obj, 'req_id', false);
-        $r = $this->saveNotification($requestData);
         $return->response = true;
 
         if($sendMail == true) {
@@ -766,6 +769,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function createLog($formData, $hasPermission)
     {
+        // We need remove it to update the notifications
+        $_SESSION['notifications'] = null;
+        $_SESSION['notificationsCount'] = null;
+
         $db = Factory::getContainer()->get('DatabaseDriver');
         $app = Factory::getApplication();
 
@@ -878,7 +885,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         if ($this->params->get('workflow_send_mail') == '1'){
             $this->enviarEmailRequest($logData);
         }
-        $this->saveNotification($logData, $hasPermission);
+
         if (!$hasPermission) {
             /**
              * Set form id in registry to not show default message success in getSuccessMsg() function
@@ -952,78 +959,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         // @TODO - CATCH ID TO SEND MAIL
 
         return true;
-    }
-
-    public function saveNotification($formData)
-    {
-        $reviewers_id = $this->getReviewers();
-        JLoader::register('FieldsHelper', JPATH_ADMINISTRATOR . '/components/com_fields/helpers/fields.php');
-
-        $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
-        $listModel->setId($formData["req_list_id"]);
-
-		$is_vote = (int) $listModel->getFormModel()->getParams()->get('workflow_approval_by_vote', '0');
-        $userId = Factory::getApplication()->getIdentity()->id;
-
-        foreach ($reviewers_id as $id) {
-            $field_id = 1;
-            JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-            $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-            $values = json_decode($fieldModel->getFieldValue($field_id, $id), true);
-
-            if ($is_vote == 1) {
-                if ($formData['req_vote_approve'] != '' || $formData['req_vote_disapprove'] != ''){
-                    $is_vote = 1;
-                }
-            }
-
-            if (($formData['req_status'] == "verify") && (!isset($values['requisicoes']) || count($values['requisicoes']) == 0)) {
-                $this->newNotification($formData, $field_id, $id, 0);
-            } else {
-                foreach ($values['requisicoes'] as $k => $v) {
-                    $validador = true;
-                    if ($v['lista'] == $formData["req_list_id"]) {
-                        $validador = false;
-
-                        if (($formData['req_status'] == "verify") && ($is_vote == 0)) {
-                            $values['requisicoes'][$k]['qtd']  = $v['qtd'] + 1;
-                        } else if ($formData['req_status'] != "pre-approved" && $id == $userId) {
-                            $values['requisicoes'][$k]['qtd'] = $v['qtd'] - 1;
-                            if ($values['requisicoes'][$k]['qtd'] == 0) {
-                                unset($values['requisicoes'][$k]);
-                            }
-                        }
-                        $value = json_encode($values);
-                        JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-                        $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-                        $fieldModel->setFieldValue($field_id, $id, $value);
-                        break 1;
-                    } 
-                }
-
-                if ($validador && ($formData['req_status'] == "verify")) {
-                    $values['requisicoes'][$k + 1]['lista'] = intval($formData["req_list_id"]);
-                    $values['requisicoes'][$k + 1]['qtd'] = 1;
-                    $value = json_encode($values);
-                    JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-                    $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-                    $fieldModel->setFieldValue($field_id, $id, $value);
-                }
-            }
-        }
-
-        return true;
-    }
-
-    public function newNotification($formData, $field_id, $user_id, $k)
-    {
-        $value = new StdClass;
-        $value->requisicoes[$k]['lista'] = intval($formData["req_list_id"]);
-        $value->requisicoes[$k]['qtd'] = 1;
-        $value = json_encode($value);
-        JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-        $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-        $fieldModel->setFieldValue($field_id, $user_id, $value);
     }
 
     /**
@@ -2432,9 +2367,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * This method only call to main method that verify if the user has the permission needed
+     * This method only call to main method that verify if the user has the permission needed. Called by easyadmin plugin
      * 
-     * @return      Boolean
+     * @return      Null
      * 
      * @since       version 4.1
      */
@@ -2443,6 +2378,29 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $permission = $this->hasPermission($_POST);
 
         echo json_encode($permission);
+    }
+
+    /**
+     * This method only call to main method that verify if the user has the permission needed. Called by mod_workflow_notification module
+     * 
+     * @param       Array           $request        Data needed
+     * 
+     * @return      Boolean
+     * 
+     * @since       version 4.2.2
+     */
+    public function onHasPermissionMod($request)
+    {  
+        [$listId, $requestTypeId, $formData, $listModel] = array_slice($request, 0, 4);
+
+        $delete = $requestTypeId == 3 ? true : false;
+        $this->easyadmin = false;
+        $this->setRequestType($formData, $delete);  // We need to call this method to check if is a request from easyadmin
+        $this->requestType = $requestTypeId;        // We need to set this attribute, because the value need to be updated after each call
+
+        $permission = $this->hasPermission($formData, $delete, $listModel);
+
+        return $permission;
     }
 
     /**
