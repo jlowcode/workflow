@@ -412,10 +412,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function onProcessRequest()
     {
-        // We need remove it to update the notifications
-        $_SESSION['notifications'] = null;
-        $_SESSION['notificationsCount'] = null;
-
         $db = Factory::getContainer()->get('DatabaseDriver');
         $usuario = &Factory::getApplication()->getIdentity();
 
@@ -769,10 +765,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function createLog($formData, $hasPermission)
     {
-        // We need remove it to update the notifications
-        $_SESSION['notifications'] = null;
-        $_SESSION['notificationsCount'] = null;
-
         $db = Factory::getContainer()->get('DatabaseDriver');
         $app = Factory::getApplication();
 
