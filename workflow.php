@@ -27,6 +27,7 @@ use Joomla\CMS\User\User;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Filesystem\Path;
 use Joomla\CMS\Layout\FileLayout;
+use Joomla\CMS\Date\Date;
 
 /**
  * Form workflow plugin
@@ -532,7 +533,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL');
         Text::script('PLG_FORM_WORKFLOW_VOTES_IN_FAVOR');
         Text::script('PLG_FORM_WORKFLOW_VOTES_AGAINST');
-        Text::script('PLG_FORM_WORKFLOW_LOADING');
         Text::script('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
         Text::script('PLG_FORM_WORKFLOW_ORIGINAL_IMAGE_DATA');
         Text::script('PLG_FORM_WORKFLOW_ACTUAL_IMAGE_DATA');
@@ -2901,5 +2901,32 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	public function getImages() 
 	{
 		return $this->images;
+	}
+
+    /**
+	 * This method in case of bad request will save the data in #__action_logs table
+	 * 
+	 */
+	public function onSaveLogs()
+	{
+        $db = Factory::getContainer()->get('DatabaseDriver');
+		$app = Factory::getApplication();
+
+		$input = $app->input;
+
+		$query = $db->getQuery(true);
+		$query->insert($db->qn("#__action_logs"))
+			->columns(implode(",", $db->qn(["message_language_key", "message", "log_date", "extension", "user_id", "item_id"])))
+			->values(implode(",", $db->q([
+				Text::_("PLG_FABRIK_FORM_WORKFLOW_ERROR"),
+				$input->getString('message'),
+				Date::getInstance()->toSql(),
+				Text::_("PLG_FABRIK_FORM_WORKFLOW"),
+				$this->user->id,
+				$input->getInt('Itemid')
+			]))
+		);
+        $db->setQuery($query);
+		$db->execute($query);
 	}
 }
