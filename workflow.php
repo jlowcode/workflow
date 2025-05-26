@@ -28,6 +28,7 @@ use Joomla\CMS\Access\Access;
 use Joomla\CMS\Filesystem\Path;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Date\Date;
+use \Joomla\CMS\Plugin\PluginHelper;
 
 /**
  * Form workflow plugin
@@ -557,6 +558,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $show_request_id = filter_input(INPUT_GET, 'show_request_id', FILTER_SANITIZE_STRING);
         $options = new StdClass;
 
+        $plugin = PluginHelper::getPlugin('fabrik_form', 'workflow');
+		$params = new JRegistry($plugin->params);
+		$ignoreElements = $params->get('workflow_ignore_elements', '');
+
         if (isset($show_request_id) && !empty($show_request_id)) {
             $options->show_request_id = $show_request_id;
         }
@@ -572,7 +577,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->user->canApproveRequests = $this->canApproveRequests([[]]);
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
-        $options->workflow_ignore_elements = $this->params->get('workflow_ignore_elements');
+        $options->workflow_ignore_elements = $ignoreElements;
         $options->workflow_approval_by_votes = $this->getParams()->get('workflow_approval_by_vote');
         $options->workflow_votes_to_approve = $this->getParams()->get('workflow_votes_to_approve');
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
@@ -1080,14 +1085,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             return false;
         }
 
-		$user = Factory::getUser();
-        $listModel = $this->getModel()->getListModel();
-		$viewLevelList = $listModel->getParams()->get('allow_edit_details');
-        $usersAdmins = $this->onGetUsersAdmins($viewLevelList);
-        if(in_array($user->id, $usersAdmins) || $user->authorise('core.admin')) {
-            $_REQUEST['workflow']['adminList'] = true;
-        }
-
 		$this->setImages();
         $this->init();
         if ($this->isRequestList()) {
@@ -1100,49 +1097,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $_REQUEST['workflow']['init'] = true;
     }
-
-    /**
-	 * Method that returns the admins users of the list 
-	 * Copied from the easyadmin plugin
-     * 
-	 * @param		String				$viewLevel		View level to search the users related
-	 * 
-	 * @return  	String|Array		Json Data|Array data
-	 * 
-	 * @since 		version 4.1.2
-	 */
-	public function onGetUsersAdmins($viewLevel=null)
-	{
-		$db = Factory::getContainer()->get('DatabaseDriver');
-		
-		$req = $viewLevel ? false : true;
-		$viewLevel = $req ? $_POST['viewLevel'] : $viewLevel;
-
-		$db->setQuery("SELECT `rules` FROM `#__viewlevels` WHERE `id` = $viewLevel;");
-		$rules = json_decode($db->loadResult());
-		unset($rules[array_search('8', $rules)]); // Dont show super users
-
-		$query = $db->getQuery(true);
-		$query->select(['u.'.$db->qn('id'), 'u.'.$db->qn('name')])
-			->from($db->qn('#__users') . ' AS u')
-			->join('LEFT', $db->qn('#__user_usergroup_map') . ' AS ug_map ON ug_map.' . $db->qn('user_id') . ' = u.' . $db->qn('id'))
-			->where('ug_map.' . $db->qn('group_id') . ' IN ("' . implode('","', $rules) . '")');
-		$db->setQuery($query);
-		$users = $db->loadObjectList();
-
-		/**
-		 * If we are a ajax request send the json users, if not return the users object
-		 */
-		if($req) {
-			echo json_encode($users);
-		} else {
-			$idsUsers = Array();
-			foreach ($users as $user) {
-				$idsUsers[] = $user->id;
-			}
-			return $idsUsers;
-		}
-	}
 
     /**
      * This method process the formData array to save by fabrik controller
