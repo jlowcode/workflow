@@ -574,7 +574,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->requestsCount = $this->countRequestsNumber();
         $options->user->approve_for_own_records = $this->params->get('approve_for_own_records');
         $options->wfl_action = $wfl_action;
-        $options->user->canApproveRequests = $this->canApproveRequests();
+        $options->user->canApproveRequests = $this->canApproveRequests([[]]);
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
         $options->workflow_ignore_elements = $ignoreElements;
@@ -693,7 +693,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $_REQUEST['workflow']['requests_headings'] = $headings;
         $_REQUEST['workflow']['requests_colCount'] = count($headings);
         $_REQUEST['workflow']['requests_list'] = $dados;
-        $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests();
+        $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests([[]]);
     }
 
     /**
@@ -995,7 +995,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     -- New registration requests
                     COALESCE((SELECT count(req_id) FROM {$requestList} WHERE req_status = '{$status}' 
                         AND (req_record_id IS NULL OR req_record_id = 0) {$whereUser} {$whereList}), 0) 
-                    
+
                     -- Record change/deletion requests
                     + COALESCE((SELECT count(req_id) FROM {$requestList} WHERE req_status = '{$status}' 
                         AND (req_record_id IS NOT NULL AND req_record_id <> 0) {$whereUser} {$whereList}), 0)
@@ -1773,19 +1773,45 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
     /**
      * Checks if the user can approve requests
+     * For next release use this method to check if the user can approve requests in js file
+     * 
+     * @param       Array       $dataRequest           The data request array
      * 
      * @return      Boolean
      */
-    protected function canApproveRequests()
+    public function canApproveRequests($dataRequest)
     {
         $app = Factory::getApplication();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
+        $dataRequest = $dataRequest[0];
 
-        if ($this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups)) {
-            return true;
+        if(empty($dataRequest)) {
+            return $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
         }
 
-        return false;
+        $reviewersVotes = explode(',', $request->req_reviewers_votes);
+        $approvalByVote = (bool) $this->getParams()->get("workflow_approval_by_vote");
+
+        // Request by vote that user already voted, user cant vote again
+        if($approvalByVote && in_array($this->user->id, $reviewersVotes)) {
+            return false;
+        }
+
+        // Admins and list admins can approve requests
+        $canApproveRequests = $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
+
+        // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
+        if($dataRequest->req_owner_id == $this->user->id && (bool) $this->params->get('approve_for_own_records')) {
+            if(in_array($dataRequest->req_request_type_id, [2, 3, 5])) {
+                $canApproveRequests = true;
+            } else {
+                $canApproveRequests = false;
+            }
+        } else if($dataRequest->req_user_id == $this->user->id) {
+            $canApproveRequests = false;
+        }
+
+        return $canApproveRequests;
     }
 
     /**
@@ -2375,29 +2401,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $permission = $this->hasPermission($_POST);
 
         echo json_encode($permission);
-    }
-
-    /**
-     * This method only call to main method that verify if the user has the permission needed. Called by mod_workflow_notification module
-     * 
-     * @param       Array           $request        Data needed
-     * 
-     * @return      Boolean
-     * 
-     * @since       version 4.2.2
-     */
-    public function onHasPermissionMod($request)
-    {  
-        [$listId, $requestTypeId, $formData, $listModel] = array_slice($request, 0, 4);
-
-        $delete = $requestTypeId == 3 ? true : false;
-        $this->easyadmin = false;
-        $this->setRequestType($formData, $delete);  // We need to call this method to check if is a request from easyadmin
-        $this->requestType = $requestTypeId;        // We need to set this attribute, because the value need to be updated after each call
-
-        $permission = $this->hasPermission($formData, $delete, $listModel);
-
-        return $permission;
     }
 
     /**
