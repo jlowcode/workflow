@@ -572,7 +572,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->user->canApproveRequests = $this->canApproveRequests();
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
-        $options->workflow_ignore_elements = 'date_time,created_ip,created_by,indexing_text,hits_count, estrelas';
+        $options->workflow_ignore_elements = $this->params->get('workflow_ignore_elements');
         $options->workflow_approval_by_votes = $this->getParams()->get('workflow_approval_by_vote');
         $options->workflow_votes_to_approve = $this->getParams()->get('workflow_votes_to_approve');
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
