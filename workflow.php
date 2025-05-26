@@ -28,6 +28,7 @@ use Joomla\CMS\Access\Access;
 use Joomla\CMS\Filesystem\Path;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Date\Date;
+use \Joomla\CMS\Plugin\PluginHelper;
 
 /**
  * Form workflow plugin
@@ -557,6 +558,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $show_request_id = filter_input(INPUT_GET, 'show_request_id', FILTER_SANITIZE_STRING);
         $options = new StdClass;
 
+        $plugin = PluginHelper::getPlugin('fabrik_form', 'workflow');
+		$params = new JRegistry($plugin->params);
+		$ignoreElements = $params->get('workflow_ignore_elements', '');
+
         if (isset($show_request_id) && !empty($show_request_id)) {
             $options->show_request_id = $show_request_id;
         }
@@ -572,7 +577,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->user->canApproveRequests = $this->canApproveRequests();
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
-        $options->workflow_ignore_elements = $this->params->get('workflow_ignore_elements');
+        $options->workflow_ignore_elements = $ignoreElements;
         $options->workflow_approval_by_votes = $this->getParams()->get('workflow_approval_by_vote');
         $options->workflow_votes_to_approve = $this->getParams()->get('workflow_votes_to_approve');
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
