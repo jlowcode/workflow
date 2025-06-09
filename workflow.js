@@ -139,6 +139,12 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 							fields[key].parentElement.setAttribute('title', "Completar ou corrigir esses dados")
 						};
 					});
+
+					if(!self.options.user.hasPermission) {
+						var link = jQuery(btnGroup[0]).find('.fabrik_edit');
+						var span = link.find('span').first();
+						link.html('<span>' + span.html() + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST"));
+					}
 				});
 
 				jQuery("a.btn-default-delete").on("click", debounce(2500, true, function (e) {

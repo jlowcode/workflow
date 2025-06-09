@@ -542,6 +542,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_REPORT_RECORD_LIST');
+        Text::script('PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
         Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
         Text::script('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE');
