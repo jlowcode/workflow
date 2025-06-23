@@ -1097,7 +1097,7 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 						easyadmin.setElementLabelAdvancedLink('_wfl');
 						easyadmin.showHideElements('show_in_list', 'element', 'yesno', '', '_wfl');
 
-						jQuery('#easyadmin_modal___type_wfl').trigger('change');
+						jQuery('#easyadmin_modal___type_wfl').trigger('change', {sufix: '_wfl'});
 						jQuery('label[for="easyadmin_modal___label_advanced_link_wfl"]').trigger('click', {button: 'edit-element', sufix: '_wfl'});
 						jQuery('#easyadmin_modal___options_dropdown_wfl').attr('disabled', true);
 						jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list-auto-complete').attr('disabled', true);
