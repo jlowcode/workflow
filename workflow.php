@@ -2941,6 +2941,15 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 		$db->execute($query);
 	}
 
+    /**
+     * Verify if the user has records on the list
+     *
+     * @param   int     $userId     User ID to check
+     *
+     * @return  bool
+     *
+     * @since   version 4.4.0
+     */
     private function userHasRecords($userId) 
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
