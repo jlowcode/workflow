@@ -28,6 +28,7 @@ use Joomla\CMS\Access\Access;
 use Joomla\CMS\Filesystem\Path;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Date\Date;
+use \Joomla\CMS\Plugin\PluginHelper;
 
 /**
  * Form workflow plugin
@@ -557,6 +558,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $show_request_id = filter_input(INPUT_GET, 'show_request_id', FILTER_SANITIZE_STRING);
         $options = new StdClass;
 
+        $plugin = PluginHelper::getPlugin('fabrik_form', 'workflow');
+		$params = new JRegistry($plugin->params);
+		$ignoreElements = $params->get('workflow_ignore_elements', '');
+
         if (isset($show_request_id) && !empty($show_request_id)) {
             $options->show_request_id = $show_request_id;
         }
@@ -569,7 +574,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->requestsCount = $this->countRequestsNumber();
         $options->user->approve_for_own_records = $this->params->get('approve_for_own_records');
         $options->wfl_action = $wfl_action;
-        $options->user->canApproveRequests = $this->canApproveRequests();
+        $options->user->canApproveRequests = $this->canApproveRequests([[]]);
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
         $options->workflow_ignore_elements = $this->params->get('workflow_ignore_elements');
@@ -688,7 +693,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $_REQUEST['workflow']['requests_headings'] = $headings;
         $_REQUEST['workflow']['requests_colCount'] = count($headings);
         $_REQUEST['workflow']['requests_list'] = $dados;
-        $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests();
+        $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests([[]]);
     }
 
     /**
@@ -990,7 +995,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     -- New registration requests
                     COALESCE((SELECT count(req_id) FROM {$requestList} WHERE req_status = '{$status}' 
                         AND (req_record_id IS NULL OR req_record_id = 0) {$whereUser} {$whereList}), 0) 
-                    
+
                     -- Record change/deletion requests
                     + COALESCE((SELECT count(req_id) FROM {$requestList} WHERE req_status = '{$status}' 
                         AND (req_record_id IS NOT NULL AND req_record_id <> 0) {$whereUser} {$whereList}), 0)
@@ -1080,7 +1085,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             return false;
         }
 
-		$user = Factory::getUser();
+        $user = Factory::getUser();
         $listModel = $this->getModel()->getListModel();
 		$viewLevelList = $listModel->getParams()->get('allow_edit_details');
         $usersAdmins = $this->onGetUsersAdmins($viewLevelList);
@@ -1099,7 +1104,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $this->listRequests();
 
         $_REQUEST['workflow']['init'] = true;
-    }
+        }
 
     /**
 	 * Method that returns the admins users of the list 
@@ -1142,7 +1147,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 			}
 			return $idsUsers;
 		}
-	}
+    }
 
     /**
      * This method process the formData array to save by fabrik controller
@@ -1819,19 +1824,48 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
     /**
      * Checks if the user can approve requests
+     * For next release use this method to check if the user can approve requests in js file
+     * 
+     * @param       Array       $dataRequest           The data request array
      * 
      * @return      Boolean
      */
-    protected function canApproveRequests()
+    public function canApproveRequests($dataRequest)
     {
         $app = Factory::getApplication();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
+        $dataRequest = $dataRequest[0];
 
-        if ($this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups)) {
-            return true;
+         // Admins and list admins can approve requests
+        $isAdmin = $this->user->authorise('core.admin');
+        $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
+        $hasRecords = $this->userHasRecords($this->user->id);
+        $wikiMode = $this->getModel()->getParams()->get('approve_for_own_records', false) == 2;
+
+        $canApproveRequests = $isAdmin || $isInGroup || ($hasRecords && $wikiMode);
+
+        if(empty($dataRequest)) {
+            return $canApproveRequests;
         }
 
-        return false;
+        $reviewersVotes = explode(',', $dataRequest->req_reviewers_votes);
+        $approvalByVote = (bool) $this->getParams()->get("workflow_approval_by_vote");
+
+        // Request by vote that user already voted, user cant vote again
+        if($approvalByVote && in_array($this->user->id, $reviewersVotes)) {
+            return false;
+        }
+        
+        // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
+        if ($dataRequest->req_owner_id == $this->user->id && (bool) $this->params->get('approve_for_own_records')) {
+            $canApproveRequests = in_array($dataRequest->req_request_type_id, [2, 3, 5]);
+        };
+
+        if($dataRequest->req_user_id == $this->user->id) {
+            $canApproveRequests = false;
+        }
+
+        return $canApproveRequests;
     }
 
     /**
@@ -2423,7 +2457,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         echo json_encode($permission);
     }
 
-    /**
+     /**
      * This method only call to main method that verify if the user has the permission needed. Called by mod_workflow_notification module
      * 
      * @param       Array           $request        Data needed
@@ -2980,4 +3014,31 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $db->setQuery($query);
 		$db->execute($query);
 	}
+
+    /**
+     * Verify if the user has records on the list
+     *
+     * @param   int     $userId     User ID to check
+     *
+     * @return  bool
+     *
+     * @since   version 4.4.0
+     */
+    private function userHasRecords($userId) 
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $idElementCreated = $this->getParams()->get('workflow_owner_element');
+        $elements = $this->getModel()->getListModel()->getElements('id');
+        $elementCreated = $elements[$idElementCreated]->element;
+        $elementCreatedName = $elementCreated->get('name');
+        $query = $db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($db->qn($this->getModel()->getTableName()))
+            ->where($db->qn($elementCreatedName) . ' = ' . $db->q($userId));
+        $db->setQuery($query);
+        $count = (int) $db->loadResult();
+
+        return $count > 0;
+    }
+
 }
