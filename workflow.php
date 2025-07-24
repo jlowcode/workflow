@@ -559,10 +559,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $show_request_id = filter_input(INPUT_GET, 'show_request_id', FILTER_SANITIZE_STRING);
         $options = new StdClass;
 
-        $plugin = PluginHelper::getPlugin('fabrik_form', 'workflow');
-		$params = new JRegistry($plugin->params);
-		$ignoreElements = $params->get('workflow_ignore_elements', '');
-
         if (isset($show_request_id) && !empty($show_request_id)) {
             $options->show_request_id = $show_request_id;
         }
@@ -578,7 +574,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->user->canApproveRequests = $this->canApproveRequests([[]]);
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
-        $options->workflow_ignore_elements = $ignoreElements;
+        $options->workflow_ignore_elements = $this->getParams()->get('workflow_ignore_elements', '')
         $options->workflow_approval_by_votes = $this->getParams()->get('workflow_approval_by_vote');
         $options->workflow_votes_to_approve = $this->getParams()->get('workflow_votes_to_approve');
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
@@ -1786,29 +1782,32 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         $dataRequest = $dataRequest[0];
 
+         // Admins and list admins can approve requests
+        $isAdmin = $this->user->authorise('core.admin');
+        $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
+        $hasRecords = $this->userHasRecords($this->user->id);
+        $wikiMode = $this->getModel()->getParams()->get('approve_for_own_records', false) == 2;
+
+        $canApproveRequests = $isAdmin || $isInGroup || ($hasRecords && $wikiMode);
+
         if(empty($dataRequest)) {
-            return $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
+            return $canApproveRequests;
         }
 
-        $reviewersVotes = explode(',', $request->req_reviewers_votes);
+        $reviewersVotes = explode(',', $dataRequest->req_reviewers_votes);
         $approvalByVote = (bool) $this->getParams()->get("workflow_approval_by_vote");
 
         // Request by vote that user already voted, user cant vote again
         if($approvalByVote && in_array($this->user->id, $reviewersVotes)) {
             return false;
         }
-
-        // Admins and list admins can approve requests
-        $canApproveRequests = $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
-
+        
         // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
-        if($dataRequest->req_owner_id == $this->user->id && (bool) $this->params->get('approve_for_own_records')) {
-            if(in_array($dataRequest->req_request_type_id, [2, 3, 5])) {
-                $canApproveRequests = true;
-            } else {
-                $canApproveRequests = false;
-            }
-        } else if($dataRequest->req_user_id == $this->user->id) {
+        if ($dataRequest->req_owner_id == $this->user->id && (bool) $this->params->get('approve_for_own_records')) {
+            $canApproveRequests = in_array($dataRequest->req_request_type_id, [2, 3, 5]);
+        };
+
+        if($dataRequest->req_user_id == $this->user->id) {
             $canApproveRequests = false;
         }
 
@@ -2938,4 +2937,31 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $db->setQuery($query);
 		$db->execute($query);
 	}
+
+    /**
+     * Verify if the user has records on the list
+     *
+     * @param   int     $userId     User ID to check
+     *
+     * @return  bool
+     *
+     * @since   version 4.4.0
+     */
+    private function userHasRecords($userId) 
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $idElementCreated = $this->getParams()->get('workflow_owner_element');
+        $elements = $this->getModel()->getListModel()->getElements('id');
+        $elementCreated = $elements[$idElementCreated]->element;
+        $elementCreatedName = $elementCreated->get('name');
+        $query = $db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($db->qn($this->getModel()->getTableName()))
+            ->where($db->qn($elementCreatedName) . ' = ' . $db->q($userId));
+        $db->setQuery($query);
+        $count = (int) $db->loadResult();
+
+        return $count > 0;
+    }
+
 }
