@@ -542,7 +542,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_REPORT_RECORD_LIST');
-        Text::script('PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
         Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
         Text::script('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE');
@@ -574,7 +573,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->user->canApproveRequests = $this->canApproveRequests([[]]);
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
-        $options->workflow_ignore_elements = $this->getParams()->get('workflow_ignore_elements', '')
+        $options->workflow_ignore_elements = $this->getParams()->get('workflow_ignore_elements', '');
         $options->workflow_approval_by_votes = $this->getParams()->get('workflow_approval_by_vote');
         $options->workflow_votes_to_approve = $this->getParams()->get('workflow_votes_to_approve');
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
@@ -2929,7 +2928,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 				Text::_("PLG_FABRIK_FORM_WORKFLOW_ERROR"),
 				$input->getString('message'),
 				Date::getInstance()->toSql(),
-				Text::_("PLG_FABRIK_FORM_WORKFLOW"),
+				Text::_("PLG_FORM_WORKFLOW"),
 				$this->user->id,
 				$input->getInt('Itemid')
 			]))
@@ -2945,15 +2944,17 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      *
      * @return  bool
      *
-     * @since   version 4.4.0
+     * @since   version 4.0
      */
     private function userHasRecords($userId) 
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
+
         $idElementCreated = $this->getParams()->get('workflow_owner_element');
         $elements = $this->getModel()->getListModel()->getElements('id');
         $elementCreated = $elements[$idElementCreated]->element;
         $elementCreatedName = $elementCreated->get('name');
+        
         $query = $db->getQuery(true)
             ->select('COUNT(*)')
             ->from($db->qn($this->getModel()->getTableName()))
