@@ -1752,6 +1752,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     protected function canViewRequests($allow_review_request='')
     {
         $app = Factory::getApplication();
+        $listModel = Factory::getApplication()->bootComponent('com_fabrik')->getMVCFactory()->createModel('List', 'FabrikFEModel');
+
+        $input = $app->input;
+        $listId = $input->getInt('listid') ?? $this->listId;
+        $listModel->setId($listId);
+
+        $hasRecords = $this->userHasRecords($this->user->id);
+        $wikiMode = $listModel->getFormModel()->getParams()->get('approve_for_own_records', false) == 2;
         
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         $canView = 'only_own';
@@ -1761,6 +1769,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         } else if (in_array($this->getParams()->get('allow_review_request'), $groups)) {
             $canView = 'all';
         } else if (in_array($allow_review_request, $groups)) {
+            $canView = 'all';
+        } else if ($hasRecords && $wikiMode) {
             $canView = 'all';
         }
 
@@ -1780,11 +1790,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $app = Factory::getApplication();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         $dataRequest = $dataRequest[0];
+        
 
          // Admins and list admins can approve requests
         $isAdmin = $this->user->authorise('core.admin');
         $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
-        $hasRecords = $this->userHasRecords($this->user->id);
+        $hasRecords = $this->userHasRecords($this->user->id, $dataRequest);
         $wikiMode = $this->getModel()->getParams()->get('approve_for_own_records', false) == 2;
 
         $canApproveRequests = $isAdmin || $isInGroup || ($hasRecords && $wikiMode);
@@ -1802,12 +1813,45 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
         
         // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
-        if ($dataRequest->req_owner_id == $this->user->id && (bool) $this->params->get('approve_for_own_records')) {
-            $canApproveRequests = in_array($dataRequest->req_request_type_id, [2, 3, 5]);
-        };
+        if($this->user->authorise('core.admin')) {
+            return true;
+        }
 
-        if($dataRequest->req_user_id == $this->user->id) {
-            $canApproveRequests = false;
+        $requestType = (int) $dataRequest->req_request_type_id;
+        $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
+        $isOwner = $dataRequest->req_owner_id == $this->user->id;
+        $hasRecords = $this->userHasRecords($this->user->id, $dataRequest);
+
+        switch ((int) $this->params->get('approve_for_own_records')) {
+            case 0: // Restricted
+                $canApproveRequests = $isInGroup;
+                break;
+
+            case 1: // Open
+                switch ($requestType) {
+                    case 1: // Add record
+                    case 2: // Edit record
+                    case 3: // Delete record
+                        $canApproveRequests = $isInGroup || $isOwner;    
+                        break;
+                    case 4: // Add field
+                    case 5: // Edit field
+                        $canApproveRequests = $isInGroup;
+                        break;
+                }
+
+            case 2: // Wiki mode
+                switch($requestType) {
+                    case 1: // Add record
+                    case 2: // Edit record
+                    case 4: // Add field
+                        $canApproveRequests = $isOwner || $hasRecords || $isInGroup;
+                        break;
+                    case 3: // Delete record
+                    case 5: // Edit field
+                        $canApproveRequests = $isInGroup || (!$isOwner && $hasRecords);
+                        break;
+                } 
         }
 
         return $canApproveRequests;
@@ -2946,18 +2990,29 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      *
      * @since   version 4.0
      */
-    private function userHasRecords($userId) 
+    private function userHasRecords($userId, $dataRequest = []) 
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
+        $app = Factory::getApplication();
+        $listModel = Factory::getApplication()->bootComponent('com_fabrik')->getMVCFactory()->createModel('List', 'FabrikFEModel');
 
-        $idElementCreated = $this->getParams()->get('workflow_owner_element');
-        $elements = $this->getModel()->getListModel()->getElements('id');
+        $input = $app->input;
+        $listId = $dataRequest->req_list_id ?? $this->listId ?? $input->getInt('listid') ?? 0;
+
+        if(!$listId) {
+            return false;
+        }
+
+        $listModel->setId($listId);
+
+        $idElementCreated = $listModel->getFormModel()->getParams()->get('workflow_owner_element');
+        $elements = $listModel->getElements('id');
         $elementCreated = $elements[$idElementCreated]->element;
         $elementCreatedName = $elementCreated->get('name');
         
         $query = $db->getQuery(true)
             ->select('COUNT(*)')
-            ->from($db->qn($this->getModel()->getTableName()))
+            ->from($db->qn($listModel->getFormModel()->getTableName()))
             ->where($db->qn($elementCreatedName) . ' = ' . $db->q($userId));
         $db->setQuery($query);
         $count = (int) $db->loadResult();
