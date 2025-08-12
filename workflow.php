@@ -1818,9 +1818,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         $requestType = (int) $dataRequest->req_request_type_id;
-        $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
         $isOwner = $dataRequest->req_owner_id == $this->user->id;
-        $hasRecords = $this->userHasRecords($this->user->id, $dataRequest);
 
         switch ((int) $this->params->get('approve_for_own_records')) {
             case 0: // Restricted
@@ -2972,7 +2970,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 				Text::_("PLG_FABRIK_FORM_WORKFLOW_ERROR"),
 				$input->getString('message'),
 				Date::getInstance()->toSql(),
-				Text::_("PLG_FORM_WORKFLOW"),
+				Text::_("PLG_FABRIK_FORM_WORKFLOW"),
 				$this->user->id,
 				$input->getInt('Itemid')
 			]))
@@ -2988,7 +2986,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      *
      * @return  bool
      *
-     * @since   version 4.0
+     * @since   version 4.2.2
      */
     private function userHasRecords($userId, $dataRequest = []) 
     {
@@ -3004,15 +3002,16 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         $listModel->setId($listId);
+        $formModel = $listModel->getFormModel();
 
-        $idElementCreated = $listModel->getFormModel()->getParams()->get('workflow_owner_element');
+        $idElementCreated = $formModel->getParams()->get('workflow_owner_element');
         $elements = $listModel->getElements('id');
         $elementCreated = $elements[$idElementCreated]->element;
         $elementCreatedName = $elementCreated->get('name');
         
         $query = $db->getQuery(true)
             ->select('COUNT(*)')
-            ->from($db->qn($listModel->getFormModel()->getTableName()))
+            ->from($db->qn($formModel->getTableName()))
             ->where($db->qn($elementCreatedName) . ' = ' . $db->q($userId));
         $db->setQuery($query);
         $count = (int) $db->loadResult();

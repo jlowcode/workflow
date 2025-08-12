@@ -25,11 +25,11 @@
                      class="btn-group"
                      default="0"
                      label="PLG_FORM_WORKFLOW_APPROVE_OWN_RECORDS_LABEL"
-                     description="PLG_FORM_WORKFLOW_APPROVE_OWN_RECORDS_DESCRIPTION"
+                     description="PLG_FORM_WORKFLOW_APPROVE_OWN_RECORDS_DESC"
               >
-                     <option value="0">PLG_FABRIK_FORM_WORKFLOW_ELEMENT_COLLAB_OPTION_0</option>
-                     <option value="1">PLG_FABRIK_FORM_WORKFLOW_ELEMENT_COLLAB_OPTION_1</option>
-                     <option value="2">PLG_FABRIK_FORM_WORKFLOW_ELEMENT_COLLAB_OPTION_2</option>
+                     <option value="0">PLG_FORM_WORKFLOW_ELEMENT_COLLAB_OPTION_0</option>
+                     <option value="1">PLG_FORM_WORKFLOW_ELEMENT_COLLAB_OPTION_1</option>
+                     <option value="2">PLG_FORM_WORKFLOW_ELEMENT_COLLAB_OPTION_2</option>
               </field>
 
               <field name="workflow_send_mail"
