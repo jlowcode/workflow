@@ -1790,13 +1790,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $app = Factory::getApplication();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         $dataRequest = $dataRequest[0];
-        
 
-         // Admins and list admins can approve requests
+        // Admins and list admins can approve requests
         $isAdmin = $this->user->authorise('core.admin');
         $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
         $hasRecords = $this->userHasRecords($this->user->id, $dataRequest);
-        $wikiMode = $this->getModel()->getParams()->get('approve_for_own_records', false) == 2;
+        $collab = (int) $this->getModel()->getParams()->get('approve_for_own_records');
+        $wikiMode = $collab == 2;
 
         $canApproveRequests = $isAdmin || $isInGroup || ($hasRecords && $wikiMode);
 
@@ -1813,14 +1813,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
         
         // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
-        if($this->user->authorise('core.admin')) {
+        if($isAdmin) {
             return true;
         }
 
         $requestType = (int) $dataRequest->req_request_type_id;
         $isOwner = $dataRequest->req_owner_id == $this->user->id;
 
-        switch ((int) $this->params->get('approve_for_own_records')) {
+        switch ($collab) {
             case 0: // Restricted
                 $canApproveRequests = $isInGroup;
                 break;
