@@ -4,7 +4,7 @@
  * @copyright: Copyright (C) 2018-2024 Jlowcode Org - All rights reserved.
  * @license  : GNU/GPL http://www.gnu.org/copyleft/gpl.html
  */
-define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
+define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], function (jQuery, Fabrik, debounce) {
 	'use strict';
 
 	var FabrikWorkflow = new Class({
@@ -106,28 +106,30 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				}
 
 				var dataRow = document.getElementsByClassName('fabrik_row');
-				Array.from(dataRow).each(function (row) {
+                Array.from(dataRow).each(function (row) {
 					// Report button
+                    var titleDelAction = self.options.user.hasPermission ? Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST") : Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_RECORD_LIST");
+
 					var btnGroup = row.getElementsByClassName('dropdown-menu');
 					btnGroup[0].style.minWidth = '12em';
 					let li = document.createElement("li");
-					li.setAttribute('class', 'nav-link')
+					li.setAttribute('class', 'nav-link');
 
 					let report = document.createElement("a");
 					report.classList.add('btn-default-delete');
-					report.setAttribute('data-loadmethod', 'xhr')
-					report.setAttribute('data-list', row.offsetParent.id)
-					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6])
-					report.setAttribute('data-rowid', 'xhr')
-					report.setAttribute('target', '_self')
-					report.setAttribute('title', Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST"))
+					report.setAttribute('data-loadmethod', 'xhr');
+					report.setAttribute('data-list', row.offsetParent.id);
+					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6]);
+					report.setAttribute('data-rowid', 'xhr');
+					report.setAttribute('target', '_self');
+					report.setAttribute('title', titleDelAction);
 
-					report.innerHTML = '<span>' + self.options.images.danger + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST");
-					li.appendChild(report)
+					report.innerHTML = '<span>' + (self.options.user.hasPermission ? self.options.images.trash : self.options.images.danger) + '</span> ' + titleDelAction;
+					li.appendChild(report);
 					btnGroup[0].appendChild(li);
 
 					// Remove default delete button
-					jQuery('.dropdown-menu a.delete').parent().remove()
+					jQuery('.dropdown-menu a.delete').parent().remove();
 
 					var fields = jQuery('.fabrik_element');
 					Object.keys(fields).forEach(function (key) {
@@ -137,31 +139,48 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 							fields[key].parentElement.setAttribute('title', "Completar ou corrigir esses dados")
 						};
 					});
+
+					if(!self.options.user.hasPermission) {
+						var link = jQuery(btnGroup[0]).find('.fabrik_edit');
+						var span = link.find('span').first();
+						link.html('<span>' + span.html() + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST"));
+					}
 				});
 
-				jQuery("a.btn-default-delete").on("click", function (e) {
-					showSpinner();
-					var listRowIds = this.attributes['list-row-ids'].value
+				jQuery("a.btn-default-delete").on("click", debounce(2500, true, function (e) {
+					Fabrik.loader.start(jQuery('.listContent'), Joomla.JText._('COM_FABRIK_LOADING'));
+					var listRowIds = this.attributes['list-row-ids'].value;
+					var dataSend = {
+						'options': self.options,
+						'listRowIds': listRowIds,
+						'option': 'com_fabrik',
+						'task': 'plugin.pluginAjax',
+						'plugin': 'workflow',
+						'method': 'onReportAbuse',
+						'g': 'form',
+						'format': 'raw',
+					};
 
 					jQuery.ajax({
 						'url': '',
-						'method': 'get',
-						'data': {
-							'options': self.options,
-							'listRowIds': listRowIds,
-							'option': 'com_fabrik',
-							'task': 'plugin.pluginAjax',
-							'plugin': 'workflow',
-							'method': 'onReportAbuse',
-							'g': 'form',
-						},
+						'method': 'post',
+						'data': dataSend,
 						success: function (data) {
 							alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
-							hideSpinner();
+							Fabrik.loader.stop(jQuery('.listContent'), Joomla.JText._('COM_FABRIK_LOADING'));
 							location.reload();
 						}
+					}).fail(function (jq, status, error) {
+						var message = {
+							data: dataSend,
+							error: error,
+							status: status,
+							jq: jq
+						};
+		
+						self.saveLogs(message);
 					});
-				});
+				}));
 			})
 
 			//Request type select
@@ -195,21 +214,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				var selected = jQuery(this).children("option:selected").val();
 				var typeSelected = jQuery(requestTypeSelect).children("option:selected").val();
 				self.loadRequestList(self.modal, typeSelected, self.options.actualPage, null, selected);
-			});
-		},
-
-		onGetSessionToken: function () {
-			return jQuery.ajax({
-				'url': '',
-				'method': 'get',
-				'data': {
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetSessionToken',
-					'g': 'form',
-				}
 			});
 		},
 
@@ -386,6 +390,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		getRequestsList: function (req_status, length = 5, start = 0, search = "", count = "0", orderBy = 'req_created_date') {
+			var self = this;
 			var sequence = "asc";
 			orderBy = jQuery('#orderBySelect').val();
 			
@@ -395,39 +400,51 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				sequence = "desc";
 			}
 
+			var dataSend = {
+				'req_status': req_status,
+				'wfl_action': this.options.wfl_action,
+				'approve_for_own_records': this.options.user.approve_for_own_records,
+				'list_id': this.options.listId,
+				'user_id': this.options.user.id,
+				'allow_review_request': this.options.allow_review_request,
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'workflow',
+				'method': 'GetRequestList',
+				'g': 'form',
+				'length': length,
+				'start': start,
+				'search': search,
+				'count': count,
+				'order_by': orderBy,
+				'sequence': sequence
+			};
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
-				'data': {
-					'req_status': req_status,
-					'wfl_action': this.options.wfl_action,
-					'approve_for_own_records': this.options.user.approve_for_own_records,
-					'list_id': this.options.listId,
-					'user_id': this.options.user.id,
-					'allow_review_request': this.options.allow_review_request,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetRequestList',
-					'g': 'form',
-					'length': length,
-					'start': start,
-					'search': search,
-					'count': count,
-					'order_by': orderBy,
-					'sequence': sequence
-				}
+				'data': dataSend
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
 		canApproveRequests: function (form_data) {
 			form_data.req_reviewers_votes = form_data.req_reviewers_votes == null ? '' : form_data.req_reviewers_votes;
-			
+			var types = ['edit_field_value', 'delete_record', 'edit_field'];
+
 			if (form_data.req_reviewers_votes.indexOf(this.options.user.id) == -1) {
 				var canApproveRequests = this.options.user.canApproveRequests;
 				if (form_data['req_owner_id'] === this.options.user.id && this.options.user.approve_for_own_records == 1) {
-					if (form_data['req_request_type_name'] == "edit_field_value" || form_data['req_request_type_name'] == "delete_record") {
+					if (types.indexOf(form_data['req_request_type_name']) > -1) {
 						canApproveRequests = true;
 					} else {
 						canApproveRequests = false;
@@ -489,7 +506,11 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 						setTimeout(() => {form.append(approveSection); }, 1000);
 
-						jQuery(approveButton).on('click', function () {
+						jQuery(approveButton).on('click', debounce(2500, true, function (e) {
+							var btn = jQuery(this);
+							btn.prop('disabled', true);
+							Fabrik.loader.start(jQuery('.modalBody'), Joomla.JText._('COM_FABRIK_LOADING'));
+
 							const requestType = parseInt(formData[0]['req_request_type_id']);
 	
 							if (self.options.workflow_approval_by_votes == '1') {
@@ -535,9 +556,6 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								}
 							}
 
-							jModalBody.empty();
-							jModalBody.append(jQuery('<h3>' + Joomla.JText._('PLG_FORM_WORKFLOW_LOADING') + '</h3>'));
-
 							if (jQuery(form).find("#commentTextArea")[0]) {
 								formData[0]['req_comment'] = jQuery(form).find("#commentTextArea")[0].value;
 							}
@@ -570,48 +588,83 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 								}
 							}
 
+							var dataSend = {
+								'formData': formData,
+								'options': self.options,
+								'option': 'com_fabrik',
+								'format': 'raw',
+								'task': 'plugin.pluginAjax',
+								'plugin': 'workflow',
+								'method': 'ProcessRequest',
+								'g': 'form',
+							};
+
 							jQuery.ajax({
 								'url': '',
 								'method': 'post',
-								'data': {
-									'formData': formData,
-									'options': self.options,
-									'option': 'com_fabrik',
-									'format': 'raw',
-									'task': 'plugin.pluginAjax',
-									'plugin': 'workflow',
-									'method': 'ProcessRequest',
-									'g': 'form',
-								},
+								'data': dataSend,
 								success: function (data) {
 									modal.style.display = "none";
 									alert(Joomla.JText._('PLG_FORM_WORKFLOW_SUCCESS'));
 									document.location.reload(true);
+									btn.prop('disabled', false);
+									Fabrik.loader.stop(jQuery('.modalBody'));
 								}
+							}).fail(function (jq, status, error) {
+								var message = {
+									data: dataSend,
+									error: error,
+									status: status,
+									jq: jq
+								};
+
+								self.saveLogs(message);
 							});
-						});
+						}));
 
 						jModalBody.append(approveButton);
 					}
 				}
-			});			
+			}).fail(function (jq, status, error) {
+				var message = {
+					url: url,
+					data: formData[0],
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
+			});
 		},
 
 		deleteRecord: function (rowId, listId) {
+			var self = this;
+			var dataSend = {
+				'option': 'com_fabrik',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'workflow',
+				'method': 'onDeleteRow',
+				'g': 'form',
+				'rowId': '{' + rowId + ':' + rowId + '}',
+				'listId': listId,
+			};
+
 			jQuery.ajax({
 				'url': '',
 				'method': 'get',
-				'data': {
-					'option': 'com_fabrik',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'onDeleteRow',
-					'g': 'form',
-					'rowId': '{' + rowId + ':' + rowId + '}',
-					'listId': listId,
-				},
+				'data': dataSend,
 				success: function (data) {
 				}
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
@@ -620,6 +673,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		 * 
 		 */
 		createUpdateRecord: function (formData) {
+			var self = this;
+
 			this.getSessionToken().done(function (token) {
 				var recordData = JSON.decode(formData[0]['form_data']);
 				recordData[token] = "1";
@@ -632,6 +687,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 					url: "",
 					data: recordData
 				}).done(function (retorno) {
+
+				}).fail(function (jq, status, error) {
+					var message = {
+						data: recordData,
+						error: error,
+						status: status,
+						jq: jq
+					};
+	
+					self.saveLogs(message);
 				});
 			});
 		},
@@ -651,23 +716,45 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				data: data,
 			}).done(function (r) {
 
+			}).fail(function (jq, status, error) {
+				var message = {
+					url: url,
+					data: data,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
 		getLastRecordFormData: function (req_record_id, req_list_id) {
+			var self = this;
+			var dataSend = {
+				'req_record_id': req_record_id,
+				'req_list_id': req_list_id,
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'workflow',
+				'method': 'GetLastRecordFormData',
+				'g': 'form',
+			};
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
-				'data': {
-					'req_record_id': req_record_id,
-					'req_list_id': req_list_id,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetLastRecordFormData',
-					'g': 'form',
-				},
+				'data': dataSend,
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
@@ -774,14 +861,34 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 			return div;
 		},
 
-		createInputsBeforeAfter: function (key, originalValue = null, newValue) {
+		createInputRichText: function (labelText, value, id) 
+		{
+			var div = jQuery('<div></div>');
+			var label = jQuery('<label for="' + id + '"></label><br>')
+			var span = jQuery('<div style="text-indent: 20px; margin-top: 0px;" id="' + id + '" type="text" disabled>' + value + '</div>');
+
+			jQuery(label).html(labelText);
+
+			div.append(label);
+			div.append(span);
+
+			return div;
+		},
+
+		createInputsBeforeAfter: function (key, originalValue, newValue, richText) {
 			var self = this;
 			var originalLabel = ' - ' + Joomla.JText._('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
 
 			const originalNewInputContainer = jQuery("<div></div>");
 			originalNewInputContainer.attr('style', 'display: flex;');
-			const inputContainer = self.createInput(key, newValue, key);
-			const inputOriginalContainer = self.createInput(key + originalLabel, originalValue, key + originalLabel);
+
+			if(richText) {
+				var inputContainer = self.createInputRichText(key, newValue, key);
+				var inputOriginalContainer = self.createInputRichText(key + originalLabel, originalValue, key + originalLabel);
+			} else {
+				var inputContainer = self.createInput(key, newValue, key);
+				var inputOriginalContainer = self.createInput(key + originalLabel, originalValue, key + originalLabel);
+			}
 
 			inputContainer[0].style.paddingLeft = "5px";
 			inputOriginalContainer[0].style.paddingLeft = "5px";
@@ -840,12 +947,27 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				var formData = JSON.parse(data['form_data']);
 
+				switch (request['req_request_type_id']) {
+					case '1':
+						var title = Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL');
+						break;
+
+					case '2':
+					case '3':
+						var title = "<a href='" + r["link"] + "' target='_blank'>" + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + request["req_record_id"] + '</a>';
+						break;
+
+					case '4':
+					case '5':
+						var title = Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_FIELD_LABEL') + formData['easyadmin_modal___name'];
+						break;
+				}
 				// Container to the new/edited data of the request
 				var formDataInputsContainer = jQuery('<div></div>');
 				formDataInputsContainer.attr('class', 'formDataInputsContainer mt-2');
 				formDataInputsContainer.attr('style', 'dispay: flex;');
 				formDataInputsContainer.attr('style', 'flex-direction: column;');
-				formDataInputsContainer.append('<h2>' + Joomla.JText._('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL') + '<h2>');
+				formDataInputsContainer.append('<h2>' + title + '<h2>');
 				formDataInputsContainer.css("background-color", "#e3e3e3");
 				formDataInputsContainer.css("padding", "10px");
 
@@ -889,6 +1011,16 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 
 				self.setForm(form, modal, [request], request['req_id']);
 				modal.show();
+			}).fail(function (jq, status, error) {
+				var message = {
+					url: url,
+					data: data,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
@@ -965,7 +1097,7 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 						easyadmin.setElementLabelAdvancedLink('_wfl');
 						easyadmin.showHideElements('show_in_list', 'element', 'yesno', '', '_wfl');
 
-						jQuery('#easyadmin_modal___type_wfl').trigger('change');
+						jQuery('#easyadmin_modal___type_wfl').trigger('change', {sufix: '_wfl'});
 						jQuery('label[for="easyadmin_modal___label_advanced_link_wfl"]').trigger('click', {button: 'edit-element', sufix: '_wfl'});
 						jQuery('#easyadmin_modal___options_dropdown_wfl').attr('disabled', true);
 						jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list-auto-complete').attr('disabled', true);
@@ -983,21 +1115,24 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 	 	 * 
 		 */
 		buildFormEditFields: function (formData, formDataInputsContainer, form, data) {
+			var self = this;
+			var dataSend = {
+				'formData': formData,
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'easyadmin',
+				'method': 'buildFormEditFieldsWfl',
+				'g': 'list',
+				'requestWorkflow': '1',
+				'listid': formData['easyadmin_modal___listid'],
+				'req_status': data['req_status']
+			};
+
 			jQuery.ajax({
 				'url': '',
 				'method': 'post',
-				'data': {
-					'formData': formData,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'easyadmin',
-					'method': 'buildFormEditFieldsWfl',
-					'g': 'list',
-					'requestWorkflow': '1',
-					'listid': formData['easyadmin_modal___listid'],
-					'req_status': data['req_status']
-				},
+				'data': dataSend,
 			}).done(function (fields) {
 				fields = JSON.parse(fields);
 
@@ -1027,6 +1162,15 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 				jQuery('#easyadmin_modal___options_dropdown_wfl_orig').attr('disabled', true);
 				jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list-auto-complete').attr('disabled', true);
 				jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list_orig-auto-complete').attr('disabled', true);
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: data,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
@@ -1035,20 +1179,32 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		 * 
 		 */
 		getBuildFormEasyadmin: function (formData, data) {
+			var self = this;
+			var dataSend = {
+				'formData': formData,
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'easyadmin',
+				'method': 'workflowBuildForm',
+				'g': 'list',
+				'requestWorkflow': '1',
+				'req_status': data['req_status']
+			};
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'post',
-				'data': {
-					'formData': formData,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'easyadmin',
-					'method': 'workflowBuildForm',
-					'g': 'list',
-					'requestWorkflow': '1',
-					'req_status': data['req_status']
-				},
+				'data': dataSend,
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
@@ -1181,24 +1337,35 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                         case 'user':
                             if(obj['last'] != undefined) continue;
 
+							var dataSend = {
+								'last_user_id': obj['last'][0],
+								'new_user_id': obj['new'][0],
+								'option': 'com_fabrik',
+								'format': 'raw',
+								'task': 'plugin.pluginAjax',
+								'plugin': 'workflow',
+								'method': 'GetUserValueBeforeAfter',
+								'g': 'form',
+							};
+
                             jQuery.ajax({
                                 'url': '',
                                 'method': 'get',
-                                'data': {
-                                    'last_user_id': obj['last'][0],
-                                    'new_user_id': obj['new'][0],
-                                    'option': 'com_fabrik',
-                                    'format': 'raw',
-                                    'task': 'plugin.pluginAjax',
-                                    'plugin': 'workflow',
-                                    'method': 'GetUserValueBeforeAfter',
-                                    'g': 'form',
-                                },
+                                'data': dataSend,
                                 success: function (data) {
                                     const res = JSON.decode(data);
                                     view.append(self.createInputsBeforeAfter(onlyElementKey, res['last'], res['new']));
                                 }
-                            });
+                            }).fail(function (jq, status, error) {
+								var message = {
+									data: dataSend,
+									error: error,
+									status: status,
+									jq: jq
+								};
+				
+								self.saveLogs(message);
+							});
                             break;
 
                         case 'fileupload':
@@ -1308,7 +1475,8 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
                                 container.append(containerFlex);
                                 view.append(container);
                             } else {
-                                view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new']));
+                                var rich_text = elementsTypes[onlyElementKey].rich_text;
+                                view.append(this.createInputsBeforeAfter(onlyElementKey, obj['last'], obj['new'], rich_text));
                             }
                             break;
                     }
@@ -1645,65 +1813,137 @@ define(['jquery', 'fab/fabrik'], function (jQuery, Fabrik) {
 		},
 
 		getElementsType: function (req_list_id) {
+			var self = this;
+			var dataSend = {
+				'req_list_id': req_list_id,
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'workflow',
+				'method': 'GetElementsPlugin',
+				'g': 'form',
+			};
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
-				'data': {
-					'req_list_id': req_list_id,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetElementsPlugin',
-					'g': 'form',
-				},
+				'data': dataSend,
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
 		getRequest: function (req_id) {
+			var self = this;
+			var dataSend = {
+				'req_id': req_id,
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'workflow',
+				'method': 'GetRequest',
+				'g': 'form',
+			};
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
-				'data': {
-					'req_id': req_id,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetRequest',
-					'g': 'form',
-				}
+				'data': dataSend
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
 		getElementsPlugin: function (req_list_id) {
+			var self = this;
+			var dataSend = {
+				'req_list_id': req_list_id,
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'workflow',
+				'method': 'GetElementsPlugin',
+				'g': 'form',
+			};
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
-				'data': {
-					'req_list_id': req_list_id,
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetElementsPlugin',
-					'g': 'form',
-				}
+				'data': dataSend
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
 			});
 		},
 
 		getSessionToken: function () {
+			var self = this;
+			var dataSend = {
+				'option': 'com_fabrik',
+				'format': 'raw',
+				'task': 'plugin.pluginAjax',
+				'plugin': 'workflow',
+				'method': 'GetSessionToken',
+				'g': 'form',
+			};
+
 			return jQuery.ajax({
 				'url': '',
 				'method': 'get',
-				'data': {
-					'option': 'com_fabrik',
-					'format': 'raw',
-					'task': 'plugin.pluginAjax',
-					'plugin': 'workflow',
-					'method': 'GetSessionToken',
-					'g': 'form',
+				'data': dataSend
+			}).fail(function (jq, status, error) {
+				var message = {
+					data: dataSend,
+					error: error,
+					status: status,
+					jq: jq
+				};
+
+				self.saveLogs(message);
+			});
+		},
+
+		/**
+		 * This function send a request to save the log in log table
+		 * 
+		 */
+		saveLogs: function (message) {
+			alert(Joomla.JText._("PLG_FABRIK_LIST_EASY_ADMIN_ERROR"));
+
+			jQuery.ajax({
+				url     : '',
+				method	: 'post',
+				data	: {
+					message: JSON.stringify(message),
+					option: 'com_fabrik',
+					format: 'raw',
+					task: 'plugin.pluginAjax',
+					g: 'form',
+					plugin: 'workflow',
+					method: 'saveLogs'
 				}
+			}).done(function (r) {
+				location.reload();
 			});
 		},
 	});

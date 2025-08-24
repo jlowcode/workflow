@@ -15,7 +15,7 @@ defined('_JEXEC') or die('Restricted access');
 // Require the abstract plugin class
 require_once COM_FABRIK_FRONTEND . '/models/plugin-form.php';
 require_once COM_FABRIK_FRONTEND . '/models/list.php';
-require_once JPATH_COMPONENT . '/controller.php';
+require_once COM_FABRIK_FRONTEND . '/controller.php';
 require_once JPATH_PLUGINS . '/fabrik_element/field/field.php';
 require_once JPATH_PLUGINS . '/fabrik_element/textarea/textarea.php';
 require_once JPATH_PLUGINS . '/fabrik_element/dropdown/dropdown.php';
@@ -27,6 +27,8 @@ use Joomla\CMS\User\User;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Filesystem\Path;
 use Joomla\CMS\Layout\FileLayout;
+use Joomla\CMS\Date\Date;
+use \Joomla\CMS\Plugin\PluginHelper;
 
 /**
  * Form workflow plugin
@@ -46,7 +48,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     protected $dbtable_request_sufixo;
     protected $fieldPrefix;
     protected $requestType;
-    protected $easyadmin=false;
+    public $easyadmin = false;
 
     protected $requests_table_attrs = Array(
         'req_id',
@@ -333,6 +335,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     case 'fileupload':
                         $elements->$property['ajax_upload'] = $params->ajax_upload;
                         break;
+                    
+                    case 'textarea':
+                        $elements->$property['rich_text'] = $params->use_wysiwyg;
+                        break;
                 }
             }
         }
@@ -454,7 +460,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         $obj = (object) $requestData;
         $results = $db->updateObject('#__fabrik_requests', $obj, 'req_id', false);
-        $r = $this->saveNotification($requestData);
         $return->response = true;
 
         if($sendMail == true) {
@@ -497,6 +502,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_REQUEST_TYPE_LABEL_EDIT_FIELD_TEXT');
 
         Text::script('PLG_FORM_WORKFLOW_REQUEST_DATA_LABEL');
+        Text::script('PLG_FORM_WORKFLOW_RECORD_FIELD_LABEL');
         Text::script('PLG_FORM_WORKFLOW_RECORD_DATA_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_LABEL');
         Text::script('PLG_FORM_WORKFLOW_REQUEST_APPROVAL_SECTION_COMMENT_LABEL');
@@ -528,7 +534,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_REQUEST_DISAPPROVE_SECTION_LABEL');
         Text::script('PLG_FORM_WORKFLOW_VOTES_IN_FAVOR');
         Text::script('PLG_FORM_WORKFLOW_VOTES_AGAINST');
-        Text::script('PLG_FORM_WORKFLOW_LOADING');
         Text::script('PLG_FORM_WORKFLOW_ORIGINAL_DATA');
         Text::script('PLG_FORM_WORKFLOW_ORIGINAL_IMAGE_DATA');
         Text::script('PLG_FORM_WORKFLOW_ACTUAL_IMAGE_DATA');
@@ -536,6 +541,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_PARTIAL_SCORE');
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
+        Text::script('PLG_FORM_WORKFLOW_REPORT_RECORD_LIST');
+        Text::script('PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
         Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
         Text::script('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE');
@@ -552,6 +559,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $show_request_id = filter_input(INPUT_GET, 'show_request_id', FILTER_SANITIZE_STRING);
         $options = new StdClass;
 
+        $plugin = PluginHelper::getPlugin('fabrik_form', 'workflow');
+		$params = new JRegistry($plugin->params);
+		$ignoreElements = $params->get('workflow_ignore_elements', '');
+
         if (isset($show_request_id) && !empty($show_request_id)) {
             $options->show_request_id = $show_request_id;
         }
@@ -564,10 +575,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->requestsCount = $this->countRequestsNumber();
         $options->user->approve_for_own_records = $this->params->get('approve_for_own_records');
         $options->wfl_action = $wfl_action;
-        $options->user->canApproveRequests = $this->canApproveRequests();
+        $options->user->canApproveRequests = $this->canApproveRequests([[]]);
         $options->allow_review_request = $this->getParams()->get('allow_review_request');
         $options->workflow_owner_element = $this->params->get('workflow_owner_element');
-        $options->workflow_ignore_elements = $this->params->get('workflow_ignore_elements');
+        $options->workflow_ignore_elements = $ignoreElements;
         $options->workflow_approval_by_votes = $this->getParams()->get('workflow_approval_by_vote');
         $options->workflow_votes_to_approve = $this->getParams()->get('workflow_votes_to_approve');
         $options->workflow_votes_to_disapprove = $this->getParams()->get('workflow_votes_to_disapprove');
@@ -576,6 +587,12 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 		$options->images = $this->getImages();
 		$options->statusName = $this->statusLista;
 		$options->requestTypeText = $this->requestTypeText;
+
+        // We need provide to js file if user has permission or not
+        $this->easyadmin = true;
+        $options->user->hasPermission = $this->hasPermission(['easyadmin_modal___listid' => $this->listId]);
+        $this->easyadmin = false;
+
         $options = json_encode($options);
         
         $jsFiles = Array();
@@ -677,7 +694,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $_REQUEST['workflow']['requests_headings'] = $headings;
         $_REQUEST['workflow']['requests_colCount'] = count($headings);
         $_REQUEST['workflow']['requests_list'] = $dados;
-        $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests();
+        $_REQUEST['workflow']['can_approve_requests'] = $this->canApproveRequests([[]]);
     }
 
     /**
@@ -866,7 +883,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         if ($this->params->get('workflow_send_mail') == '1'){
             $this->enviarEmailRequest($logData);
         }
-        $this->saveNotification($logData, $hasPermission);
+
         if (!$hasPermission) {
             /**
              * Set form id in registry to not show default message success in getSuccessMsg() function
@@ -942,72 +959,6 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         return true;
     }
 
-    public function saveNotification($formData)
-    {
-        $reviewrs_id = $this->getReviewers();
-        JLoader::register('FieldsHelper', JPATH_ADMINISTRATOR . '/components/com_fields/helpers/fields.php');
-
-        foreach ($reviewrs_id as $id) {
-            $field_id = 1;
-            JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-            $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-            $values = json_decode($fieldModel->getFieldValue($field_id, $id), true);
-            $is_vote = $this->getParams()->get('workflow_approval_by_vote');
-            if ($is_vote == 1){
-                if ($formData['req_vote_approve'] != '' || $formData['req_vote_disapprove'] != ''){
-                    $is_vote = 1;
-                }
-            }
-                if (($formData['req_status'] == "verify") && (!isset($values['requisicoes']) || count($values['requisicoes']) == 0)) {
-                    $this->newNotification($formData, $field_id, $id, 0);
-                } else {
-                    foreach ($values['requisicoes'] as $k => $v) {
-                        $validador = true;
-                        if ($v['lista'] == $formData["req_list_id"]) {
-                            $validador = false;
-                            // parei aqui
-                            // retirar apenas do usuario atual se for votacao
-                            if (($formData['req_status'] == "verify") && ($is_vote == 0)) {
-                                $values['requisicoes'][$k]['qtd']  = $v['qtd'] + 1;
-                            } else if ($formData['req_status'] != "pre-approved"){
-                                $values['requisicoes'][$k]['qtd'] = $v['qtd'] - 1;
-                                if ($values['requisicoes'][$k]['qtd'] == 0) {
-                                    unset($values['requisicoes'][$k]);
-                                }
-                            }
-                            $value = json_encode($values);
-                            JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-                            $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-                            $fieldModel->setFieldValue($field_id, $id, $value);
-                            break 1;
-                        } 
-                    }
-                    if ($validador && ($formData['req_status'] == "verify")) {
-                        //$this->newNotification($formData, $field_id, $id, $k+1);
-                        $values['requisicoes'][$k + 1]['lista'] = intval($formData["req_list_id"]);
-                        $values['requisicoes'][$k + 1]['qtd'] = 1;
-                        $value = json_encode($values);
-                        JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-                        $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-                        $fieldModel->setFieldValue($field_id, $id, $value);
-                    }
-                }
-        }
-
-        return true;
-    }
-
-    public function newNotification($formData, $field_id, $user_id, $k)
-    {
-        $value = new StdClass;
-        $value->requisicoes[$k]['lista'] = intval($formData["req_list_id"]);
-        $value->requisicoes[$k]['qtd'] = 1;
-        $value = json_encode($value);
-        JModelLegacy::addIncludePath(JPATH_ADMINISTRATOR . '/components/com_fields/models', 'FieldsModel');
-        $fieldModel = JModelLegacy::getInstance('Field', 'FieldsModel', array('ignore_request' => true));
-        $fieldModel->setFieldValue($field_id, $user_id, $value);
-    }
-
     /**
      * This method count the requests
      * 
@@ -1045,7 +996,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                     -- New registration requests
                     COALESCE((SELECT count(req_id) FROM {$requestList} WHERE req_status = '{$status}' 
                         AND (req_record_id IS NULL OR req_record_id = 0) {$whereUser} {$whereList}), 0) 
-                    
+
                     -- Record change/deletion requests
                     + COALESCE((SELECT count(req_id) FROM {$requestList} WHERE req_status = '{$status}' 
                         AND (req_record_id IS NOT NULL AND req_record_id <> 0) {$whereUser} {$whereList}), 0)
@@ -1537,6 +1488,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $groups = $this->user->getAuthorisedViewLevels();
         $canAdd = in_array($params->get('allow_add'), $groups);
 
+		if($this->user->authorise('core.admin')) return true;
+
         return $canAdd;
     }
 
@@ -1688,7 +1641,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      * 
      * @return      Boolean
      */
-    protected function hasPermission($formData, $delete=false, $listModel=false, $optionsJs=false)
+    public function hasPermission($formData, $delete=false, $listModel=false, $optionsJs=false)
     {
         if (!isset($this->requestType)) {
             $this->setRequestType($formData, $delete);
@@ -1752,15 +1705,17 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $canAdd = true;
         }
 
+		if($this->user->authorise('core.admin')) return true;
+        
         switch ($this->requestType) {
             case self::REQUEST_TYPE_ADD_RECORD:
-            case self::REQUEST_TYPE_ADD_FIELD:
                 if (!$canAdd) {
                     return false;
                 }
                 break;
             case self::REQUEST_TYPE_EDIT_RECORD:
             case self::REQUEST_TYPE_EDIT_FIELD:
+            case self::REQUEST_TYPE_ADD_FIELD:
                 if (!$canEdit) {
                     return false;
                 }
@@ -1787,6 +1742,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $listModel = $this->getModel()->getListModel();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         
+		if($this->user->authorise('core.admin')) return true;
+
         return in_array($listModel->getParams()->get('allow_request_record'), $groups);
     }
 
@@ -1817,21 +1774,45 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
     /**
      * Checks if the user can approve requests
+     * For next release use this method to check if the user can approve requests in js file
+     * 
+     * @param       Array       $dataRequest           The data request array
      * 
      * @return      Boolean
      */
-    protected function canApproveRequests()
+    public function canApproveRequests($dataRequest)
     {
         $app = Factory::getApplication();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
+        $dataRequest = $dataRequest[0];
 
-        if ($this->user->authorise('core.admin')) {
-            return true;
-        } else if (in_array($this->getParams()->get('allow_review_request'), $groups)) {
-            return true;
+        if(empty($dataRequest)) {
+            return $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
         }
 
-        return false;
+        $reviewersVotes = explode(',', $request->req_reviewers_votes);
+        $approvalByVote = (bool) $this->getParams()->get("workflow_approval_by_vote");
+
+        // Request by vote that user already voted, user cant vote again
+        if($approvalByVote && in_array($this->user->id, $reviewersVotes)) {
+            return false;
+        }
+
+        // Admins and list admins can approve requests
+        $canApproveRequests = $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
+
+        // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
+        if($dataRequest->req_owner_id == $this->user->id && (bool) $this->params->get('approve_for_own_records')) {
+            if(in_array($dataRequest->req_request_type_id, [2, 3, 5])) {
+                $canApproveRequests = true;
+            } else {
+                $canApproveRequests = false;
+            }
+        } else if($dataRequest->req_user_id == $this->user->id) {
+            $canApproveRequests = false;
+        }
+
+        return $canApproveRequests;
     }
 
     /**
@@ -1853,22 +1834,27 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     /**
      * This method provide the friendly url
      * 
-     * @param       Int            $id              Id of the record
-     * @param       String         $view            List, form or detail view 
-     * @param       Int            $idForm          Id of the form 
+     * @param       Int            $id                  Id of the record
+     * @param       String         $view                List, form or detail view 
+     * @param       Int            $idForm              Form id
+     * @param       Int            $idRegister          Register id
      * 
      * @return      String
      * 
      * @since       v4.1
      */
-    private function getFriendlyUrl($id, $view, $idForm=0)
+    private function getFriendlyUrl($id, $view, $idForm=0, $idRegister=0)
     {
         $app = Factory::getApplication();
         $menu = $app->getMenu();
 
         $menuLinked = $menu->getItems('link', "index.php?option=com_fabrik&view=list&listid=$id", true);
         $route = '/' . $menuLinked->route;
-        $route .= $view == 'form' ? "/form/$idForm" : '';
+
+        if($view != 'list') {
+            $route .= $view == 'form' ? "/form/$idForm" : "/details/$idForm";
+            $route .= $idRegister != 0 ? "/$idRegister" : "";
+        }
 
         return $route;
     }
@@ -2193,6 +2179,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     private function enviarEmail($emailTo, $subject, $message)
     {
+        // Return now because we need treat the slowness quickly
+        return;
+
         jimport('joomla.mail.helper');
 
         $emailFrom = $this->config->get('mailfrom');
@@ -2402,9 +2391,9 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * This method only call to main method that verify if the user has the permission needed
+     * This method only call to main method that verify if the user has the permission needed. Called by easyadmin plugin
      * 
-     * @return      Boolean
+     * @return      Null
      * 
      * @since       version 4.1
      */
@@ -2463,14 +2452,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $db = Factory::getContainer()->get('DatabaseDriver');
         $filter = JFilterInput::getInstance();
         $app = Factory::getApplication();
+        $listModel = JModelLegacy::getInstance('List', 'FabrikFEModel');
 
         $response = new stdClass();
         $response->error = false;
-
+        
         $input = $app->input;
         $request = $filter->clean($input->getString('data'), 'array');
         $mod = $input->getString('mod');
         $returnFields = $mod == 'formRequest' ? 1 : 0;
+
+        $listModel->setId($request['req_list_id']);
+        $idForm = $listModel->getFormModel()->getId();
 
         try {
             $configFields = $this->configFields($request, $mod);
@@ -2482,7 +2475,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $response->error = true;
             $response->message = Text::_("PLG_FORM_WORKFLOW_ERROR_BUILD_FORM");
         }
-        
+
+        $response->link = $this->getFriendlyUrl($request['req_list_id'], 'details', $idForm ,$request['req_record_id']);
         echo json_encode($response);
     }
 
@@ -2903,6 +2897,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	{
 		$this->images['view'] = FabrikHelperHTML::image('view.png', 'list');
 		$this->images['danger'] = FabrikHelperHTML::image('danger.png', 'list');
+		$this->images['trash'] = FabrikHelperHTML::image('trash.png', 'list');
 	}
 
 	/**
@@ -2915,5 +2910,32 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 	public function getImages() 
 	{
 		return $this->images;
+	}
+
+    /**
+	 * This method in case of bad request will save the data in #__action_logs table
+	 * 
+	 */
+	public function onSaveLogs()
+	{
+        $db = Factory::getContainer()->get('DatabaseDriver');
+		$app = Factory::getApplication();
+
+		$input = $app->input;
+
+		$query = $db->getQuery(true);
+		$query->insert($db->qn("#__action_logs"))
+			->columns(implode(",", $db->qn(["message_language_key", "message", "log_date", "extension", "user_id", "item_id"])))
+			->values(implode(",", $db->q([
+				Text::_("PLG_FABRIK_FORM_WORKFLOW_ERROR"),
+				$input->getString('message'),
+				Date::getInstance()->toSql(),
+				Text::_("PLG_FABRIK_FORM_WORKFLOW"),
+				$this->user->id,
+				$input->getInt('Itemid')
+			]))
+		);
+        $db->setQuery($query);
+		$db->execute($query);
 	}
 }
