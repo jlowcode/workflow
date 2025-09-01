@@ -510,7 +510,7 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 							if (self.options.workflow_approval_by_votes == '1') {
 								var vote = jQuery("#voteoptions").val();
 
-								var isAdminSpecial = self.options.user && self.options.user.isAdminSpecial;
+								var isAdminSpecial = self.options.user.isAdminSpecial;
 
 								switch (vote) {
 									case '':

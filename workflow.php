@@ -415,7 +415,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     public function onProcessRequest()
     {
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $usuario = &Factory::getApplication()->getIdentity();
+        $user = &Factory::getApplication()->getIdentity();
 
         $fieldsToUpdate = Array(
             "req_id",
@@ -444,13 +444,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         if ($request["options"]["workflow_approval_by_votes"] == 1) {
-            $this->processAdminVoting($requestData, $usuario);
+            $this->processAdminVoting($requestData, $user);
 
             if (empty($requestData['req_approval'])) {
                 if ($requestData['req_status'] == 'approved' || $requestData['req_status'] == 'not-approved') {
                     $requestData['req_approval'] = $requestData['req_status'] === 'approved' ? 1 : 0;
                 }
-                $requestData['req_reviewers_votes'] .= $usuario->id . ',';
+                $requestData['req_reviewers_votes'] .= $user->id . ',';
             }
         } else {
             $requestData['req_status'] = $requestData['req_approval'] === '1' ? 'approved' : 'not-approved';
@@ -459,7 +459,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $requestData['req_vote_approve'] =  $requestData['req_vote_approve'] === '' ? null : $requestData['req_vote_approve'];
         $requestData['req_vote_disapprove'] = $requestData['req_vote_disapprove'] === '' ? null : $requestData['req_vote_disapprove'];
 
-        $requestData['req_reviewer_id'] = $requestData['req_reviewer_id'] === '' ? "{$usuario->id}" : $requestData['req_reviewer_id'];
+        $requestData['req_reviewer_id'] = $requestData['req_reviewer_id'] === '' ? "{$user->id}" : $requestData['req_reviewer_id'];
         $requestData['req_revision_date'] = date("Y-m-d H:i:s");
 
         $obj = (object) $requestData;
@@ -477,18 +477,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      * Function to process the admin voting
      *
      * @param   array  $requestData  The request data
-     * @param   User   $usuario      The user object
+     * @param   User   $user      The user object
      *
      * @return  Null
      */
-    private function processAdminVoting(&$requestData, $usuario)
+    private function processAdminVoting(&$requestData, $user)
     {
         // Admin can approve automatically any request
-        if ($usuario->authorise('core.manage')) {
+        if ($user->authorise('core.manage')) {
             $requestData['req_approval'] = 1;
             $requestData['req_status']  = 'approved';
             $requestData['req_vote_approve'] = $_REQUEST["options"]["workflow_votes_to_approve"];
-            $requestData['req_reviewers_votes'] .= $usuario->id . ',';
+            $requestData['req_reviewers_votes'] .= $user->id . ',';
         }
     }
 
@@ -1725,14 +1725,18 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $canAdd = true;
         }
 
-        $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
+        $isInGroup = in_array($this->getParams()->get('allow_delete'), $groups);
 
-        if($approve_for_own_records == 2 && $this->requestType == self::REQUEST_TYPE_EDIT_FIELD && !$this->user->authorise('core.manage') && !$isInGroup) {
-            $canEdit = false;
-        }
+        if ($approve_for_own_records == 2 && !$this->user->authorise('core.manage') && !$isInGroup) {
+            switch ($this->requestType) {
+                case self::REQUEST_TYPE_EDIT_FIELD:
+                    $canEdit = false;
+                    break;
 
-        if ($approve_for_own_records == 2 && $this->requestType == self::REQUEST_TYPE_DELETE_RECORD && !$this->user->authorise('core.manage') && !$isInGroup) {
-            $canDelete = false;
+                case self::REQUEST_TYPE_DELETE_RECORD:
+                    $canDelete = false;
+                    break;
+            }
         }
 
 		if($this->user->authorise('core.manage')) return true;
