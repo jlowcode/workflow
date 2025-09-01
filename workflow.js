@@ -139,12 +139,6 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 							fields[key].parentElement.setAttribute('title', "Completar ou corrigir esses dados")
 						};
 					});
-
-					if(!self.options.user.hasPermission) {
-						var link = jQuery(btnGroup[0]).find('.fabrik_edit');
-						var span = link.find('span').first();
-						link.html('<span>' + span.html() + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST"));
-					}
 				});
 
 				jQuery("a.btn-default-delete").on("click", debounce(2500, true, function (e) {
@@ -516,6 +510,8 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 							if (self.options.workflow_approval_by_votes == '1') {
 								var vote = jQuery("#voteoptions").val();
 
+								var isAdminSpecial = self.options.user && self.options.user.isAdminSpecial;
+
 								switch (vote) {
 									case '':
 										alert(Joomla.JText._('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY'));
@@ -523,11 +519,19 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 										break;
 									
 									case '0':
-										formData[0]['req_vote_disapprove'] += 1;
+										if(isAdminSpecial) {
+											formData[0]['req_vote_disapprove'] = self.options.workflow_votes_to_disapprove;
+										} else {
+											formData[0]['req_vote_disapprove'] += 1;
+										}
 										break;
 
 									case '1':
-										formData[0]['req_vote_approve'] += 1;
+										if(isAdminSpecial) {
+											formData[0]['req_vote_approve'] = self.options.workflow_votes_to_approve;
+										} else {
+											formData[0]['req_vote_approve'] += 1;
+										}
 										break;
 								}
 	
@@ -1097,7 +1101,7 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 						easyadmin.setElementLabelAdvancedLink('_wfl');
 						easyadmin.showHideElements('show_in_list', 'element', 'yesno', '', '_wfl');
 
-						jQuery('#easyadmin_modal___type_wfl').trigger('change', {sufix: '_wfl'});
+						jQuery('#easyadmin_modal___type_wfl').trigger('change');
 						jQuery('label[for="easyadmin_modal___label_advanced_link_wfl"]').trigger('click', {button: 'edit-element', sufix: '_wfl'});
 						jQuery('#easyadmin_modal___options_dropdown_wfl').attr('disabled', true);
 						jQuery('.modalContainer #jlow_fabrik_easyadmin_modal___list-auto-complete').attr('disabled', true);

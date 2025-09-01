@@ -444,10 +444,14 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         if ($request["options"]["workflow_approval_by_votes"] == 1) {
-            if ($requestData['req_status'] == 'approved' || $requestData['req_status'] == 'not-approved') {
-                $requestData['req_approval'] = $requestData['req_status'] === 'approved' ? 1 : 0;
+            $this->processAdminVoting($requestData, $usuario);
+
+            if (empty($requestData['req_approval'])) {
+                if ($requestData['req_status'] == 'approved' || $requestData['req_status'] == 'not-approved') {
+                    $requestData['req_approval'] = $requestData['req_status'] === 'approved' ? 1 : 0;
+                }
+                $requestData['req_reviewers_votes'] .= $usuario->id . ',';
             }
-            $requestData['req_reviewers_votes'] .= $usuario->id . ',';
         } else {
             $requestData['req_status'] = $requestData['req_approval'] === '1' ? 'approved' : 'not-approved';
         }
@@ -468,6 +472,26 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 
         echo json_encode($return);
     }
+
+    /**
+     * Function to process the admin voting
+     *
+     * @param   array  $requestData  The request data
+     * @param   User   $usuario      The user object
+     *
+     * @return  Null
+     */
+    private function processAdminVoting(&$requestData, $usuario)
+    {
+        // Admin can approve automatically any request
+        if ($usuario->authorise('core.manage')) {
+            $requestData['req_approval'] = 1;
+            $requestData['req_status']  = 'approved';
+            $requestData['req_vote_approve'] = $_REQUEST["options"]["workflow_votes_to_approve"];
+            $requestData['req_reviewers_votes'] .= $usuario->id . ',';
+        }
+    }
+
 
     /**
      * Function sends message texts to javascript file
@@ -582,6 +606,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
 		$options->images = $this->getImages();
 		$options->statusName = $this->statusLista;
 		$options->requestTypeText = $this->requestTypeText;
+        $options->user->isAdminSpecial = $this->user->authorise('core.manage');
 
         // We need provide to js file if user has permission or not
         $this->easyadmin = true;
@@ -1483,7 +1508,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $groups = $this->user->getAuthorisedViewLevels();
         $canAdd = in_array($params->get('allow_add'), $groups);
 
-		if($this->user->authorise('core.admin')) return true;
+		if($this->user->authorise('core.manage')) return true;
 
         return $canAdd;
     }
@@ -1627,7 +1652,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     }
 
     /**
-     * Checks whether the user has permission to perform the action and allows or disallows persisting the data in the database.
+     * Checks if the user has permission to perform the action as pre-approved
      * 
      * @param       Array           $formData           The formData array
      * @param       Boolean         $delete             The user wants delete record?
@@ -1700,7 +1725,17 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $canAdd = true;
         }
 
-		if($this->user->authorise('core.admin')) return true;
+        $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
+
+        if($approve_for_own_records == 2 && $this->requestType == self::REQUEST_TYPE_EDIT_FIELD && !$this->user->authorise('core.manage') && !$isInGroup) {
+            $canEdit = false;
+        }
+
+        if ($approve_for_own_records == 2 && $this->requestType == self::REQUEST_TYPE_DELETE_RECORD && !$this->user->authorise('core.manage') && !$isInGroup) {
+            $canDelete = false;
+        }
+
+		if($this->user->authorise('core.manage')) return true;
         
         switch ($this->requestType) {
             case self::REQUEST_TYPE_ADD_RECORD:
@@ -1737,7 +1772,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $listModel = $this->getModel()->getListModel();
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         
-		if($this->user->authorise('core.admin')) return true;
+		if($this->user->authorise('core.manage')) return true;
 
         return in_array($listModel->getParams()->get('allow_request_record'), $groups);
     }
@@ -1764,7 +1799,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $groups = $app->getIdentity()->getAuthorisedViewLevels();
         $canView = 'only_own';
         
-        if ($this->user->authorise('core.admin')) {
+        if ($this->user->authorise('core.manage')) {
             $canView = 'all';
         } else if (in_array($this->getParams()->get('allow_review_request'), $groups)) {
             $canView = 'all';
@@ -1792,7 +1827,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $dataRequest = $dataRequest[0];
 
         // Admins and list admins can approve requests
-        $isAdmin = $this->user->authorise('core.admin');
+        $isAdmin = $this->user->authorise('core.manage');
         $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
         $hasRecords = $this->userHasRecords($this->user->id, $dataRequest);
         $collab = (int) $this->getModel()->getParams()->get('approve_for_own_records');
@@ -1812,7 +1847,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             return false;
         }
         
-        // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
+        // If user is admin, he can approve requests
         if($isAdmin) {
             return true;
         }
