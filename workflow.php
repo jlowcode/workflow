@@ -566,6 +566,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         Text::script('PLG_FORM_WORKFLOW_CLICK_HERE');
         Text::script('PLG_FORM_WORKFLOW_DELETE_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_REPORT_RECORD_LIST');
+        Text::script('PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST');
         Text::script('PLG_FORM_WORKFLOW_ERROR_ORDERING');
         Text::script('PLG_FORM_WORKFLOW_ERROR_APPROVE_EMPTY');
         Text::script('PLG_FORM_WORKFLOW_RECORD_EDIT_SUCESS_MESSAGE');
@@ -591,6 +592,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $options->listId = $this->listId;
         $options->listName = $this->listName;
         $options->user = $this->user;
+        $options->user->isRegistered = !$this->user->guest;
         $options->requestsCount = $this->countRequestsNumber();
         $options->user->approve_for_own_records = $this->params->get('approve_for_own_records');
         $options->wfl_action = $wfl_action;
@@ -1725,14 +1727,42 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $canAdd = true;
         }
 
-        $isInGroup = in_array($this->getParams()->get('allow_delete'), $groups);
+        $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
 
         if ($approve_for_own_records == 2 && !$this->user->authorise('core.manage') && !$isInGroup) {
             switch ($this->requestType) {
+                case self::REQUEST_TYPE_ADD_RECORD:
+                    $canAdd = true;
+                    break;
+                case self::REQUEST_TYPE_EDIT_RECORD:
+                    $canEdit = true;
+                    break;
+                case self::REQUEST_TYPE_DELETE_RECORD:
+                    $canDelete = false;
+                case self::REQUEST_TYPE_EDIT_FIELD:
+                case self::REQUEST_TYPE_ADD_FIELD:
+                    $canEdit = false;
+                    break;
+            }
+        } 
+
+        if ($approve_for_own_records == 1 && !$this->user->authorise('core.manage') && !$isInGroup) {
+            $ownerId = $formData[$table_name . '___' . $owner_element_name] ?? null;
+            if (is_array($ownerId)) {
+                $ownerId = reset($ownerId);
+            }
+            $isOwner = ((int)$this->user->id === (int)$ownerId);
+
+            switch ($this->requestType) {
+                case self::REQUEST_TYPE_ADD_RECORD:
+                    $canAdd = true;
+                    break;
+                case self::REQUEST_TYPE_EDIT_RECORD:
+                    $canEdit = $isOwner || $this->user->authorise('core.manage') || $isInGroup;
+                    break;
                 case self::REQUEST_TYPE_EDIT_FIELD:
                     $canEdit = false;
                     break;
-
                 case self::REQUEST_TYPE_DELETE_RECORD:
                     $canDelete = false;
                     break;
