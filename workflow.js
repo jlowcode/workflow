@@ -107,44 +107,61 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 
 				var dataRow = document.getElementsByClassName('fabrik_row');
                 Array.from(dataRow).each(function (row) {
-					// Report button
-                    var titleDelAction = self.options.user.hasPermission ? Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST") : Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_RECORD_LIST");
+					var dataPost = {
+						'rowId': row.id.split('_')[6],
+						'listId': self.options.listId,
+						'options': 'com_fabrik',
+						'format': 'raw',
+						'task': 'plugin.pluginAjax',
+						'g': 'form',
+						'plugin': 'workflow',
+						'method': 'getRowHasPermission',
+					};
+					jQuery.ajax({
+						url     : '',
+						method	: 'post',
+						data: dataPost,
+					}).done(function (r) {
+						var hasPermission = JSON.parse(r);
+						// Report button
+						var titleDelAction = hasPermission.delete ? Joomla.JText._("PLG_FORM_WORKFLOW_DELETE_RECORD_LIST") : Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_RECORD_LIST");
 
-					var btnGroup = row.getElementsByClassName('dropdown-menu');
-					btnGroup[0].style.minWidth = '12em';
-					let li = document.createElement("li");
-					li.setAttribute('class', 'nav-link');
+						var btnGroup = row.getElementsByClassName('dropdown-menu');
+						btnGroup[0].style.minWidth = '12em';
+						let li = document.createElement("li");
+						li.setAttribute('class', 'nav-link');
 
-					let report = document.createElement("a");
-					report.classList.add('btn-default-delete');
-					report.setAttribute('data-loadmethod', 'xhr');
-					report.setAttribute('data-list', row.offsetParent.id);
-					report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6]);
-					report.setAttribute('data-rowid', 'xhr');
-					report.setAttribute('target', '_self');
-					report.setAttribute('title', titleDelAction);
+						let report = document.createElement("a");
+						report.classList.add('btn-default-delete');
+						report.setAttribute('data-loadmethod', 'xhr');
+						report.setAttribute('data-list', row.offsetParent.id);
+						report.setAttribute('list-row-ids', row.id.split('_')[4] + ':' + row.id.split('_')[6]);
+						report.setAttribute('data-rowid', 'xhr');
+						report.setAttribute('target', '_self');
+						report.setAttribute('title', titleDelAction);
 
-					report.innerHTML = '<span>' + (self.options.user.hasPermission ? self.options.images.trash : self.options.images.danger) + '</span> ' + titleDelAction;
-					li.appendChild(report);
-					btnGroup[0].appendChild(li);
+						report.innerHTML = '<span>' + (hasPermission.delete ? self.options.images.trash : self.options.images.danger) + '</span> ' + titleDelAction;
+						li.appendChild(report);
+						btnGroup[0].appendChild(li);
 
-					// Remove default delete button
-					jQuery('.dropdown-menu a.delete').parent().remove();
+						// Remove default delete button
+						jQuery('.dropdown-menu a.delete').parent().remove();
 
-					var fields = jQuery('.fabrik_element');
-					Object.keys(fields).forEach(function (key) {
-						if (fields[key].outerText == '') {
-							fields[key].parentElement.setAttribute('data-bs-toggle', "tooltip")
-							fields[key].parentElement.setAttribute('data-bs-placement', "top")
-							fields[key].parentElement.setAttribute('title', "Completar ou corrigir esses dados")
-						};
+						var fields = jQuery('.fabrik_element');
+						Object.keys(fields).forEach(function (key) {
+							if (fields[key].outerText == '') {
+								fields[key].parentElement.setAttribute('data-bs-toggle', "tooltip")
+								fields[key].parentElement.setAttribute('data-bs-placement', "top")
+								fields[key].parentElement.setAttribute('title', "Completar ou corrigir esses dados")
+							};
+						});
+
+						if(!hasPermission.edit) {
+							var link = jQuery(btnGroup[0]).find('.fabrik_edit');
+							var span = link.find('span').first();
+							link.html('<span>' + span.html() + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST"));
+						}
 					});
-
-					if(!self.options.user.hasPermission) {
-						var link = jQuery(btnGroup[0]).find('.fabrik_edit');
-						var span = link.find('span').first();
-						link.html('<span>' + span.html() + '</span> ' + Joomla.JText._("PLG_FORM_WORKFLOW_REPORT_EDIT_RECORD_LIST"));
-					}
 				});
 
 				jQuery("a.btn-default-delete").on("click", debounce(2500, true, function (e) {
@@ -516,7 +533,7 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 							if (self.options.workflow_approval_by_votes == '1') {
 								var vote = jQuery("#voteoptions").val();
 
-								var isAdminSpecial = self.options.user.isAdminSpecial;
+								var approveImediatly = self.canApproveImediatly(formData[0]);
 
 								switch (vote) {
 									case '':
@@ -525,7 +542,7 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 										break;
 									
 									case '0':
-										if(isAdminSpecial) {
+										if(approveImediatly) {
 											formData[0]['req_vote_disapprove'] = self.options.workflow_votes_to_disapprove;
 										} else {
 											formData[0]['req_vote_disapprove'] += 1;
@@ -533,7 +550,7 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 										break;
 
 									case '1':
-										if(isAdminSpecial) {
+										if(approveImediatly) {
 											formData[0]['req_vote_approve'] = self.options.workflow_votes_to_approve;
 										} else {
 											formData[0]['req_vote_approve'] += 1;
@@ -676,6 +693,14 @@ define(['jquery', 'fab/fabrik', 'lib/debounce/jquery.ba-throttle-debounce'], fun
 
 				self.saveLogs(message);
 			});
+		},
+
+		canApproveImediatly: function (form_data) {
+			var isAdminSpecial = self.options.user.isAdminSpecial;
+			if(isAdminSpecial) {
+				return true;
+			}
+
 		},
 
 		/**

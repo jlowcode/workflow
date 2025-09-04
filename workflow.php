@@ -1665,6 +1665,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function hasPermission($formData, $delete=false, $listModel=false, $optionsJs=false)
     {
+        $hasPermission = false;
+
         if (!isset($this->requestType)) {
             $this->setRequestType($formData, $delete);
         }
@@ -1726,72 +1728,74 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             }
             $canAdd = true;
         }
+        if($this->user->authorise('core.manage')) return true;
 
         $isInGroup = in_array($this->getParams()->get('allow_review_request'), $groups);
 
-        if ($approve_for_own_records == 2 && !$this->user->authorise('core.manage') && !$isInGroup) {
-            switch ($this->requestType) {
-                case self::REQUEST_TYPE_ADD_RECORD:
-                    $canAdd = true;
-                    break;
-                case self::REQUEST_TYPE_EDIT_RECORD:
-                    $canEdit = true;
-                    break;
-                case self::REQUEST_TYPE_DELETE_RECORD:
-                    $canDelete = false;
-                case self::REQUEST_TYPE_EDIT_FIELD:
-                case self::REQUEST_TYPE_ADD_FIELD:
-                    $canEdit = false;
-                    break;
-            }
-        } 
-
-        if ($approve_for_own_records == 1 && !$this->user->authorise('core.manage') && !$isInGroup) {
-            $ownerId = $formData[$table_name . '___' . $owner_element_name] ?? null;
-            if (is_array($ownerId)) {
-                $ownerId = reset($ownerId);
-            }
-            $isOwner = ((int)$this->user->id === (int)$ownerId);
-
-            switch ($this->requestType) {
-                case self::REQUEST_TYPE_ADD_RECORD:
-                    $canAdd = true;
-                    break;
-                case self::REQUEST_TYPE_EDIT_RECORD:
-                    $canEdit = $isOwner || $this->user->authorise('core.manage') || $isInGroup;
-                    break;
-                case self::REQUEST_TYPE_EDIT_FIELD:
-                    $canEdit = false;
-                    break;
-                case self::REQUEST_TYPE_DELETE_RECORD:
-                    $canDelete = false;
-                    break;
-            }
+        $ownerId = $formData[$table_name . '___' . $owner_element_name] ?? null;
+        if (is_array($ownerId)) {
+            $ownerId = reset($ownerId);
         }
+        $isOwner = ((int)$this->user->id === (int)$ownerId);
 
-		if($this->user->authorise('core.manage')) return true;
-        
-        switch ($this->requestType) {
-            case self::REQUEST_TYPE_ADD_RECORD:
-                if (!$canAdd) {
-                    return false;
+        switch ((int)$approve_for_own_records) {
+            case 0:
+                switch ((int)$this->$requestType) {
+                    case self::REQUEST_TYPE_ADD_RECORD:
+                    case self::REQUEST_TYPE_EDIT_RECORD:
+                    case self::REQUEST_TYPE_DELETE_RECORD:
+                    case self::REQUEST_TYPE_EDIT_FIELD:
+                    case self::REQUEST_TYPE_ADD_FIELD:
+                        if ($isInGroup) {
+                            $hasPermission = true;
+                        }
+                        break;
                 }
                 break;
-            case self::REQUEST_TYPE_EDIT_RECORD:
-            case self::REQUEST_TYPE_EDIT_FIELD:
-            case self::REQUEST_TYPE_ADD_FIELD:
-                if (!$canEdit) {
-                    return false;
+            case 1:
+                switch ((int)$this->requestType) {
+                    case self::REQUEST_TYPE_ADD_RECORD:
+                        $hasPermission = true;
+                        break;
+                    case self::REQUEST_TYPE_EDIT_RECORD:
+                        if ($isOwner) {
+                            $hasPermission = true;
+                        } else {
+                            if ($isInGroup) {
+                                $hasPermission = true;
+                            }
+                        }
+                        break;
+                    case self::REQUEST_TYPE_DELETE_RECORD:
+                    case self::REQUEST_TYPE_EDIT_FIELD:
+                    case self::REQUEST_TYPE_ADD_FIELD:
+                        if ($isInGroup) {
+                            $hasPermission = true;
+                        } else {
+                            $hasPermission = false;
+                        }
+                        break;
                 }
                 break;
-            case self::REQUEST_TYPE_DELETE_RECORD:
-                if (!$canDelete) {
-                    return false;
+            case 2:
+                switch ((int)$this->requestType) {
+                    case self::REQUEST_TYPE_ADD_RECORD:
+                    case self::REQUEST_TYPE_EDIT_RECORD:
+                    case self::REQUEST_TYPE_ADD_FIELD:
+                        $hasPermission = true;
+                        break;
+                    case self::REQUEST_TYPE_DELETE_RECORD:
+                    case self::REQUEST_TYPE_EDIT_FIELD:
+                        if ($isInGroup) {
+                            $hasPermission = true;
+                        } else {
+                            $hasPermission = false;
+                        }
+                        break;
                 }
                 break;
         }
-
-        return true;
+        return $hasPermission;
     }
 
     /**
@@ -2508,9 +2512,30 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
      */
     public function onHasPermission()
     {
-        $permission = $this->hasPermission($_POST);
+        $delete = isset($_POST['delete']) ? (bool) $_POST['delete'] : false;
+        $permission = $this->hasPermission($_POST, $delete);
 
         echo json_encode($permission);
+    }
+
+    public function onGetRowHasPermission()
+    {
+        $app = Factory::getApplication();
+        $input = $app->input;
+        $rowId = $input->getInt('rowId');
+        $listId = $input->getInt('listId');
+
+        $listModel = Factory::getApplication()->bootComponent('com_fabrik')->getMVCFactory()->createModel('List', 'FabrikFEModel');
+        $listModel->setId($listId);
+        $formData = (array) $listModel->getRow($rowId);
+        $hasPermissionToDelete = $this->hasPermission($formData, true, $listModel);
+        $hasPermissionToEdit = $this->hasPermission($formData, false, $listModel);
+
+        $hasPermission = array(
+            'delete' => $hasPermissionToDelete,
+            'edit' => $hasPermissionToEdit
+        );
+        echo json_encode($hasPermission);
     }
 
     /**
