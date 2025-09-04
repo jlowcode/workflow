@@ -1823,9 +1823,13 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
     protected function checkAddRequestButton()
     {
         $listModel = $this->getModel()->getListModel();
+        $addUrl = $listModel->getAddRecordLink();
+        $varsUrl = parse_url($addUrl);
+        $addRequestLink = $this->getFriendlyUrl($listModel->getId(), 'form', $listModel->getFormModel()->getId());
+        $addRequestLink = $addRequestLink . ($varsUrl['query'] ? '?' . $varsUrl['query'] . '&wfl_action=request' : '?wfl_action=request');
 
         $_REQUEST['workflow']['showAddRequest'] = !$listModel->canAdd() && $this->canRequest();
-        $_REQUEST['workflow']['addRequestLink'] = $this->getFriendlyUrl($listModel->getId(), 'form', $listModel->getFormModel()->getId()) . '?wfl_action=request';
+        $_REQUEST['workflow']['addRequestLink'] = $addRequestLink;
         $_REQUEST['workflow']['listLinkUrl'] = $this->getFriendlyUrl($listModel->getId(), 'list');
         $_REQUEST['workflow']['requestLabel'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_NEW_REQUEST');
         $_REQUEST['workflow']['eventsButton'] = Text::_('PLG_FORM_WORKFLOW_BUTTON_EVENTS');
