@@ -935,7 +935,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
                 }
             } else {
                 if (!empty($v) || in_array($this->requestType, ['4', '5'])) {
-                    if (end(explode('_', $k)) == 'orig') {
+                    $explode = explode('_', $k);
+                    if (end($explode) == 'orig') {
                         $k = array_shift(explode('_orig', $k));
                     }
                     $mainListFormData->$k = $v;
