@@ -872,7 +872,8 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         if (isset($owner_id) && !empty($owner_id)) {
             $formData["owner_id"] = $owner_id;
         } else {
-            die(Text::_("PLG_FORM_WORKFLOW_OWNER_NOT_SET"));
+            return;
+            // die(Text::_("PLG_FORM_WORKFLOW_OWNER_NOT_SET"));
         }
 
         $logData = $this->getFormDataToLog($formData, $hasPermission);
