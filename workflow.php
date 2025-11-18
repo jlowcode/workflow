@@ -1769,9 +1769,45 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
             $canView = 'all';
         } else if (in_array($allow_review_request, $groups)) {
             $canView = 'all';
+        } else if ($this->isPermittedToVote()) {
+            $canView = 'all';
         }
 
         return $canView;
+    }
+
+    /**
+     * This method verify if is permitted the user vote following the rules
+     * 1. Approve by votes must be high
+     * 2. User must contribute at least the number saved
+     *
+     * @param int $listId List id to check if vote is permitted
+     * @return bool
+     * @since 4.2.3
+     */
+    private function isPermittedToVote(int $listId = 0): bool
+    {
+        $listModel = Factory::getApplication()->bootComponent('com_fabrik')->getMVCFactory()->createModel('List', 'FabrikFEModel');
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $app = Factory::getApplication();
+
+        $input = $app->getInput();
+        $listId = $listId ?: $input->get('listid');
+        $listModel->setId($listId);
+
+        $formModel = $listModel->getFormModel();
+        $params = $formModel->getParams();
+        $isApproveByVote = $params->get('workflow_approval_by_vote');
+        $minContribution = (int) $params->get('workflow_contribution_to_vote', '5');
+
+        $query = $db->getQuery(true);
+        $query->select('count(*)')
+            ->from($db->qn($formModel->getTableName()))
+            ->where($db->qn('created_by') . ' = ' . $db->q($this->user->id));
+        $db->setQuery($query);
+        $contributionCount = $db->loadResult();
+
+        return $isApproveByVote && $contributionCount >= $minContribution;
     }
 
     /**
@@ -1789,7 +1825,10 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         $dataRequest = $dataRequest[0];
 
         if(empty($dataRequest)) {
-            return $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
+            return
+                $this->user->authorise('core.admin') ||
+                in_array($this->getParams()->get('allow_review_request'), $groups) ||
+                $this->isPermittedToVote();
         }
 
         $reviewersVotes = explode(',', $request->req_reviewers_votes);
@@ -1801,7 +1840,7 @@ class PlgFabrik_FormWorkflow extends PlgFabrik_Form
         }
 
         // Admins and list admins can approve requests
-        $canApproveRequests = $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups);
+        $canApproveRequests = $this->user->authorise('core.admin') || in_array($this->getParams()->get('allow_review_request'), $groups) || $this->isPermittedToVote($dataRequest->req_list_id);
 
         // If user is the owner of the request and the option approve for own records is set then user can approve if request is a edit or delete request of itens or fields
         if($dataRequest->req_owner_id == $this->user->id && (bool) $this->params->get('approve_for_own_records')) {

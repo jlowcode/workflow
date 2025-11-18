@@ -74,6 +74,14 @@
                      size="10"
                      default="2"
               />
+
+                <field name="workflow_contribution_to_vote"
+                       type="number"
+                       description="PLG_FORM_WORKFLOW_CONTRIBUTION_TO_VOTE_DESC"
+                       label="PLG_FORM_WORKFLOW_CONTRIBUTION_TO_VOTE_LABEL"
+                       size="10"
+                       default="5"
+                />
         </fieldset>	
     </fields>
 </form>
